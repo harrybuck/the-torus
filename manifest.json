@@ -1,0 +1,10 @@
+{
+  "id": "the-torus",
+  "name": "The Torus",
+  "version": "0.3.0",
+  "minAppVersion": "1.0.0",
+  "description": "Interactive 3D library visualization for your vault",
+  "author": "Harry Buck",
+  "authorUrl": "https://github.com/harrybuck",
+  "isDesktopOnly": true
+}
