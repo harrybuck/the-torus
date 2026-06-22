@@ -177554,8 +177554,8 @@ var ImapRunner = class {
 
 // src/qmdBundleShas.ts
 var QMD_BUNDLE_SHAS = {
-  "darwin-arm64": "a9264b061d25e8c19e8e4a938b6e5bf4c5575545fd8f80001b2237dcaefb77f9",
-  "darwin-x64": "a8d127dc9ac3c4e3c80886a5ef312a6625c6ab76ee6d79f28c5eb8d4fcaa3315"
+  "darwin-arm64": "6403c6eec053cbc41c707f5bcc3b6ffc4b64e8fc3f2578cbb4d4af04fccb7cd7",
+  "darwin-x64": "3de0109e2516ed37cb182c4e115350a09b3ecb1948c9d3b29dfacd99b8a21840"
 };
 
 // src/librarian/urlScraper.ts
@@ -192372,7 +192372,6 @@ ${titled}
       const missing = [];
       if (!this.prereqStatus.claude) missing.push("claude");
       if (!this.prereqStatus.obsidianCli) missing.push("obsidianCli");
-      if (!this.prereqStatus.qmd) missing.push("qmd");
       const warnings = [];
       if (!this.prereqStatus.xcode) {
         warnings.push(
@@ -192865,9 +192864,17 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
       try {
         cfg = JSON.parse((0, import_fs7.readFileSync)(settingsPath, "utf-8"));
         const collect = (h2) => h2?.hooks?.[0]?.command || "";
-        const cmds = [collect(cfg.hooks?.SessionStart?.[0]), collect(cfg.hooks?.UserPromptSubmit?.[0])];
+        const cmds = [
+          collect(cfg.hooks?.SessionStart?.[0]),
+          collect(cfg.hooks?.UserPromptSubmit?.[0]),
+          collect(cfg.hooks?.PostCompact?.[0])
+        ];
+        const hasUnquotedSpace = (c4) => c4.length > 0 && !c4.startsWith("'") && !c4.startsWith('"') && /\s/.test(c4);
         if (cmds.some((c4) => c4.includes("/the-torus/scripts/"))) {
           writeReason = "rewriting obsolete plugin script paths";
+          cfg = { hooks: {} };
+        } else if (cmds.some(hasUnquotedSpace)) {
+          writeReason = "rewriting unquoted hook commands (space-in-path safety)";
           cfg = { hooks: {} };
         } else if (!cfg.hooks?.PostCompact?.[0]) {
           writeReason = "injecting missing PostCompact hook";
@@ -192880,10 +192887,11 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
       this.torusTrace("plugin:install", `${settingsPath} preserved (user-edited or already current)`);
       return;
     }
+    const shQuote = (p3) => `'${p3.replace(/'/g, "'\\''")}'`;
     cfg.hooks = cfg.hooks || {};
-    if (!cfg.hooks.SessionStart) cfg.hooks.SessionStart = [{ matcher: "", hooks: [{ type: "command", command: orientPath }] }];
-    if (!cfg.hooks.UserPromptSubmit) cfg.hooks.UserPromptSubmit = [{ matcher: "", hooks: [{ type: "command", command: timePath }] }];
-    if (!cfg.hooks.PostCompact) cfg.hooks.PostCompact = [{ matcher: "", hooks: [{ type: "command", command: postCompactPath }] }];
+    if (!cfg.hooks.SessionStart) cfg.hooks.SessionStart = [{ matcher: "", hooks: [{ type: "command", command: shQuote(orientPath) }] }];
+    if (!cfg.hooks.UserPromptSubmit) cfg.hooks.UserPromptSubmit = [{ matcher: "", hooks: [{ type: "command", command: shQuote(timePath) }] }];
+    if (!cfg.hooks.PostCompact) cfg.hooks.PostCompact = [{ matcher: "", hooks: [{ type: "command", command: shQuote(postCompactPath) }] }];
     (0, import_fs7.mkdirSync)(claudeDir, { recursive: true });
     (0, import_fs7.writeFileSync)(settingsPath, JSON.stringify(cfg, null, 2));
     this.torusTrace("plugin:install", `wrote ${settingsPath} (${writeReason})`);
@@ -193106,7 +193114,7 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
     const qmdLimit = mode === "lex" ? "5" : "10";
     this.resolveQmdBin().then((launcher) => {
       if (!launcher) {
-        const result = JSON.stringify({ status: "error", error: "qmd_not_found: bundled qmd not installed and no system qmd on PATH. Enable plugin once with internet so the bundle can download, or install qmd (npm install -g @tobilu/qmd)." });
+        const result = JSON.stringify({ status: "error", error: "qmd_not_found: Smart Search bundle not installed. Open Settings \u2192 The Torus \u2192 Setup status \u2192 click Install on the Smart Search row (needs internet for the ~60 MB download)." });
         (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
         (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
         return;
@@ -193513,7 +193521,7 @@ ${cleanBody}
     const t02 = performance.now();
     const launcher = await this.resolveQmdBin();
     if (!launcher) {
-      throw new Error("qmd_not_found \u2014 bundled qmd not installed and no system qmd on PATH. Re-open Obsidian with internet to trigger the bundle download, or install qmd (npm install -g @tobilu/qmd).");
+      throw new Error("qmd_not_found \u2014 Smart Search bundle not installed. Open Settings \u2192 The Torus \u2192 Setup status \u2192 click Install on the Smart Search row (needs internet for the ~60 MB download).");
     }
     const outStream = this.torusLogger?.writeStream("plugin:torusQmdUpdate/out");
     const errStream = this.torusLogger?.writeStream("plugin:torusQmdUpdate/err");
@@ -197067,11 +197075,13 @@ ${remainingLines.join("\n")}
         const isSource = this.settings.sourceDirs.some((d) => file.path.startsWith(d + "/"));
         const isIdea = file.path.startsWith(this.settings.ideasDir + "/");
         const isInput = file.path.startsWith(this.settings.inputDir + "/");
-        const isInTorus = isSource || isIdea;
+        const cache3 = this.app.metadataCache.getFileCache(file);
+        const status = cache3?.frontmatter?.torus_status;
+        const isAdopted = status === "shelved" || status === "inbox";
+        const isInTorus = isSource || isIdea || isAdopted;
         if (isInTorus || isInput) {
-          const cache3 = isInTorus ? this.app.metadataCache.getFileCache(file) : null;
-          const status = cache3?.frontmatter?.torus_status;
           const isShelved = status === "shelved";
+          const isShelveable = isSource || isAdopted;
           if (isInTorus) {
             menu.addItem((item) => {
               item.setSection("torus").setTitle("Find in Torus").setIcon("search").onClick(async () => {
@@ -197089,7 +197099,7 @@ ${remainingLines.join("\n")}
                 new import_obsidian29.Notice("Copied: " + file.path);
               });
             });
-            if (isSource && isShelved) {
+            if (isShelveable && isShelved) {
               menu.addItem((item) => {
                 item.setSection("torus").setTitle("Move").setIcon("folder-input").onClick(async () => {
                   await this.activateView();
@@ -197099,7 +197109,7 @@ ${remainingLines.join("\n")}
                 });
               });
             }
-            if (isSource && !isShelved) {
+            if (isShelveable && !isShelved) {
               menu.addItem((item) => {
                 item.setSection("torus").setTitle("Shelve").setIcon("archive").onClick(async () => {
                   await this.activateView();
@@ -197505,13 +197515,11 @@ var PREREQ_HELP = {
     why: "The Torus drives Zero through `obsidian eval` \u2014 session hooks, `.torus-async.sh`, and the entire vault API surface route through the CLI feature. Without it the plugin loads but Zero can't reach the vault. After enabling, reload the plugin.",
     status: "required",
     instructional: true
-  },
-  qmd: {
-    name: "qmd (recommended)",
-    install: `npm install -g @tobilu/qmd && echo 'export PATH="$(npm config get prefix)/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc`,
-    why: "Local search over your vault. Without it, Zero can't recall notes by topic. Note: qmd is a Node CLI; the install pulls Node transitively if you don't have it. The `&& echo ...` part adds npm's global bin to your shell PATH so Obsidian's GUI launch resolves `qmd` (GUI launches don't read .zshrc unless PATH is exported there).",
-    status: "recommended"
   }
+  // qmd intentionally NOT in PREREQ_HELP — installs via the plugin's Welcome
+  // modal + Settings → Setup status → Install (self-contained bundle, no npm).
+  // Adding a copy-pasteable npm command here ambushes the user with the wrong
+  // path; the bundle wrapper is the right one.
 };
 var PrereqsModal = class extends import_obsidian29.Modal {
   constructor(app, missing, warnings = [], actions = []) {
