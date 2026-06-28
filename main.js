@@ -12903,6 +12903,804 @@ var require_jsx_runtime = __commonJS({
   }
 });
 
+// node_modules/qrcode-svg/lib/qrcode.js
+var require_qrcode = __commonJS({
+  "node_modules/qrcode-svg/lib/qrcode.js"(exports, module2) {
+    function QR8bitByte(data) {
+      this.mode = QRMode.MODE_8BIT_BYTE;
+      this.data = data;
+      this.parsedData = [];
+      for (var i4 = 0, l2 = this.data.length; i4 < l2; i4++) {
+        var byteArray = [];
+        var code = this.data.charCodeAt(i4);
+        if (code > 65536) {
+          byteArray[0] = 240 | (code & 1835008) >>> 18;
+          byteArray[1] = 128 | (code & 258048) >>> 12;
+          byteArray[2] = 128 | (code & 4032) >>> 6;
+          byteArray[3] = 128 | code & 63;
+        } else if (code > 2048) {
+          byteArray[0] = 224 | (code & 61440) >>> 12;
+          byteArray[1] = 128 | (code & 4032) >>> 6;
+          byteArray[2] = 128 | code & 63;
+        } else if (code > 128) {
+          byteArray[0] = 192 | (code & 1984) >>> 6;
+          byteArray[1] = 128 | code & 63;
+        } else {
+          byteArray[0] = code;
+        }
+        this.parsedData.push(byteArray);
+      }
+      this.parsedData = Array.prototype.concat.apply([], this.parsedData);
+      if (this.parsedData.length != this.data.length) {
+        this.parsedData.unshift(191);
+        this.parsedData.unshift(187);
+        this.parsedData.unshift(239);
+      }
+    }
+    QR8bitByte.prototype = {
+      getLength: function(buffer) {
+        return this.parsedData.length;
+      },
+      write: function(buffer) {
+        for (var i4 = 0, l2 = this.parsedData.length; i4 < l2; i4++) {
+          buffer.put(this.parsedData[i4], 8);
+        }
+      }
+    };
+    function QRCodeModel(typeNumber, errorCorrectLevel) {
+      this.typeNumber = typeNumber;
+      this.errorCorrectLevel = errorCorrectLevel;
+      this.modules = null;
+      this.moduleCount = 0;
+      this.dataCache = null;
+      this.dataList = [];
+    }
+    QRCodeModel.prototype = { addData: function(data) {
+      var newData = new QR8bitByte(data);
+      this.dataList.push(newData);
+      this.dataCache = null;
+    }, isDark: function(row, col) {
+      if (row < 0 || this.moduleCount <= row || col < 0 || this.moduleCount <= col) {
+        throw new Error(row + "," + col);
+      }
+      return this.modules[row][col];
+    }, getModuleCount: function() {
+      return this.moduleCount;
+    }, make: function() {
+      this.makeImpl(false, this.getBestMaskPattern());
+    }, makeImpl: function(test, maskPattern) {
+      this.moduleCount = this.typeNumber * 4 + 17;
+      this.modules = new Array(this.moduleCount);
+      for (var row = 0; row < this.moduleCount; row++) {
+        this.modules[row] = new Array(this.moduleCount);
+        for (var col = 0; col < this.moduleCount; col++) {
+          this.modules[row][col] = null;
+        }
+      }
+      this.setupPositionProbePattern(0, 0);
+      this.setupPositionProbePattern(this.moduleCount - 7, 0);
+      this.setupPositionProbePattern(0, this.moduleCount - 7);
+      this.setupPositionAdjustPattern();
+      this.setupTimingPattern();
+      this.setupTypeInfo(test, maskPattern);
+      if (this.typeNumber >= 7) {
+        this.setupTypeNumber(test);
+      }
+      if (this.dataCache == null) {
+        this.dataCache = QRCodeModel.createData(this.typeNumber, this.errorCorrectLevel, this.dataList);
+      }
+      this.mapData(this.dataCache, maskPattern);
+    }, setupPositionProbePattern: function(row, col) {
+      for (var r2 = -1; r2 <= 7; r2++) {
+        if (row + r2 <= -1 || this.moduleCount <= row + r2) continue;
+        for (var c4 = -1; c4 <= 7; c4++) {
+          if (col + c4 <= -1 || this.moduleCount <= col + c4) continue;
+          if (0 <= r2 && r2 <= 6 && (c4 == 0 || c4 == 6) || 0 <= c4 && c4 <= 6 && (r2 == 0 || r2 == 6) || 2 <= r2 && r2 <= 4 && 2 <= c4 && c4 <= 4) {
+            this.modules[row + r2][col + c4] = true;
+          } else {
+            this.modules[row + r2][col + c4] = false;
+          }
+        }
+      }
+    }, getBestMaskPattern: function() {
+      var minLostPoint = 0;
+      var pattern = 0;
+      for (var i4 = 0; i4 < 8; i4++) {
+        this.makeImpl(true, i4);
+        var lostPoint = QRUtil.getLostPoint(this);
+        if (i4 == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i4;
+        }
+      }
+      return pattern;
+    }, createMovieClip: function(target_mc, instance_name, depth) {
+      var qr_mc = target_mc.createEmptyMovieClip(instance_name, depth);
+      var cs = 1;
+      this.make();
+      for (var row = 0; row < this.modules.length; row++) {
+        var y = row * cs;
+        for (var col = 0; col < this.modules[row].length; col++) {
+          var x2 = col * cs;
+          var dark = this.modules[row][col];
+          if (dark) {
+            qr_mc.beginFill(0, 100);
+            qr_mc.moveTo(x2, y);
+            qr_mc.lineTo(x2 + cs, y);
+            qr_mc.lineTo(x2 + cs, y + cs);
+            qr_mc.lineTo(x2, y + cs);
+            qr_mc.endFill();
+          }
+        }
+      }
+      return qr_mc;
+    }, setupTimingPattern: function() {
+      for (var r2 = 8; r2 < this.moduleCount - 8; r2++) {
+        if (this.modules[r2][6] != null) {
+          continue;
+        }
+        this.modules[r2][6] = r2 % 2 == 0;
+      }
+      for (var c4 = 8; c4 < this.moduleCount - 8; c4++) {
+        if (this.modules[6][c4] != null) {
+          continue;
+        }
+        this.modules[6][c4] = c4 % 2 == 0;
+      }
+    }, setupPositionAdjustPattern: function() {
+      var pos = QRUtil.getPatternPosition(this.typeNumber);
+      for (var i4 = 0; i4 < pos.length; i4++) {
+        for (var j2 = 0; j2 < pos.length; j2++) {
+          var row = pos[i4];
+          var col = pos[j2];
+          if (this.modules[row][col] != null) {
+            continue;
+          }
+          for (var r2 = -2; r2 <= 2; r2++) {
+            for (var c4 = -2; c4 <= 2; c4++) {
+              if (r2 == -2 || r2 == 2 || c4 == -2 || c4 == 2 || r2 == 0 && c4 == 0) {
+                this.modules[row + r2][col + c4] = true;
+              } else {
+                this.modules[row + r2][col + c4] = false;
+              }
+            }
+          }
+        }
+      }
+    }, setupTypeNumber: function(test) {
+      var bits = QRUtil.getBCHTypeNumber(this.typeNumber);
+      for (var i4 = 0; i4 < 18; i4++) {
+        var mod = !test && (bits >> i4 & 1) == 1;
+        this.modules[Math.floor(i4 / 3)][i4 % 3 + this.moduleCount - 8 - 3] = mod;
+      }
+      for (var i4 = 0; i4 < 18; i4++) {
+        var mod = !test && (bits >> i4 & 1) == 1;
+        this.modules[i4 % 3 + this.moduleCount - 8 - 3][Math.floor(i4 / 3)] = mod;
+      }
+    }, setupTypeInfo: function(test, maskPattern) {
+      var data = this.errorCorrectLevel << 3 | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+      for (var i4 = 0; i4 < 15; i4++) {
+        var mod = !test && (bits >> i4 & 1) == 1;
+        if (i4 < 6) {
+          this.modules[i4][8] = mod;
+        } else if (i4 < 8) {
+          this.modules[i4 + 1][8] = mod;
+        } else {
+          this.modules[this.moduleCount - 15 + i4][8] = mod;
+        }
+      }
+      for (var i4 = 0; i4 < 15; i4++) {
+        var mod = !test && (bits >> i4 & 1) == 1;
+        if (i4 < 8) {
+          this.modules[8][this.moduleCount - i4 - 1] = mod;
+        } else if (i4 < 9) {
+          this.modules[8][15 - i4 - 1 + 1] = mod;
+        } else {
+          this.modules[8][15 - i4 - 1] = mod;
+        }
+      }
+      this.modules[this.moduleCount - 8][8] = !test;
+    }, mapData: function(data, maskPattern) {
+      var inc = -1;
+      var row = this.moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      for (var col = this.moduleCount - 1; col > 0; col -= 2) {
+        if (col == 6) col--;
+        while (true) {
+          for (var c4 = 0; c4 < 2; c4++) {
+            if (this.modules[row][col - c4] == null) {
+              var dark = false;
+              if (byteIndex < data.length) {
+                dark = (data[byteIndex] >>> bitIndex & 1) == 1;
+              }
+              var mask = QRUtil.getMask(maskPattern, row, col - c4);
+              if (mask) {
+                dark = !dark;
+              }
+              this.modules[row][col - c4] = dark;
+              bitIndex--;
+              if (bitIndex == -1) {
+                byteIndex++;
+                bitIndex = 7;
+              }
+            }
+          }
+          row += inc;
+          if (row < 0 || this.moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    } };
+    QRCodeModel.PAD0 = 236;
+    QRCodeModel.PAD1 = 17;
+    QRCodeModel.createData = function(typeNumber, errorCorrectLevel, dataList) {
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectLevel);
+      var buffer = new QRBitBuffer();
+      for (var i4 = 0; i4 < dataList.length; i4++) {
+        var data = dataList[i4];
+        buffer.put(data.mode, 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber));
+        data.write(buffer);
+      }
+      var totalDataCount = 0;
+      for (var i4 = 0; i4 < rsBlocks.length; i4++) {
+        totalDataCount += rsBlocks[i4].dataCount;
+      }
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw new Error("code length overflow. (" + buffer.getLengthInBits() + ">" + totalDataCount * 8 + ")");
+      }
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+      while (true) {
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(QRCodeModel.PAD0, 8);
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(QRCodeModel.PAD1, 8);
+      }
+      return QRCodeModel.createBytes(buffer, rsBlocks);
+    };
+    QRCodeModel.createBytes = function(buffer, rsBlocks) {
+      var offset = 0;
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+      for (var r2 = 0; r2 < rsBlocks.length; r2++) {
+        var dcCount = rsBlocks[r2].dataCount;
+        var ecCount = rsBlocks[r2].totalCount - dcCount;
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+        dcdata[r2] = new Array(dcCount);
+        for (var i4 = 0; i4 < dcdata[r2].length; i4++) {
+          dcdata[r2][i4] = 255 & buffer.buffer[i4 + offset];
+        }
+        offset += dcCount;
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = new QRPolynomial(dcdata[r2], rsPoly.getLength() - 1);
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r2] = new Array(rsPoly.getLength() - 1);
+        for (var i4 = 0; i4 < ecdata[r2].length; i4++) {
+          var modIndex = i4 + modPoly.getLength() - ecdata[r2].length;
+          ecdata[r2][i4] = modIndex >= 0 ? modPoly.get(modIndex) : 0;
+        }
+      }
+      var totalCodeCount = 0;
+      for (var i4 = 0; i4 < rsBlocks.length; i4++) {
+        totalCodeCount += rsBlocks[i4].totalCount;
+      }
+      var data = new Array(totalCodeCount);
+      var index = 0;
+      for (var i4 = 0; i4 < maxDcCount; i4++) {
+        for (var r2 = 0; r2 < rsBlocks.length; r2++) {
+          if (i4 < dcdata[r2].length) {
+            data[index++] = dcdata[r2][i4];
+          }
+        }
+      }
+      for (var i4 = 0; i4 < maxEcCount; i4++) {
+        for (var r2 = 0; r2 < rsBlocks.length; r2++) {
+          if (i4 < ecdata[r2].length) {
+            data[index++] = ecdata[r2][i4];
+          }
+        }
+      }
+      return data;
+    };
+    var QRMode = { MODE_NUMBER: 1 << 0, MODE_ALPHA_NUM: 1 << 1, MODE_8BIT_BYTE: 1 << 2, MODE_KANJI: 1 << 3 };
+    var QRErrorCorrectLevel = { L: 1, M: 0, Q: 3, H: 2 };
+    var QRMaskPattern = { PATTERN000: 0, PATTERN001: 1, PATTERN010: 2, PATTERN011: 3, PATTERN100: 4, PATTERN101: 5, PATTERN110: 6, PATTERN111: 7 };
+    var QRUtil = { PATTERN_POSITION_TABLE: [[], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50], [6, 30, 54], [6, 32, 58], [6, 34, 62], [6, 26, 46, 66], [6, 26, 48, 70], [6, 26, 50, 74], [6, 30, 54, 78], [6, 30, 56, 82], [6, 30, 58, 86], [6, 34, 62, 90], [6, 28, 50, 72, 94], [6, 26, 50, 74, 98], [6, 30, 54, 78, 102], [6, 28, 54, 80, 106], [6, 32, 58, 84, 110], [6, 30, 58, 86, 114], [6, 34, 62, 90, 118], [6, 26, 50, 74, 98, 122], [6, 30, 54, 78, 102, 126], [6, 26, 52, 78, 104, 130], [6, 30, 56, 82, 108, 134], [6, 34, 60, 86, 112, 138], [6, 30, 58, 86, 114, 142], [6, 34, 62, 90, 118, 146], [6, 30, 54, 78, 102, 126, 150], [6, 24, 50, 76, 102, 128, 154], [6, 28, 54, 80, 106, 132, 158], [6, 32, 58, 84, 110, 136, 162], [6, 26, 54, 82, 110, 138, 166], [6, 30, 58, 86, 114, 142, 170]], G15: 1 << 10 | 1 << 8 | 1 << 5 | 1 << 4 | 1 << 2 | 1 << 1 | 1 << 0, G18: 1 << 12 | 1 << 11 | 1 << 10 | 1 << 9 | 1 << 8 | 1 << 5 | 1 << 2 | 1 << 0, G15_MASK: 1 << 14 | 1 << 12 | 1 << 10 | 1 << 4 | 1 << 1, getBCHTypeInfo: function(data) {
+      var d = data << 10;
+      while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) >= 0) {
+        d ^= QRUtil.G15 << QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15);
+      }
+      return (data << 10 | d) ^ QRUtil.G15_MASK;
+    }, getBCHTypeNumber: function(data) {
+      var d = data << 12;
+      while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18) >= 0) {
+        d ^= QRUtil.G18 << QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18);
+      }
+      return data << 12 | d;
+    }, getBCHDigit: function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit++;
+        data >>>= 1;
+      }
+      return digit;
+    }, getPatternPosition: function(typeNumber) {
+      return QRUtil.PATTERN_POSITION_TABLE[typeNumber - 1];
+    }, getMask: function(maskPattern, i4, j2) {
+      switch (maskPattern) {
+        case QRMaskPattern.PATTERN000:
+          return (i4 + j2) % 2 == 0;
+        case QRMaskPattern.PATTERN001:
+          return i4 % 2 == 0;
+        case QRMaskPattern.PATTERN010:
+          return j2 % 3 == 0;
+        case QRMaskPattern.PATTERN011:
+          return (i4 + j2) % 3 == 0;
+        case QRMaskPattern.PATTERN100:
+          return (Math.floor(i4 / 2) + Math.floor(j2 / 3)) % 2 == 0;
+        case QRMaskPattern.PATTERN101:
+          return i4 * j2 % 2 + i4 * j2 % 3 == 0;
+        case QRMaskPattern.PATTERN110:
+          return (i4 * j2 % 2 + i4 * j2 % 3) % 2 == 0;
+        case QRMaskPattern.PATTERN111:
+          return (i4 * j2 % 3 + (i4 + j2) % 2) % 2 == 0;
+        default:
+          throw new Error("bad maskPattern:" + maskPattern);
+      }
+    }, getErrorCorrectPolynomial: function(errorCorrectLength) {
+      var a2 = new QRPolynomial([1], 0);
+      for (var i4 = 0; i4 < errorCorrectLength; i4++) {
+        a2 = a2.multiply(new QRPolynomial([1, QRMath.gexp(i4)], 0));
+      }
+      return a2;
+    }, getLengthInBits: function(mode, type) {
+      if (1 <= type && type < 10) {
+        switch (mode) {
+          case QRMode.MODE_NUMBER:
+            return 10;
+          case QRMode.MODE_ALPHA_NUM:
+            return 9;
+          case QRMode.MODE_8BIT_BYTE:
+            return 8;
+          case QRMode.MODE_KANJI:
+            return 8;
+          default:
+            throw new Error("mode:" + mode);
+        }
+      } else if (type < 27) {
+        switch (mode) {
+          case QRMode.MODE_NUMBER:
+            return 12;
+          case QRMode.MODE_ALPHA_NUM:
+            return 11;
+          case QRMode.MODE_8BIT_BYTE:
+            return 16;
+          case QRMode.MODE_KANJI:
+            return 10;
+          default:
+            throw new Error("mode:" + mode);
+        }
+      } else if (type < 41) {
+        switch (mode) {
+          case QRMode.MODE_NUMBER:
+            return 14;
+          case QRMode.MODE_ALPHA_NUM:
+            return 13;
+          case QRMode.MODE_8BIT_BYTE:
+            return 16;
+          case QRMode.MODE_KANJI:
+            return 12;
+          default:
+            throw new Error("mode:" + mode);
+        }
+      } else {
+        throw new Error("type:" + type);
+      }
+    }, getLostPoint: function(qrCode) {
+      var moduleCount = qrCode.getModuleCount();
+      var lostPoint = 0;
+      for (var row = 0; row < moduleCount; row++) {
+        for (var col = 0; col < moduleCount; col++) {
+          var sameCount = 0;
+          var dark = qrCode.isDark(row, col);
+          for (var r2 = -1; r2 <= 1; r2++) {
+            if (row + r2 < 0 || moduleCount <= row + r2) {
+              continue;
+            }
+            for (var c4 = -1; c4 <= 1; c4++) {
+              if (col + c4 < 0 || moduleCount <= col + c4) {
+                continue;
+              }
+              if (r2 == 0 && c4 == 0) {
+                continue;
+              }
+              if (dark == qrCode.isDark(row + r2, col + c4)) {
+                sameCount++;
+              }
+            }
+          }
+          if (sameCount > 5) {
+            lostPoint += 3 + sameCount - 5;
+          }
+        }
+      }
+      for (var row = 0; row < moduleCount - 1; row++) {
+        for (var col = 0; col < moduleCount - 1; col++) {
+          var count5 = 0;
+          if (qrCode.isDark(row, col)) count5++;
+          if (qrCode.isDark(row + 1, col)) count5++;
+          if (qrCode.isDark(row, col + 1)) count5++;
+          if (qrCode.isDark(row + 1, col + 1)) count5++;
+          if (count5 == 0 || count5 == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+      for (var row = 0; row < moduleCount; row++) {
+        for (var col = 0; col < moduleCount - 6; col++) {
+          if (qrCode.isDark(row, col) && !qrCode.isDark(row, col + 1) && qrCode.isDark(row, col + 2) && qrCode.isDark(row, col + 3) && qrCode.isDark(row, col + 4) && !qrCode.isDark(row, col + 5) && qrCode.isDark(row, col + 6)) {
+            lostPoint += 40;
+          }
+        }
+      }
+      for (var col = 0; col < moduleCount; col++) {
+        for (var row = 0; row < moduleCount - 6; row++) {
+          if (qrCode.isDark(row, col) && !qrCode.isDark(row + 1, col) && qrCode.isDark(row + 2, col) && qrCode.isDark(row + 3, col) && qrCode.isDark(row + 4, col) && !qrCode.isDark(row + 5, col) && qrCode.isDark(row + 6, col)) {
+            lostPoint += 40;
+          }
+        }
+      }
+      var darkCount = 0;
+      for (var col = 0; col < moduleCount; col++) {
+        for (var row = 0; row < moduleCount; row++) {
+          if (qrCode.isDark(row, col)) {
+            darkCount++;
+          }
+        }
+      }
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+      return lostPoint;
+    } };
+    var QRMath = { glog: function(n) {
+      if (n < 1) {
+        throw new Error("glog(" + n + ")");
+      }
+      return QRMath.LOG_TABLE[n];
+    }, gexp: function(n) {
+      while (n < 0) {
+        n += 255;
+      }
+      while (n >= 256) {
+        n -= 255;
+      }
+      return QRMath.EXP_TABLE[n];
+    }, EXP_TABLE: new Array(256), LOG_TABLE: new Array(256) };
+    for (i3 = 0; i3 < 8; i3++) {
+      QRMath.EXP_TABLE[i3] = 1 << i3;
+    }
+    var i3;
+    for (i3 = 8; i3 < 256; i3++) {
+      QRMath.EXP_TABLE[i3] = QRMath.EXP_TABLE[i3 - 4] ^ QRMath.EXP_TABLE[i3 - 5] ^ QRMath.EXP_TABLE[i3 - 6] ^ QRMath.EXP_TABLE[i3 - 8];
+    }
+    var i3;
+    for (i3 = 0; i3 < 255; i3++) {
+      QRMath.LOG_TABLE[QRMath.EXP_TABLE[i3]] = i3;
+    }
+    var i3;
+    function QRPolynomial(num, shift) {
+      if (num.length == void 0) {
+        throw new Error(num.length + "/" + shift);
+      }
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset++;
+      }
+      this.num = new Array(num.length - offset + shift);
+      for (var i4 = 0; i4 < num.length - offset; i4++) {
+        this.num[i4] = num[i4 + offset];
+      }
+    }
+    QRPolynomial.prototype = { get: function(index) {
+      return this.num[index];
+    }, getLength: function() {
+      return this.num.length;
+    }, multiply: function(e2) {
+      var num = new Array(this.getLength() + e2.getLength() - 1);
+      for (var i4 = 0; i4 < this.getLength(); i4++) {
+        for (var j2 = 0; j2 < e2.getLength(); j2++) {
+          num[i4 + j2] ^= QRMath.gexp(QRMath.glog(this.get(i4)) + QRMath.glog(e2.get(j2)));
+        }
+      }
+      return new QRPolynomial(num, 0);
+    }, mod: function(e2) {
+      if (this.getLength() - e2.getLength() < 0) {
+        return this;
+      }
+      var ratio = QRMath.glog(this.get(0)) - QRMath.glog(e2.get(0));
+      var num = new Array(this.getLength());
+      for (var i4 = 0; i4 < this.getLength(); i4++) {
+        num[i4] = this.get(i4);
+      }
+      for (var i4 = 0; i4 < e2.getLength(); i4++) {
+        num[i4] ^= QRMath.gexp(QRMath.glog(e2.get(i4)) + ratio);
+      }
+      return new QRPolynomial(num, 0).mod(e2);
+    } };
+    function QRRSBlock(totalCount, dataCount) {
+      this.totalCount = totalCount;
+      this.dataCount = dataCount;
+    }
+    QRRSBlock.RS_BLOCK_TABLE = [[1, 26, 19], [1, 26, 16], [1, 26, 13], [1, 26, 9], [1, 44, 34], [1, 44, 28], [1, 44, 22], [1, 44, 16], [1, 70, 55], [1, 70, 44], [2, 35, 17], [2, 35, 13], [1, 100, 80], [2, 50, 32], [2, 50, 24], [4, 25, 9], [1, 134, 108], [2, 67, 43], [2, 33, 15, 2, 34, 16], [2, 33, 11, 2, 34, 12], [2, 86, 68], [4, 43, 27], [4, 43, 19], [4, 43, 15], [2, 98, 78], [4, 49, 31], [2, 32, 14, 4, 33, 15], [4, 39, 13, 1, 40, 14], [2, 121, 97], [2, 60, 38, 2, 61, 39], [4, 40, 18, 2, 41, 19], [4, 40, 14, 2, 41, 15], [2, 146, 116], [3, 58, 36, 2, 59, 37], [4, 36, 16, 4, 37, 17], [4, 36, 12, 4, 37, 13], [2, 86, 68, 2, 87, 69], [4, 69, 43, 1, 70, 44], [6, 43, 19, 2, 44, 20], [6, 43, 15, 2, 44, 16], [4, 101, 81], [1, 80, 50, 4, 81, 51], [4, 50, 22, 4, 51, 23], [3, 36, 12, 8, 37, 13], [2, 116, 92, 2, 117, 93], [6, 58, 36, 2, 59, 37], [4, 46, 20, 6, 47, 21], [7, 42, 14, 4, 43, 15], [4, 133, 107], [8, 59, 37, 1, 60, 38], [8, 44, 20, 4, 45, 21], [12, 33, 11, 4, 34, 12], [3, 145, 115, 1, 146, 116], [4, 64, 40, 5, 65, 41], [11, 36, 16, 5, 37, 17], [11, 36, 12, 5, 37, 13], [5, 109, 87, 1, 110, 88], [5, 65, 41, 5, 66, 42], [5, 54, 24, 7, 55, 25], [11, 36, 12], [5, 122, 98, 1, 123, 99], [7, 73, 45, 3, 74, 46], [15, 43, 19, 2, 44, 20], [3, 45, 15, 13, 46, 16], [1, 135, 107, 5, 136, 108], [10, 74, 46, 1, 75, 47], [1, 50, 22, 15, 51, 23], [2, 42, 14, 17, 43, 15], [5, 150, 120, 1, 151, 121], [9, 69, 43, 4, 70, 44], [17, 50, 22, 1, 51, 23], [2, 42, 14, 19, 43, 15], [3, 141, 113, 4, 142, 114], [3, 70, 44, 11, 71, 45], [17, 47, 21, 4, 48, 22], [9, 39, 13, 16, 40, 14], [3, 135, 107, 5, 136, 108], [3, 67, 41, 13, 68, 42], [15, 54, 24, 5, 55, 25], [15, 43, 15, 10, 44, 16], [4, 144, 116, 4, 145, 117], [17, 68, 42], [17, 50, 22, 6, 51, 23], [19, 46, 16, 6, 47, 17], [2, 139, 111, 7, 140, 112], [17, 74, 46], [7, 54, 24, 16, 55, 25], [34, 37, 13], [4, 151, 121, 5, 152, 122], [4, 75, 47, 14, 76, 48], [11, 54, 24, 14, 55, 25], [16, 45, 15, 14, 46, 16], [6, 147, 117, 4, 148, 118], [6, 73, 45, 14, 74, 46], [11, 54, 24, 16, 55, 25], [30, 46, 16, 2, 47, 17], [8, 132, 106, 4, 133, 107], [8, 75, 47, 13, 76, 48], [7, 54, 24, 22, 55, 25], [22, 45, 15, 13, 46, 16], [10, 142, 114, 2, 143, 115], [19, 74, 46, 4, 75, 47], [28, 50, 22, 6, 51, 23], [33, 46, 16, 4, 47, 17], [8, 152, 122, 4, 153, 123], [22, 73, 45, 3, 74, 46], [8, 53, 23, 26, 54, 24], [12, 45, 15, 28, 46, 16], [3, 147, 117, 10, 148, 118], [3, 73, 45, 23, 74, 46], [4, 54, 24, 31, 55, 25], [11, 45, 15, 31, 46, 16], [7, 146, 116, 7, 147, 117], [21, 73, 45, 7, 74, 46], [1, 53, 23, 37, 54, 24], [19, 45, 15, 26, 46, 16], [5, 145, 115, 10, 146, 116], [19, 75, 47, 10, 76, 48], [15, 54, 24, 25, 55, 25], [23, 45, 15, 25, 46, 16], [13, 145, 115, 3, 146, 116], [2, 74, 46, 29, 75, 47], [42, 54, 24, 1, 55, 25], [23, 45, 15, 28, 46, 16], [17, 145, 115], [10, 74, 46, 23, 75, 47], [10, 54, 24, 35, 55, 25], [19, 45, 15, 35, 46, 16], [17, 145, 115, 1, 146, 116], [14, 74, 46, 21, 75, 47], [29, 54, 24, 19, 55, 25], [11, 45, 15, 46, 46, 16], [13, 145, 115, 6, 146, 116], [14, 74, 46, 23, 75, 47], [44, 54, 24, 7, 55, 25], [59, 46, 16, 1, 47, 17], [12, 151, 121, 7, 152, 122], [12, 75, 47, 26, 76, 48], [39, 54, 24, 14, 55, 25], [22, 45, 15, 41, 46, 16], [6, 151, 121, 14, 152, 122], [6, 75, 47, 34, 76, 48], [46, 54, 24, 10, 55, 25], [2, 45, 15, 64, 46, 16], [17, 152, 122, 4, 153, 123], [29, 74, 46, 14, 75, 47], [49, 54, 24, 10, 55, 25], [24, 45, 15, 46, 46, 16], [4, 152, 122, 18, 153, 123], [13, 74, 46, 32, 75, 47], [48, 54, 24, 14, 55, 25], [42, 45, 15, 32, 46, 16], [20, 147, 117, 4, 148, 118], [40, 75, 47, 7, 76, 48], [43, 54, 24, 22, 55, 25], [10, 45, 15, 67, 46, 16], [19, 148, 118, 6, 149, 119], [18, 75, 47, 31, 76, 48], [34, 54, 24, 34, 55, 25], [20, 45, 15, 61, 46, 16]];
+    QRRSBlock.getRSBlocks = function(typeNumber, errorCorrectLevel) {
+      var rsBlock = QRRSBlock.getRsBlockTable(typeNumber, errorCorrectLevel);
+      if (rsBlock == void 0) {
+        throw new Error("bad rs block @ typeNumber:" + typeNumber + "/errorCorrectLevel:" + errorCorrectLevel);
+      }
+      var length = rsBlock.length / 3;
+      var list = [];
+      for (var i4 = 0; i4 < length; i4++) {
+        var count5 = rsBlock[i4 * 3 + 0];
+        var totalCount = rsBlock[i4 * 3 + 1];
+        var dataCount = rsBlock[i4 * 3 + 2];
+        for (var j2 = 0; j2 < count5; j2++) {
+          list.push(new QRRSBlock(totalCount, dataCount));
+        }
+      }
+      return list;
+    };
+    QRRSBlock.getRsBlockTable = function(typeNumber, errorCorrectLevel) {
+      switch (errorCorrectLevel) {
+        case QRErrorCorrectLevel.L:
+          return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+        case QRErrorCorrectLevel.M:
+          return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+        case QRErrorCorrectLevel.Q:
+          return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+        case QRErrorCorrectLevel.H:
+          return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+        default:
+          return void 0;
+      }
+    };
+    function QRBitBuffer() {
+      this.buffer = [];
+      this.length = 0;
+    }
+    QRBitBuffer.prototype = { get: function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return (this.buffer[bufIndex] >>> 7 - index % 8 & 1) == 1;
+    }, put: function(num, length) {
+      for (var i4 = 0; i4 < length; i4++) {
+        this.putBit((num >>> length - i4 - 1 & 1) == 1);
+      }
+    }, getLengthInBits: function() {
+      return this.length;
+    }, putBit: function(bit) {
+      var bufIndex = Math.floor(this.length / 8);
+      if (this.buffer.length <= bufIndex) {
+        this.buffer.push(0);
+      }
+      if (bit) {
+        this.buffer[bufIndex] |= 128 >>> this.length % 8;
+      }
+      this.length++;
+    } };
+    var QRCodeLimitLength = [[17, 14, 11, 7], [32, 26, 20, 14], [53, 42, 32, 24], [78, 62, 46, 34], [106, 84, 60, 44], [134, 106, 74, 58], [154, 122, 86, 64], [192, 152, 108, 84], [230, 180, 130, 98], [271, 213, 151, 119], [321, 251, 177, 137], [367, 287, 203, 155], [425, 331, 241, 177], [458, 362, 258, 194], [520, 412, 292, 220], [586, 450, 322, 250], [644, 504, 364, 280], [718, 560, 394, 310], [792, 624, 442, 338], [858, 666, 482, 382], [929, 711, 509, 403], [1003, 779, 565, 439], [1091, 857, 611, 461], [1171, 911, 661, 511], [1273, 997, 715, 535], [1367, 1059, 751, 593], [1465, 1125, 805, 625], [1528, 1190, 868, 658], [1628, 1264, 908, 698], [1732, 1370, 982, 742], [1840, 1452, 1030, 790], [1952, 1538, 1112, 842], [2068, 1628, 1168, 898], [2188, 1722, 1228, 958], [2303, 1809, 1283, 983], [2431, 1911, 1351, 1051], [2563, 1989, 1423, 1093], [2699, 2099, 1499, 1139], [2809, 2213, 1579, 1219], [2953, 2331, 1663, 1273]];
+    function QRCode2(options) {
+      var instance = this;
+      this.options = {
+        padding: 4,
+        width: 256,
+        height: 256,
+        typeNumber: 4,
+        color: "#000000",
+        background: "#ffffff",
+        ecl: "M"
+      };
+      if (typeof options === "string") {
+        options = {
+          content: options
+        };
+      }
+      if (options) {
+        for (var i4 in options) {
+          this.options[i4] = options[i4];
+        }
+      }
+      if (typeof this.options.content !== "string") {
+        throw new Error("Expected 'content' as string!");
+      }
+      if (this.options.content.length === 0) {
+        throw new Error("Expected 'content' to be non-empty!");
+      }
+      if (!(this.options.padding >= 0)) {
+        throw new Error("Expected 'padding' value to be non-negative!");
+      }
+      if (!(this.options.width > 0) || !(this.options.height > 0)) {
+        throw new Error("Expected 'width' or 'height' value to be higher than zero!");
+      }
+      function _getErrorCorrectLevel(ecl2) {
+        switch (ecl2) {
+          case "L":
+            return QRErrorCorrectLevel.L;
+          case "M":
+            return QRErrorCorrectLevel.M;
+          case "Q":
+            return QRErrorCorrectLevel.Q;
+          case "H":
+            return QRErrorCorrectLevel.H;
+          default:
+            throw new Error("Unknwon error correction level: " + ecl2);
+        }
+      }
+      function _getTypeNumber(content2, ecl2) {
+        var length = _getUTF8Length(content2);
+        var type2 = 1;
+        var limit = 0;
+        for (var i5 = 0, len = QRCodeLimitLength.length; i5 <= len; i5++) {
+          var table = QRCodeLimitLength[i5];
+          if (!table) {
+            throw new Error("Content too long: expected " + limit + " but got " + length);
+          }
+          switch (ecl2) {
+            case "L":
+              limit = table[0];
+              break;
+            case "M":
+              limit = table[1];
+              break;
+            case "Q":
+              limit = table[2];
+              break;
+            case "H":
+              limit = table[3];
+              break;
+            default:
+              throw new Error("Unknwon error correction level: " + ecl2);
+          }
+          if (length <= limit) {
+            break;
+          }
+          type2++;
+        }
+        if (type2 > QRCodeLimitLength.length) {
+          throw new Error("Content too long");
+        }
+        return type2;
+      }
+      function _getUTF8Length(content2) {
+        var result = encodeURI(content2).toString().replace(/\%[0-9a-fA-F]{2}/g, "a");
+        return result.length + (result.length != content2 ? 3 : 0);
+      }
+      var content = this.options.content;
+      var type = _getTypeNumber(content, this.options.ecl);
+      var ecl = _getErrorCorrectLevel(this.options.ecl);
+      this.qrcode = new QRCodeModel(type, ecl);
+      this.qrcode.addData(content);
+      this.qrcode.make();
+    }
+    QRCode2.prototype.svg = function(opt) {
+      var options = this.options || {};
+      var modules = this.qrcode.modules;
+      if (typeof opt == "undefined") {
+        opt = { container: options.container || "svg" };
+      }
+      var pretty = typeof options.pretty != "undefined" ? !!options.pretty : true;
+      var indent = pretty ? "  " : "";
+      var EOL = pretty ? "\r\n" : "";
+      var width = options.width;
+      var height = options.height;
+      var length = modules.length;
+      var xsize = width / (length + 2 * options.padding);
+      var ysize = height / (length + 2 * options.padding);
+      var join8 = typeof options.join != "undefined" ? !!options.join : false;
+      var swap = typeof options.swap != "undefined" ? !!options.swap : false;
+      var xmlDeclaration = typeof options.xmlDeclaration != "undefined" ? !!options.xmlDeclaration : true;
+      var predefined = typeof options.predefined != "undefined" ? !!options.predefined : false;
+      var defs = predefined ? indent + '<defs><path id="qrmodule" d="M0 0 h' + ysize + " v" + xsize + ' H0 z" style="fill:' + options.color + ';shape-rendering:crispEdges;" /></defs>' + EOL : "";
+      var bgrect = indent + '<rect x="0" y="0" width="' + width + '" height="' + height + '" style="fill:' + options.background + ';shape-rendering:crispEdges;"/>' + EOL;
+      var modrect = "";
+      var pathdata = "";
+      for (var y = 0; y < length; y++) {
+        for (var x2 = 0; x2 < length; x2++) {
+          var module3 = modules[x2][y];
+          if (module3) {
+            var px2 = x2 * xsize + options.padding * xsize;
+            var py2 = y * ysize + options.padding * ysize;
+            if (swap) {
+              var t2 = px2;
+              px2 = py2;
+              py2 = t2;
+            }
+            if (join8) {
+              var w = xsize + px2;
+              var h2 = ysize + py2;
+              px2 = Number.isInteger(px2) ? Number(px2) : px2.toFixed(2);
+              py2 = Number.isInteger(py2) ? Number(py2) : py2.toFixed(2);
+              w = Number.isInteger(w) ? Number(w) : w.toFixed(2);
+              h2 = Number.isInteger(h2) ? Number(h2) : h2.toFixed(2);
+              pathdata += "M" + px2 + "," + py2 + " V" + h2 + " H" + w + " V" + py2 + " H" + px2 + " Z ";
+            } else if (predefined) {
+              modrect += indent + '<use x="' + px2.toString() + '" y="' + py2.toString() + '" href="#qrmodule" />' + EOL;
+            } else {
+              modrect += indent + '<rect x="' + px2.toString() + '" y="' + py2.toString() + '" width="' + xsize + '" height="' + ysize + '" style="fill:' + options.color + ';shape-rendering:crispEdges;"/>' + EOL;
+            }
+          }
+        }
+      }
+      if (join8) {
+        modrect = indent + '<path x="0" y="0" style="fill:' + options.color + ';shape-rendering:crispEdges;" d="' + pathdata + '" />';
+      }
+      var svg = "";
+      switch (opt.container) {
+        //Wrapped in SVG document
+        case "svg":
+          if (xmlDeclaration) {
+            svg += '<?xml version="1.0" standalone="yes"?>' + EOL;
+          }
+          svg += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="' + width + '" height="' + height + '">' + EOL;
+          svg += defs + bgrect + modrect;
+          svg += "</svg>";
+          break;
+        //Viewbox for responsive use in a browser, thanks to @danioso
+        case "svg-viewbox":
+          if (xmlDeclaration) {
+            svg += '<?xml version="1.0" standalone="yes"?>' + EOL;
+          }
+          svg += '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 ' + width + " " + height + '">' + EOL;
+          svg += defs + bgrect + modrect;
+          svg += "</svg>";
+          break;
+        //Wrapped in group element    
+        case "g":
+          svg += '<g width="' + width + '" height="' + height + '">' + EOL;
+          svg += defs + bgrect + modrect;
+          svg += "</g>";
+          break;
+        //Without a container
+        default:
+          svg += (defs + bgrect + modrect).replace(/^\s+/, "");
+          break;
+      }
+      return svg;
+    };
+    QRCode2.prototype.save = function(file, callback) {
+      var data = this.svg();
+      if (typeof callback != "function") {
+        callback = function(error, result) {
+        };
+      }
+      try {
+        var fs2 = require("fs");
+        fs2.writeFile(file, data, callback);
+      } catch (e2) {
+        callback(e2);
+      }
+    };
+    if (typeof module2 != "undefined") {
+      module2.exports = QRCode2;
+    }
+  }
+});
+
 // node_modules/quick-format-unescaped/index.js
 var require_quick_format_unescaped = __commonJS({
   "node_modules/quick-format-unescaped/index.js"(exports, module2) {
@@ -44153,7 +44951,7 @@ var require_tools = __commonJS({
     var libmime = require_libmime();
     var { resolveCharset } = require_charsets2();
     var { compiler } = require_imap_handler();
-    var { createHash: createHash4 } = require("crypto");
+    var { createHash: createHash5 } = require("crypto");
     var { JPDecoder } = require_jp_decoder();
     var iconv = require_lib();
     var FLAG_COLORS = ["red", "orange", "yellow", "green", "blue", "purple", "grey"];
@@ -44537,7 +45335,7 @@ var require_tools = __commonJS({
             } catch {
             }
           }
-          map.id = map.emailId || createHash4("md5").update([path2, mailbox.uidValidity?.toString() || "", map.uid.toString()].join(":")).digest("hex");
+          map.id = map.emailId || createHash5("md5").update([path2, mailbox.uidValidity?.toString() || "", map.uid.toString()].join(":")).digest("hex");
         }
         if (map.flags) {
           let flagColor = tools.getFlagColor(map.flags);
@@ -59936,8 +60734,8 @@ var require_core = __commonJS({
     function many1(p3) {
       return ab(p3, many(p3), (head, tail) => [head, ...tail]);
     }
-    function ab(pa, pb, join7) {
-      return (data, i3) => mapOuter(pa(data, i3), (ma) => mapInner(pb(data, ma.position), (vb, j2) => join7(ma.value, vb, data, i3, j2)));
+    function ab(pa, pb, join8) {
+      return (data, i3) => mapOuter(pa(data, i3), (ma) => mapInner(pb(data, ma.position), (vb, j2) => join8(ma.value, vb, data, i3, j2)));
     }
     function left(pa, pb) {
       return ab(pa, pb, (va) => va);
@@ -59945,8 +60743,8 @@ var require_core = __commonJS({
     function right(pa, pb) {
       return ab(pa, pb, (va, vb) => vb);
     }
-    function abc(pa, pb, pc, join7) {
-      return (data, i3) => mapOuter(pa(data, i3), (ma) => mapOuter(pb(data, ma.position), (mb) => mapInner(pc(data, mb.position), (vc, j2) => join7(ma.value, mb.value, vc, data, i3, j2))));
+    function abc(pa, pb, pc, join8) {
+      return (data, i3) => mapOuter(pa(data, i3), (ma) => mapOuter(pb(data, ma.position), (mb) => mapInner(pc(data, mb.position), (vc, j2) => join8(ma.value, mb.value, vc, data, i3, j2))));
     }
     function middle(pa, pb, pc) {
       return abc(pa, pb, pc, (ra, rb) => rb);
@@ -97057,14 +97855,14 @@ var require_turndown_browser_cjs = __commonJS({
         } else if (node.nodeType === 1) {
           replacement = replacementForNode.call(self2, node);
         }
-        return join7(output, replacement);
+        return join8(output, replacement);
       }, "");
     }
     function postProcess(output) {
       var self2 = this;
       this.rules.forEach(function(rule) {
         if (typeof rule.append === "function") {
-          output = join7(output, rule.append(self2.options));
+          output = join8(output, rule.append(self2.options));
         }
       });
       return output.replace(/^[\t\r\n]+/, "").replace(/[\t\r\n\s]+$/, "");
@@ -97076,7 +97874,7 @@ var require_turndown_browser_cjs = __commonJS({
       if (whitespace.leading || whitespace.trailing) content = content.trim();
       return whitespace.leading + rule.replacement(content, node, this.options) + whitespace.trailing;
     }
-    function join7(output, replacement) {
+    function join8(output, replacement) {
       var s1 = trimTrailingNewlines(output);
       var s2 = trimLeadingNewlines(replacement);
       var nls = Math.max(output.length - s1.length, replacement.length - s2.length);
@@ -112161,12 +112959,12 @@ __export(main_exports, {
   default: () => TorusPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian29 = require("obsidian");
-var import_fs7 = require("fs");
-var import_path5 = require("path");
+var import_obsidian30 = require("obsidian");
+var import_fs9 = require("fs");
+var import_path6 = require("path");
 var import_os2 = require("os");
 var import_child_process6 = require("child_process");
-var import_crypto3 = require("crypto");
+var import_crypto4 = require("crypto");
 
 // src/TorusView.ts
 var import_obsidian20 = require("obsidian");
@@ -173744,6 +174542,27 @@ var actionBtnStyle4 = {
 // src/components/ServicesOverlay.tsx
 var import_react59 = __toESM(require_react(), 1);
 var import_jsx_runtime47 = __toESM(require_jsx_runtime(), 1);
+function bridgeDotColor(status, disabled) {
+  if (disabled) return "#555";
+  if (!status) return "#555";
+  switch (status.state) {
+    case "ready":
+      return "#4a4";
+    case "awaiting_qr":
+      return "#da3";
+    case "spawning":
+      return "#da3";
+    case "restarting":
+      return "#da3";
+    case "failed":
+      return "#a44";
+    case "idle":
+      return "#555";
+  }
+}
+function bridgeNeedsUserAction(state2) {
+  return state2 === "awaiting_qr" || state2 === "failed";
+}
 var BRIDGE_LABEL_FILTER = "plugin,capture:*";
 var TASKRUNNER_LABEL_FILTER = "!capture:*";
 function getPlugin2(app) {
@@ -173849,23 +174668,47 @@ function ServicesOverlay({ open, onClose }) {
   const running2 = !!status?.running;
   const disabled = !!status?.disabled;
   const nextRestart = status?.next_restart_in_ms;
-  const dotColor = disabled ? "#555" : running2 ? "#4a4" : nextRestart !== null && nextRestart !== void 0 ? "#da3" : "#a44";
+  const state2 = status?.state;
+  const dotColor = bridgeDotColor(status ?? null, disabled);
+  const needsAction = bridgeNeedsUserAction(state2);
   let statusText = "";
   if (!view) {
     statusText = "Loading\u2026";
   } else if (disabled) {
-    statusText = "Disabled (enablePluginSpawnedBridge is off)";
+    statusText = "Disabled (toggle in Settings \u2192 Bridges)";
+  } else if (state2 === "awaiting_qr") {
+    statusText = "Awaiting QR scan \u2014 open Settings \u2192 Bridges to pair";
+  } else if (state2 === "failed") {
+    const detail = status?.health?.detail || status?.last_error || "Bridge failed";
+    statusText = `${detail} \u2014 open Settings \u2192 Bridges to reset`;
+  } else if (state2 === "spawning") {
+    statusText = "Starting bridge\u2026";
+  } else if (state2 === "restarting") {
+    const secs = nextRestart && nextRestart > 0 ? Math.ceil(nextRestart / 1e3) : null;
+    statusText = secs !== null ? `Restart in ${secs}s (attempt #${status?.restart_attempt ?? "?"})` : "Restarting\u2026";
+  } else if (state2 === "ready") {
+    const uptime = formatUptime(status?.uptime_ms ?? 0);
+    statusText = `Running (pid ${status?.pid ?? "?"})${uptime ? ` \xB7 ${uptime}` : ""}`;
+  } else if (state2 === "idle") {
+    statusText = "Idle \u2014 toggle bridge on in Settings \u2192 Bridges";
   } else if (running2) {
     const uptime = formatUptime(status?.uptime_ms ?? 0);
     statusText = `Running (pid ${status?.pid ?? "?"})${uptime ? ` \xB7 ${uptime}` : ""}`;
-  } else if (nextRestart !== null && nextRestart !== void 0) {
-    const secs = Math.ceil(nextRestart / 1e3);
-    statusText = `Restart in ${secs}s (attempt #${status?.restart_attempt ?? "?"})`;
   } else if (status?.last_error) {
     statusText = `Stopped \u2014 ${status.last_error}`;
   } else {
     statusText = "Stopped";
   }
+  const openBridgesSettings = (0, import_react59.useCallback)(() => {
+    const appAny = app;
+    try {
+      const plugin = getPlugin2(app);
+      plugin?.settingTab?.setActiveTab?.("bridges");
+      appAny.setting?.open();
+      appAny.setting?.openTabById("the-torus");
+    } catch {
+    }
+  }, [app]);
   return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)(import_jsx_runtime47.Fragment, { children: [
     /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { onClick: onClose, style: { ...backdropStyle8, opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.3s ease" } }),
     /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: {
@@ -173901,6 +174744,21 @@ function ServicesOverlay({ open, onClose }) {
                 onClick: () => setExpandedLog(!expandedLog),
                 style: actionBtnStyle5,
                 children: "Log"
+              }
+            ),
+            needsAction && /* User-action state: jump to Settings → Bridges where the QR
+             * SVG and Reset button live. Highlighted so it reads as the
+             * primary call-to-action. */
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
+              "button",
+              {
+                onClick: openBridgesSettings,
+                style: {
+                  ...actionBtnStyle5,
+                  color: "#fb4",
+                  borderColor: "#964"
+                },
+                children: state2 === "awaiting_qr" ? "Pair" : "Fix"
               }
             ),
             /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
@@ -175167,6 +176025,7 @@ var TorusView = class extends import_obsidian20.ItemView {
 var import_obsidian22 = require("obsidian");
 var fs = __toESM(require("fs"), 1);
 var path = __toESM(require("path"), 1);
+var import_qrcode_svg = __toESM(require_qrcode(), 1);
 
 // src/llm/types.ts
 var DEFAULT_LLM_SETTINGS = {
@@ -175194,7 +176053,10 @@ var DEFAULT_LLM_SETTINGS = {
   bridgePath: "",
   enablePluginImap: false,
   enablePluginImessage: false,
-  imessageSelfHandle: "",
+  imessageSelfHandles: "",
+  enableTelegramBridge: false,
+  telegramBotToken: "",
+  telegramAuthorizedUserIds: "",
   staleSummaryMaxPerCycle: 10,
   pdfExtractionPython: "",
   dismissedInstallReminders: false
@@ -175208,6 +176070,9 @@ var import_os = require("os");
 var import_path = require("path");
 var import_util = require("util");
 var execFileAsync = (0, import_util.promisify)(import_child_process.execFile);
+function parseHandles(csv) {
+  return (csv || "").split(",").map((h2) => h2.trim()).filter(Boolean);
+}
 var POLL_INTERVAL_MS = 6e4;
 var SQLITE_BIN = "/usr/bin/sqlite3";
 var CHAT_DB = (0, import_path.join)((0, import_os.homedir)(), "Library", "Messages", "chat.db");
@@ -175346,8 +176211,8 @@ var ImessageRunner = class {
       this.log("start called but iMessage poller is already running");
       return;
     }
-    if (!config.selfHandle) {
-      this.log("start aborted: imessageSelfHandle not configured");
+    if (!config.selfHandles || config.selfHandles.length === 0) {
+      this.log("start aborted: no handles configured \u2014 idle");
       return;
     }
     if (!config.vaultPath) {
@@ -175384,7 +176249,7 @@ var ImessageRunner = class {
         return;
       }
     }
-    this.log(`started: polling chat.db every ${POLL_INTERVAL_MS / 1e3}s for self-chat handle=${config.selfHandle}`);
+    this.log(`started: polling chat.db every ${POLL_INTERVAL_MS / 1e3}s for self-chat handle(s)=${config.selfHandles.join(", ")}`);
     this.startedAt = /* @__PURE__ */ new Date();
     this.messagesCapturedSession = 0;
     this.lastError = null;
@@ -175414,7 +176279,7 @@ var ImessageRunner = class {
   getStatus() {
     return {
       running: this.isRunning(),
-      selfHandle: this.config?.selfHandle ?? null,
+      selfHandles: this.config?.selfHandles ?? [],
       startedAt: this.startedAt ? this.startedAt.toISOString() : null,
       uptime_ms: this.startedAt ? Date.now() - this.startedAt.getTime() : 0,
       lastPollAt: this.lastPollAt ? this.lastPollAt.toISOString() : null,
@@ -175488,6 +176353,8 @@ var ImessageRunner = class {
    *  `attributedBody` as hex (binary, decoded by decodeAttributedBody). */
   async fetchNewMessages(cursor) {
     if (!this.config) return [];
+    if (this.config.selfHandles.length === 0) return [];
+    const inList = this.config.selfHandles.map((h2) => `'${h2.replace(/'/g, "''")}'`).join(", ");
     const sql = `
       SELECT
         m.ROWID,
@@ -175498,8 +176365,8 @@ var ImessageRunner = class {
       FROM message m
       JOIN chat_message_join cmj ON cmj.message_id = m.ROWID
       JOIN chat c ON c.ROWID = cmj.chat_id
-      WHERE m.ROWID > ?
-        AND c.chat_identifier = ?
+      WHERE m.ROWID > ${cursor}
+        AND c.chat_identifier IN (${inList})
         AND c.style = 45
       ORDER BY m.ROWID
       LIMIT 100
@@ -175508,7 +176375,7 @@ var ImessageRunner = class {
       "-readonly",
       "-json",
       CHAT_DB,
-      sql.replace("?", String(cursor)).replace("?", `'${this.config.selfHandle.replace(/'/g, "''")}'`)
+      sql
     ]);
     if (!stdout.trim()) return [];
     try {
@@ -175608,24 +176475,25 @@ ${body}`).digest("hex").slice(0, 6);
 var import_obsidian21 = require("obsidian");
 var ImessageDetectModal = class extends import_obsidian21.Modal {
   listChats;
-  onSelect;
-  constructor(app, listChats, onSelect) {
+  currentHandles;
+  onConfirm;
+  constructor(app, listChats, currentHandles, onConfirm) {
     super(app);
     this.listChats = listChats;
-    this.onSelect = onSelect;
+    this.currentHandles = currentHandles;
+    this.onConfirm = onConfirm;
   }
   async onOpen() {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.createEl("h2", { text: "Detect iMessage self-handle" });
+    contentEl.createEl("h2", { text: "Select your iMessage handles" });
     const status = contentEl.createDiv();
     status.style.color = "var(--text-muted)";
     status.style.marginBottom = "1em";
     status.setText("Querying chat.db\u2026");
     let response;
     try {
-      const raw = await this.listChats();
-      response = JSON.parse(raw);
+      response = JSON.parse(await this.listChats());
     } catch (e2) {
       status.style.color = "var(--text-error)";
       status.setText(`Query failed: ${e2 instanceof Error ? e2.message : String(e2)}`);
@@ -175646,50 +176514,66 @@ var ImessageDetectModal = class extends import_obsidian21.Modal {
     }
     const candidates = response.candidates ?? [];
     if (candidates.length === 0) {
-      status.setText("No 1:1 self-chats found in chat.db. Send a message to yourself in Messages.app first, then retry.");
+      status.setText("No 1:1 chats found in chat.db. Send a message to yourself in Messages.app first, then retry.");
       return;
     }
-    status.setText(`Pick the handle that's yours. ${candidates.length} candidate${candidates.length === 1 ? "" : "s"} found, sorted by recent activity.`);
+    status.setText(
+      "Check the handles that are YOURS \u2014 your own phone numbers and emails. iMessage routes between them, so select ALL of yours. (This list is every 1:1 chat, including contacts \u2014 only check your own.)"
+    );
     const list = contentEl.createDiv();
     list.style.display = "flex";
     list.style.flexDirection = "column";
-    list.style.gap = "0.4em";
+    list.style.gap = "0.3em";
     list.style.maxHeight = "50vh";
     list.style.overflowY = "auto";
+    list.style.marginTop = "0.6em";
+    const checkboxes = [];
+    const configured = new Set(this.currentHandles);
     for (const c4 of candidates) {
       const row = list.createDiv();
-      row.style.padding = "0.6em 0.8em";
+      row.style.padding = "0.5em 0.7em";
       row.style.background = "var(--background-secondary)";
       row.style.borderRadius = "4px";
-      row.style.cursor = "pointer";
       row.style.display = "flex";
-      row.style.justifyContent = "space-between";
       row.style.alignItems = "center";
-      row.style.transition = "background 100ms ease";
-      row.onmouseenter = () => {
-        row.style.background = "var(--background-modifier-hover)";
-      };
-      row.onmouseleave = () => {
-        row.style.background = "var(--background-secondary)";
-      };
+      row.style.gap = "0.7em";
+      const input = row.createEl("input", { type: "checkbox" });
+      input.checked = configured.has(c4.handle);
+      checkboxes.push({ handle: c4.handle, input });
       const left = row.createDiv();
+      left.style.flex = "1";
+      left.style.cursor = "pointer";
+      left.onclick = () => {
+        input.checked = !input.checked;
+      };
       const handleEl = left.createEl("div", { text: c4.handle });
       handleEl.style.fontWeight = "600";
       handleEl.style.fontFamily = "var(--font-monospace)";
-      const meta = left.createEl("div", { text: c4.last_message ? `Last: ${c4.last_message}` : "No messages" });
+      const meta = left.createEl("div", {
+        text: c4.last_message ? `Last: ${new Date(c4.last_message).toLocaleString()}` : "No messages"
+      });
       meta.style.fontSize = "0.85em";
       meta.style.color = "var(--text-muted)";
-      meta.style.marginTop = "0.15em";
+      meta.style.marginTop = "0.1em";
       const chip = row.createDiv({ text: `chat ${c4.chat_id}` });
       chip.style.fontSize = "0.75em";
       chip.style.color = "var(--text-muted)";
       chip.style.fontFamily = "var(--font-monospace)";
-      row.onclick = () => {
-        this.onSelect(c4.handle);
-        new import_obsidian21.Notice(`iMessage self-handle set to ${c4.handle}`);
-        this.close();
-      };
     }
+    const footer = contentEl.createDiv();
+    footer.style.display = "flex";
+    footer.style.justifyContent = "flex-end";
+    footer.style.gap = "0.5em";
+    footer.style.marginTop = "1em";
+    new import_obsidian21.ButtonComponent(footer).setButtonText("Cancel").onClick(() => this.close());
+    new import_obsidian21.ButtonComponent(footer).setButtonText("Save selection").setCta().onClick(() => {
+      const chosen = checkboxes.filter((cb) => cb.input.checked).map((cb) => cb.handle);
+      this.onConfirm(chosen);
+      new import_obsidian21.Notice(
+        chosen.length ? `iMessage self-handles set to ${chosen.join(", ")}` : "Cleared iMessage self-handles"
+      );
+      this.close();
+    });
   }
   onClose() {
     this.contentEl.empty();
@@ -175700,9 +176584,36 @@ var ImessageDetectModal = class extends import_obsidian21.Modal {
 var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
   plugin;
   activeTab = "general";
+  /** Polling handle for the WhatsApp status block. Cleared on tab swap / hide. */
+  bridgePoll = null;
+  /** Snapshot of last-rendered QR string so we only re-render the SVG on change. */
+  lastQrString = null;
+  /** Reset button is disabled while a reset is in flight; persists across polls. */
+  resetInFlight = false;
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
+  }
+  /** External entry point — lets the Services-panel Pair button preset the
+   *  sub-tab before Obsidian's settings modal calls display(). Set the field
+   *  and re-render if we're already visible; otherwise the next display() call
+   *  picks up the new value. */
+  setActiveTab(tab) {
+    this.activeTab = tab;
+    if (this.containerEl && this.containerEl.children.length > 0) {
+      this.display();
+    }
+  }
+  /** Clear any pending poll timers when the settings tab is hidden or destroyed.
+   *  Without this, swapping away from the Bridges tab leaves a 2s poll running
+   *  against detached DOM nodes — silent leak, harmless but wrong. */
+  hide() {
+    if (this.bridgePoll) {
+      clearInterval(this.bridgePoll);
+      this.bridgePoll = null;
+    }
+    this.lastQrString = null;
+    this.resetInFlight = false;
   }
   /** Two-tab nav: General (Paths/Assets/Twin) and Bridges (WhatsApp/Email/Misc Creds).
    *  Splits the long settings tab into two shorter panels — each fits the modal at
@@ -175753,6 +176664,11 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
+    if (this.bridgePoll) {
+      clearInterval(this.bridgePoll);
+      this.bridgePoll = null;
+    }
+    this.lastQrString = null;
     this.renderTabNav(containerEl);
     if (this.activeTab === "general") {
       containerEl.createEl("h2", { text: "Paths" });
@@ -175998,32 +176914,10 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
       });
     }
     if (this.activeTab === "bridges") {
-      this.headerWithToggle(
+      this.renderBridgeSectionHeader(
         containerEl,
-        "WhatsApp Bridge",
-        () => this.plugin.settings.enablePluginSpawnedBridge,
-        async (v3) => {
-          this.plugin.settings.enablePluginSpawnedBridge = v3;
-          await this.plugin.saveSettings();
-        }
-      );
-      new import_obsidian22.Setting(containerEl).setName("WhatsApp self-chat ID").setDesc("Your WhatsApp self-chat identifier (e.g. 12125551212@c.us)").addText(
-        (text) => text.setPlaceholder("12125551212@c.us").setValue(this.plugin.settings.selfChatId).onChange(async (value) => {
-          this.plugin.settings.selfChatId = value;
-          await this.plugin.saveSettings();
-        })
-      );
-      new import_obsidian22.Setting(containerEl).setName("Bridge port").setDesc("HTTP API port for the bridge (default 3001)").addText(
-        (text) => text.setPlaceholder("3001").setValue(String(this.plugin.settings.bridgePort)).onChange(async (value) => {
-          this.plugin.settings.bridgePort = parseInt(value) || 3001;
-          await this.plugin.saveSettings();
-        })
-      );
-      new import_obsidian22.Setting(containerEl).setName("Bridge install path").setDesc("Absolute path to the bridge install directory. Contains dist/index.js after `npm install && npm run build`.").addText(
-        (text) => text.setPlaceholder("/Users/you/Code/2brain/bridge").setValue(this.plugin.settings.bridgePath).onChange(async (value) => {
-          this.plugin.settings.bridgePath = value.trim();
-          await this.plugin.saveSettings();
-        })
+        "Default capture surfaces",
+        "These bridges work out of the box once you fill in credentials."
       );
       this.headerWithToggle(
         containerEl,
@@ -176034,6 +176928,7 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
           await this.plugin.saveSettings();
         }
       );
+      this.renderEmailStatusRow(containerEl);
       new import_obsidian22.Setting(containerEl).setName("Email address").setDesc("IMAP login (e.g. zero@thetorus.ai)").addText(
         (text) => text.setPlaceholder("zero@thetorus.ai").setValue(this.plugin.settings.imapUser).onChange(async (value) => {
           this.plugin.settings.imapUser = value;
@@ -176060,8 +176955,10 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
         async (v3) => {
           this.plugin.settings.enablePluginImessage = v3;
           await this.plugin.saveSettings();
+          await this.plugin.torusImessageReconfigure();
         }
       );
+      this.renderImessageStatusRow(containerEl);
       {
         const fda = process.platform === "darwin" ? probeFullDiskAccess() : { ok: false, error: "iMessage capture is Mac-only" };
         const setting = new import_obsidian22.Setting(containerEl).setName("Full Disk Access");
@@ -176081,22 +176978,102 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
           );
         }
       }
-      new import_obsidian22.Setting(containerEl).setName("iMessage self-handle").setDesc("Your own iMessage handle (phone or email) \u2014 the address you use when texting yourself. Click Detect to scan chat.db for candidates.").addText(
-        (text) => text.setPlaceholder("+15551234567 or you@example.com").setValue(this.plugin.settings.imessageSelfHandle).onChange(async (value) => {
-          this.plugin.settings.imessageSelfHandle = value.trim();
+      new import_obsidian22.Setting(containerEl).setName("iMessage self-handles").setDesc("Your iMessage handles (phone numbers and emails) \u2014 comma-separated. iMessage routes between multiple addresses on the same Apple ID; configure ALL of them so the bridge catches messages regardless of which device sent. Click Detect to pick yours from chat.db.").addText((text) => {
+        text.setPlaceholder("+15551234567, you@example.com").setValue(this.plugin.settings.imessageSelfHandles).onChange(async (value) => {
+          this.plugin.settings.imessageSelfHandles = value;
           await this.plugin.saveSettings();
-        })
-      ).addButton(
+        });
+        text.inputEl.addEventListener("blur", () => {
+          void this.plugin.torusImessageReconfigure();
+        });
+      }).addButton(
         (btn) => btn.setButtonText("Detect").onClick(() => {
           new ImessageDetectModal(
             this.app,
             () => this.plugin.torusImessageListChats(),
-            async (handle) => {
-              this.plugin.settings.imessageSelfHandle = handle;
+            parseHandles(this.plugin.settings.imessageSelfHandles),
+            async (handles) => {
+              this.plugin.settings.imessageSelfHandles = handles.join(", ");
               await this.plugin.saveSettings();
+              await this.plugin.torusImessageReconfigure();
               this.display();
             }
           ).open();
+        })
+      );
+      this.headerWithToggle(
+        containerEl,
+        "Telegram Bridge",
+        () => this.plugin.settings.enableTelegramBridge,
+        async (v3) => {
+          this.plugin.settings.enableTelegramBridge = v3;
+          await this.plugin.saveSettings();
+        }
+      );
+      {
+        const status = JSON.parse(this.plugin.torusTelegramStatus());
+        const setting = new import_obsidian22.Setting(containerEl).setName("Status");
+        if (status.state === "failed" && status.lastError) {
+          setting.setDesc(`\u274C  ${status.lastError}`);
+        } else if (status.running && status.botUsername) {
+          const last = status.lastInboundAt ? `last message ${new Date(status.lastInboundAt).toLocaleString()}` : "no messages yet \u2014 send one to test";
+          setting.setDesc(`\u2705  Connected as @${status.botUsername} \u2014 ${last}`);
+        } else if (status.disabled) {
+          setting.setDesc("Bridge is off. Enable it above (and reload to apply) after entering a token.");
+        } else {
+          setting.setDesc("Not connected yet. Enter a bot token, enable, then reload the plugin.");
+        }
+        setting.addButton(
+          (btn) => btn.setButtonText("Recheck").onClick(() => this.display())
+        );
+      }
+      new import_obsidian22.Setting(containerEl).setName("Bot token").setDesc("From @BotFather (/newbot). Format: 8123456789:AAH\u2026 \u2014 see the install guide.").addText((text) => {
+        text.setPlaceholder("8123456789:AAH\u2026").setValue(this.plugin.settings.telegramBotToken).onChange(async (value) => {
+          this.plugin.settings.telegramBotToken = value.trim();
+          await this.plugin.saveSettings();
+        });
+        text.inputEl.type = "password";
+      });
+      new import_obsidian22.Setting(containerEl).setName("Authorized user IDs").setDesc("Your Telegram numeric user ID (get it from @userinfobot). Comma-separated to allow more than one person.").addText(
+        (text) => text.setPlaceholder("12345678, 87654321").setValue(this.plugin.settings.telegramAuthorizedUserIds).onChange(async (value) => {
+          this.plugin.settings.telegramAuthorizedUserIds = value;
+          await this.plugin.saveSettings();
+        })
+      );
+      this.renderBridgeSectionHeader(
+        containerEl,
+        "Advanced \u2014 manual setup required",
+        "These bridges work but require cloning a companion repository and configuring an absolute path. Recommended only if you\u2019re comfortable with npm and Terminal."
+      );
+      this.headerWithToggle(
+        containerEl,
+        "WhatsApp Bridge",
+        () => this.plugin.settings.enablePluginSpawnedBridge,
+        async (v3) => {
+          this.plugin.settings.enablePluginSpawnedBridge = v3;
+          await this.plugin.saveSettings();
+          this.display();
+        }
+      );
+      this.renderWhatsappSetupWarning(containerEl);
+      this.renderWhatsappStatusBlock(containerEl);
+      new import_obsidian22.Setting(containerEl).setName("WhatsApp self-chat ID").setDesc("Your WhatsApp self-chat identifier (e.g. 12125551212@c.us)").addText(
+        (text) => text.setPlaceholder("12125551212@c.us").setValue(this.plugin.settings.selfChatId).onChange(async (value) => {
+          this.plugin.settings.selfChatId = value;
+          await this.plugin.saveSettings();
+        })
+      );
+      new import_obsidian22.Setting(containerEl).setName("Bridge port").setDesc("HTTP API port for the bridge (default 3001)").addText(
+        (text) => text.setPlaceholder("3001").setValue(String(this.plugin.settings.bridgePort)).onChange(async (value) => {
+          this.plugin.settings.bridgePort = parseInt(value) || 3001;
+          await this.plugin.saveSettings();
+        })
+      );
+      new import_obsidian22.Setting(containerEl).setName("Bridge install path").setDesc("Absolute path to the bridge install directory. Contains dist/index.js after `npm install && npm run build`.").addText(
+        (text) => text.setPlaceholder("/Users/you/Code/2brain/bridge").setValue(this.plugin.settings.bridgePath).onChange(async (value) => {
+          this.plugin.settings.bridgePath = value.trim();
+          await this.plugin.saveSettings();
+          this.display();
         })
       );
       containerEl.createEl("h2", { text: "Misc Credentials" });
@@ -176108,6 +177085,307 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
         text.inputEl.type = "password";
       });
     }
+  }
+  /** Two-level section header for the Bridges tab. h2 above + a muted helper
+   *  paragraph below. Visually distinguishes the first-class/advanced tiers
+   *  from the per-bridge headers (which use headerWithToggle's inline-toggle
+   *  pattern at a slightly smaller weight). */
+  renderBridgeSectionHeader(containerEl, title, helperText) {
+    const heading = containerEl.createEl("h2", { text: title });
+    heading.style.marginTop = "1.5em";
+    heading.style.marginBottom = "0.25em";
+    const helper = containerEl.createEl("p", { text: helperText });
+    helper.style.margin = "0 0 1em 0";
+    helper.style.fontSize = "0.9em";
+    helper.style.color = "var(--text-muted)";
+  }
+  /** Inline ⚠ warning that appears INSIDE the WhatsApp Bridge row when the
+   *  toggle is on but bridgePath is empty. Without this a user toggles the
+   *  bridge on, nothing visibly happens (because bridgePath is the load-bearing
+   *  config), and they're stuck. The warning names the missing field so they
+   *  scroll down and fill it in. */
+  renderWhatsappSetupWarning(containerEl) {
+    const toggleOn = this.plugin.settings.enablePluginSpawnedBridge;
+    const pathEmpty = !this.plugin.settings.bridgePath?.trim();
+    if (!toggleOn || !pathEmpty) return;
+    const warn = containerEl.createDiv({ cls: "mod-warning" });
+    warn.style.margin = "0 0 0.75em 0";
+    warn.style.padding = "0.6em 0.8em";
+    warn.style.border = "1px solid var(--background-modifier-error-border, #a44)";
+    warn.style.borderRadius = "4px";
+    warn.style.background = "var(--background-modifier-error, rgba(170, 68, 68, 0.1))";
+    warn.style.fontSize = "0.9em";
+    warn.textContent = "\u26A0 Bridge install path not configured. WhatsApp requires manual setup \u2014 see the install guide. The toggle is on but the bridge won\u2019t start until Bridge install path is filled in below.";
+  }
+  /** Single-line status row for the Email Bridge. No runtime probe exists
+   *  (IMAP runner doesn't expose a status method yet), so this is purely
+   *  config-derived. Green when both host+user are set and toggle is on;
+   *  amber when toggle is on but config is incomplete; grey when off. */
+  renderEmailStatusRow(containerEl) {
+    const on = this.plugin.settings.enablePluginImap;
+    const host = this.plugin.settings.imapHost?.trim();
+    const user = this.plugin.settings.imapUser?.trim();
+    const setting = new import_obsidian22.Setting(containerEl).setName("Status");
+    if (!on) {
+      setting.setDesc("\u25CB  Off");
+    } else if (host && user) {
+      setting.setDesc(`\u2705  Connected as ${user}`);
+    } else {
+      setting.setDesc("\u26A0\uFE0F  Setup required \u2014 fill in email address and IMAP host below.");
+    }
+  }
+  /** Single-line status row for the iMessage Bridge — read from
+   *  torusImessageStatus(). Surfaces the configured-handles count and any
+   *  runtime error from the SQLite poller. Cheap snapshot, no polling
+   *  (settings tab doesn't poll iMessage; we just refresh on render). */
+  renderImessageStatusRow(containerEl) {
+    let snap = null;
+    try {
+      snap = JSON.parse(this.plugin.torusImessageStatus());
+    } catch {
+    }
+    const setting = new import_obsidian22.Setting(containerEl).setName("Status");
+    if (!snap) {
+      setting.setDesc("\u25CB  Status unavailable");
+      return;
+    }
+    if (snap.disabled) {
+      setting.setDesc("\u25CB  Off");
+      return;
+    }
+    if (snap.lastError) {
+      setting.setDesc(`\u274C  ${snap.lastError}`);
+      return;
+    }
+    if (snap.running) {
+      const handles = snap.selfHandles ?? [];
+      if (handles.length === 0) {
+        setting.setDesc("\u26A0\uFE0F  Running but no handles configured \u2014 add yours below.");
+      } else {
+        setting.setDesc(`\u2705  Watching ${handles.length} handle${handles.length === 1 ? "" : "s"}: ${handles.join(", ")}`);
+      }
+      return;
+    }
+    setting.setDesc("\u26A0\uFE0F  Setup required \u2014 fill in at least one handle below.");
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+  // WhatsApp status block — Reset/QR/state-aware status row
+  //
+  // Self-contained DOM that mutates in place under a 2s poll. Keeps the rest
+  // of the settings tab from re-rendering on every tick. Polling is torn down
+  // in hide() and at the top of display(), so swapping tabs or closing the
+  // modal doesn't leave timers pointed at detached nodes.
+  //
+  // Boris's runtime contract (2026-06-22):
+  //   - torusBridgeStatus() returns BridgeStatusSnapshot with the supervisor
+  //     state (idle/spawning/awaiting_qr/ready/restarting/failed)
+  //   - torusBridgeQr('whatsapp') wraps the bridge's GET /qr — use this from
+  //     the UI, not direct requestUrl, for CORS safety
+  //   - torusBridgeReset('whatsapp') wipes the WA session and respawns
+  // ─────────────────────────────────────────────────────────────────────────
+  renderWhatsappStatusBlock(containerEl) {
+    const block = containerEl.createDiv();
+    block.style.marginBottom = "1.5em";
+    block.style.padding = "0.75em";
+    block.style.border = "1px solid var(--background-modifier-border)";
+    block.style.borderRadius = "6px";
+    block.style.background = "var(--background-secondary)";
+    const topRow = block.createDiv();
+    topRow.style.display = "flex";
+    topRow.style.alignItems = "center";
+    topRow.style.gap = "0.5em";
+    const dot = topRow.createSpan();
+    dot.style.display = "inline-block";
+    dot.style.width = "0.7em";
+    dot.style.height = "0.7em";
+    dot.style.borderRadius = "50%";
+    dot.style.background = "var(--text-muted)";
+    dot.style.flexShrink = "0";
+    const stateLabel = topRow.createSpan();
+    stateLabel.style.fontWeight = "600";
+    stateLabel.textContent = "\u2026";
+    const contextLine = block.createDiv();
+    contextLine.style.marginTop = "0.25em";
+    contextLine.style.fontSize = "0.9em";
+    contextLine.style.color = "var(--text-muted)";
+    contextLine.textContent = "Loading\u2026";
+    const qrSection = block.createDiv();
+    qrSection.style.marginTop = "0.75em";
+    qrSection.style.display = "none";
+    qrSection.style.flexDirection = "column";
+    qrSection.style.alignItems = "center";
+    qrSection.style.gap = "0.5em";
+    const qrPrompt = qrSection.createDiv();
+    qrPrompt.style.fontSize = "0.9em";
+    qrPrompt.textContent = "Scan this code with WhatsApp:";
+    const qrContainer = qrSection.createDiv();
+    qrContainer.style.width = "240px";
+    qrContainer.style.height = "240px";
+    qrContainer.style.background = "#fff";
+    qrContainer.style.padding = "0";
+    qrContainer.style.borderRadius = "4px";
+    qrContainer.style.display = "flex";
+    qrContainer.style.alignItems = "center";
+    qrContainer.style.justifyContent = "center";
+    const qrInstructions = qrSection.createDiv();
+    qrInstructions.style.fontSize = "0.85em";
+    qrInstructions.style.color = "var(--text-muted)";
+    qrInstructions.style.textAlign = "center";
+    qrInstructions.style.maxWidth = "320px";
+    qrInstructions.textContent = "On your phone: WhatsApp \u2192 Settings \u2192 Linked Devices \u2192 Link a Device \u2192 point at this code";
+    const buttonRow = block.createDiv();
+    buttonRow.style.marginTop = "0.75em";
+    buttonRow.style.display = "flex";
+    buttonRow.style.gap = "0.5em";
+    const resetBtn = buttonRow.createEl("button", { text: "Reset & re-pair" });
+    resetBtn.style.padding = "0.4em 0.9em";
+    resetBtn.onclick = () => {
+      if (this.resetInFlight) return;
+      new ResetBridgeConfirmModal(this.app, async () => {
+        this.resetInFlight = true;
+        resetBtn.disabled = true;
+        resetBtn.textContent = "Resetting\u2026";
+        try {
+          const raw = await this.plugin.torusBridgeReset("whatsapp");
+          const result = JSON.parse(raw);
+          if (!result.ok) {
+            new import_obsidian22.Notice(`Reset failed: ${result.message}`);
+            contextLine.textContent = result.message;
+          } else {
+            new import_obsidian22.Notice("WhatsApp bridge reset \u2014 waiting for new QR\u2026");
+          }
+        } catch (e2) {
+          new import_obsidian22.Notice(`Reset error: ${e2 instanceof Error ? e2.message : String(e2)}`);
+        }
+      }).open();
+    };
+    const poll = async () => {
+      let snap = null;
+      try {
+        snap = JSON.parse(this.plugin.torusBridgeStatus());
+      } catch {
+      }
+      if (!snap) {
+        dot.style.background = "var(--text-muted)";
+        stateLabel.textContent = "Unknown";
+        contextLine.textContent = "Could not read bridge status.";
+        return;
+      }
+      const palette = BRIDGE_STATE_PALETTE[snap.state] || BRIDGE_STATE_PALETTE.idle;
+      dot.style.background = palette.color;
+      stateLabel.textContent = palette.label;
+      contextLine.textContent = describeBridgeContext(snap);
+      if (snap.state === "awaiting_qr") {
+        qrSection.style.display = "flex";
+        try {
+          const qrRaw = await this.plugin.torusBridgeQr("whatsapp");
+          const qrSnap = JSON.parse(qrRaw);
+          if (qrSnap.ok && qrSnap.qr && qrSnap.qr !== this.lastQrString) {
+            const svg = new import_qrcode_svg.default({
+              content: qrSnap.qr,
+              width: 240,
+              height: 240,
+              padding: 4,
+              ecl: "M"
+            }).svg();
+            qrContainer.empty();
+            qrContainer.innerHTML = svg;
+            this.lastQrString = qrSnap.qr;
+          }
+        } catch {
+        }
+      } else {
+        qrSection.style.display = "none";
+        this.lastQrString = null;
+      }
+      if (this.resetInFlight && (snap.state === "awaiting_qr" || snap.state === "ready" || snap.state === "failed" || snap.state === "idle")) {
+        this.resetInFlight = false;
+        resetBtn.disabled = false;
+        resetBtn.textContent = "Reset & re-pair";
+      }
+    };
+    poll().catch(() => {
+    });
+    this.bridgePoll = setInterval(() => {
+      poll().catch(() => {
+      });
+    }, 2e3);
+  }
+};
+var BRIDGE_STATE_PALETTE = {
+  idle: { color: "var(--text-muted)", label: "Idle" },
+  spawning: { color: "var(--text-muted)", label: "Starting" },
+  awaiting_qr: { color: "var(--color-orange, #d18616)", label: "Awaiting QR scan" },
+  ready: { color: "var(--color-green, #2ea043)", label: "Ready" },
+  restarting: { color: "var(--text-muted)", label: "Restarting" },
+  failed: { color: "var(--color-red, #d73a49)", label: "Failed" }
+};
+function describeBridgeContext(snap) {
+  switch (snap.state) {
+    case "idle":
+      return snap.bridge_path ? "Bridge not started \u2014 toggle to enable." : "Set the bridge install path above to start.";
+    case "spawning":
+      return "Starting bridge\u2026";
+    case "awaiting_qr":
+      return "Waiting for QR scan \u2014 see code below.";
+    case "ready": {
+      const inbound = snap.health?.last_inbound_at;
+      if (inbound) return `Capturing. Last inbound ${relativeTime(inbound)}.`;
+      return "Connected. Waiting for first capture.";
+    }
+    case "restarting": {
+      const next = snap.next_restart_in_ms;
+      if (next && next > 0) return `Restarting in ${Math.ceil(next / 1e3)}s\u2026`;
+      return "Restarting bridge\u2026";
+    }
+    case "failed": {
+      const detail = snap.health?.detail || snap.last_error || "Bridge failed.";
+      return `${detail} \u2014 click Reset to retry.`;
+    }
+  }
+}
+function relativeTime(iso) {
+  const then = Date.parse(iso);
+  if (!Number.isFinite(then)) return "just now";
+  const deltaMs = Date.now() - then;
+  if (deltaMs < 1e4) return "just now";
+  if (deltaMs < 6e4) return `${Math.floor(deltaMs / 1e3)}s ago`;
+  if (deltaMs < 36e5) return `${Math.floor(deltaMs / 6e4)}m ago`;
+  if (deltaMs < 864e5) return `${Math.floor(deltaMs / 36e5)}h ago`;
+  return `${Math.floor(deltaMs / 864e5)}d ago`;
+}
+var ResetBridgeConfirmModal = class extends import_obsidian22.Modal {
+  onConfirm;
+  constructor(app, onConfirm) {
+    super(app);
+    this.onConfirm = onConfirm;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: "Reset WhatsApp Bridge?" });
+    contentEl.createEl("p", {
+      text: "This will wipe the saved WhatsApp authentication and start fresh. You'll need to scan a new QR code with your phone to re-pair."
+    });
+    contentEl.createEl("p", {
+      text: "Existing captures in your inbox aren't affected."
+    });
+    const buttonRow = contentEl.createDiv();
+    buttonRow.style.display = "flex";
+    buttonRow.style.justifyContent = "flex-end";
+    buttonRow.style.gap = "0.5em";
+    buttonRow.style.marginTop = "1em";
+    const cancel = buttonRow.createEl("button", { text: "Cancel" });
+    cancel.onclick = () => this.close();
+    const confirm = buttonRow.createEl("button", { text: "Reset" });
+    confirm.classList.add("mod-warning");
+    confirm.onclick = async () => {
+      this.close();
+      await this.onConfirm();
+    };
+  }
+  onClose() {
+    this.contentEl.empty();
   }
 };
 function applyTorusRoot(settings) {
@@ -176159,6 +177437,14 @@ async function loadSettings(plugin) {
       (d) => d !== primarySource
     );
     dirty = true;
+  }
+  {
+    const legacy = data?.imessageSelfHandle;
+    if (typeof legacy === "string" && !data?.imessageSelfHandles) {
+      settings.imessageSelfHandles = legacy;
+      dirty = true;
+    }
+    delete settings.imessageSelfHandle;
   }
   applyTorusRoot(settings);
   if (dirty) await plugin.saveData(settings);
@@ -176236,13 +177522,33 @@ var OrphanTextureModal = class extends import_obsidian22.Modal {
 };
 
 // src/taskrunner.ts
-var import_fs2 = require("fs");
+var import_fs3 = require("fs");
 var import_child_process3 = require("child_process");
 var import_obsidian23 = require("obsidian");
 
 // src/lib/binResolver.ts
 var import_child_process2 = require("child_process");
+var import_fs2 = require("fs");
 var cache2 = /* @__PURE__ */ new Map();
+function findClaudeInNativeBundle(log) {
+  return new Promise((resolve2) => {
+    if (process.platform !== "darwin") return resolve2(null);
+    const appPath = "/Applications/Claude.app";
+    if (!(0, import_fs2.existsSync)(appPath)) return resolve2(null);
+    (0, import_child_process2.exec)(`find ${appPath} -maxdepth 5 -name claude -type f -perm -u+x`, { timeout: 2e3 }, (err, stdout) => {
+      if (err) {
+        log(`native-bundle find errored: ${err.message}`);
+        return resolve2(null);
+      }
+      const path2 = String(stdout).trim().split("\n").find(Boolean) || "";
+      if (path2 && (0, import_fs2.existsSync)(path2)) {
+        log(`resolved claude via native bundle \u2192 ${path2}`);
+        return resolve2(path2);
+      }
+      resolve2(null);
+    });
+  });
+}
 function resolveBin(name, log = () => {
 }) {
   const cached = cache2.get(name);
@@ -176278,17 +177584,19 @@ function resolveBinUncached(name, log) {
     }
     const shell = process.env.SHELL || "/bin/zsh";
     const cmd = `${shell} -lic 'command -v ${name}'`;
-    (0, import_child_process2.exec)(cmd, { timeout: timeoutMs }, (err, stdout, stderr) => {
+    (0, import_child_process2.exec)(cmd, { timeout: timeoutMs }, async (err, stdout, stderr) => {
       const out = String(stdout).trim().split("\n").pop() ?? "";
-      if (err || !out) {
-        const errInfo = err ? `err=${err.code ?? err.message}` : "empty stdout";
-        const stderrSnippet = String(stderr || "").trim().slice(0, 500);
-        log(
-          `resolveBin(${name}) failed \u2014 shell=${shell} ${errInfo}${stderrSnippet ? ` stderr=${stderrSnippet}` : ""}`
-        );
-        return resolve2(null);
+      if (out) return resolve2(out);
+      const errInfo = err ? `err=${err.code ?? err.message}` : "empty stdout";
+      const stderrSnippet = String(stderr || "").trim().slice(0, 500);
+      log(
+        `resolveBin(${name}) shell-PATH lookup failed \u2014 shell=${shell} ${errInfo}${stderrSnippet ? ` stderr=${stderrSnippet}` : ""}`
+      );
+      if (name === "claude") {
+        const fromBundle = await findClaudeInNativeBundle(log);
+        if (fromBundle) return resolve2(fromBundle);
       }
-      resolve2(out);
+      resolve2(null);
     });
   });
 }
@@ -176403,7 +177711,7 @@ var Taskrunner = class {
   }
   readTasks() {
     try {
-      const raw = (0, import_fs2.readFileSync)(this.tasksPath(), "utf-8");
+      const raw = (0, import_fs3.readFileSync)(this.tasksPath(), "utf-8");
       return raw.split("\n").map((l2) => l2.trim()).filter(Boolean).map((l2) => JSON.parse(l2));
     } catch {
       return [];
@@ -176411,7 +177719,7 @@ var Taskrunner = class {
   }
   writeTasks(tasks) {
     const content = tasks.map((t2) => JSON.stringify(t2)).join("\n") + "\n";
-    (0, import_fs2.writeFileSync)(this.tasksPath(), content, "utf-8");
+    (0, import_fs3.writeFileSync)(this.tasksPath(), content, "utf-8");
   }
   isOverdue(task, nowMs) {
     if (task.action === "interactive-only") return false;
@@ -176661,7 +177969,7 @@ var Taskrunner = class {
 };
 
 // src/bridgeRunner.ts
-var import_fs3 = require("fs");
+var import_fs4 = require("fs");
 var import_child_process4 = require("child_process");
 var import_obsidian24 = require("obsidian");
 var BridgeRunner = class _BridgeRunner {
@@ -176689,9 +177997,18 @@ var BridgeRunner = class _BridgeRunner {
    *  if the situation is genuinely stuck. The user-visible message advises
    *  Cmd+Q + reopen as the cure, since manually clicking "Restart" doesn't
    *  free a port held by a stray process. */
-  static RESTART_WARN_THRESHOLDS = [10, 15, 20];
-  static RESTART_HARD_LIMIT = 25;
+  static RESTART_WARN_THRESHOLDS = [8, 12, 16];
+  // Backstop ceiling for slow-degradation loops the circuit breaker won't catch
+  // (bridge runs >2s then dies repeatedly). The deterministic-failure circuit
+  // breaker (CB_*) is the primary stop for fast identical failures.
+  static RESTART_HARD_LIMIT = 20;
   static RESTART_CYCLE_WINDOW_MS = 15 * 60 * 1e3;
+  // Deterministic-failure circuit breaker: N spawns in a row that each die in
+  // under CB_FAST_FAIL_MS with the *same* error signature → stop respawning and
+  // require a manual reset. Catches the EADDRINUSE-orphan and broken-entry-point
+  // loops that the count-based gate above would grind through 20 times first.
+  static CB_FAILURE_THRESHOLD = 3;
+  static CB_FAST_FAIL_MS = 2e3;
   // Health-poll state
   healthPollTimer = null;
   lastHealth = null;
@@ -176706,12 +178023,25 @@ var BridgeRunner = class _BridgeRunner {
   // current degraded notice (for auto-dismiss on recovery)
   persistentlyDegraded = false;
   // true after RESTART_HARD_LIMIT hit; manual restart resets
+  // Circuit-breaker state
+  recentOutcomes = [];
+  // ring buffer (last CB_FAILURE_THRESHOLD)
+  circuitBroken = false;
+  // tripped by N identical fast failures; cleared on reset/start
+  firstStderrLine = null;
+  // first stderr line of the current spawn (for error signature)
+  portKillRetried = false;
+  // guard: one port-kill+retry per failure streak
   constructor(plugin) {
     this.plugin = plugin;
   }
   /** Spawn the bridge. No-op if already running or config is invalid.
-   *  The config is saved on first call so auto-restart can reuse it. */
-  async start(config) {
+   *  The config is saved on first call so auto-restart can reuse it.
+   *  `manual` = a user/operator-initiated start (vs an auto-restart respawn).
+   *  Manual starts reset the failure accumulators (backoff, restart-cycle gate,
+   *  circuit breaker) for a clean slate; auto-restarts preserve them so the
+   *  circuit breaker can count identical failures across respawns. */
+  async start(config, manual = false) {
     if (this.child) {
       this.log("start called but bridge is already running");
       return;
@@ -176724,7 +178054,7 @@ var BridgeRunner = class _BridgeRunner {
     }
     this.savedConfig = config;
     const entryPoint = `${config.bridgePath}/dist/index.js`;
-    if (!(0, import_fs3.existsSync)(entryPoint)) {
+    if (!(0, import_fs4.existsSync)(entryPoint)) {
       const msg = `entry point not found at ${entryPoint} \u2014 did you 'npm run build' in the bridge directory?`;
       this.lastError = msg;
       this.log(`start aborted: ${msg}`);
@@ -176739,7 +178069,16 @@ var BridgeRunner = class _BridgeRunner {
     }
     this.stopping = false;
     this.lastError = null;
-    this.persistentlyDegraded = false;
+    if (manual) {
+      this.persistentlyDegraded = false;
+      this.circuitBroken = false;
+      this.recentOutcomes = [];
+      this.portKillRetried = false;
+      this.restartAttempt = 0;
+      this.restartHistory = [];
+      this.warnedAtCounts.clear();
+    }
+    this.firstStderrLine = null;
     this.clearStaleChromiumLocks(config.bridgePath);
     const env = {
       ...process.env,
@@ -176764,7 +178103,13 @@ var BridgeRunner = class _BridgeRunner {
     const stdoutStream = this.plugin.torusLogger?.writeStream("capture:whatsapp/out");
     const stderrStream = this.plugin.torusLogger?.writeStream("capture:whatsapp/err");
     this.child.stdout?.on("data", (d) => stdoutStream?.onData(d));
-    this.child.stderr?.on("data", (d) => stderrStream?.onData(d));
+    this.child.stderr?.on("data", (d) => {
+      stderrStream?.onData(d);
+      if (this.firstStderrLine === null) {
+        const line = d.toString("utf8").split("\n").map((l2) => l2.trim()).find((l2) => l2.length > 0);
+        if (line) this.firstStderrLine = line;
+      }
+    });
     this.child.on("exit", (code, signal) => {
       stdoutStream?.flush();
       stderrStream?.flush();
@@ -176774,13 +178119,13 @@ var BridgeRunner = class _BridgeRunner {
         this.lastError = `exited code=${code}${signal ? ` signal=${signal}` : ""}`;
       }
       this.child = null;
-      this.maybeScheduleRestart(code, signal, uptimeMs);
+      void this.maybeScheduleRestart(code, signal, uptimeMs);
     });
     this.child.on("error", (e2) => {
       this.log(`spawn error: ${e2.message}`);
       this.lastError = `spawn error: ${e2.message}`;
       this.child = null;
-      this.maybeScheduleRestart(-1, null, 0);
+      void this.maybeScheduleRestart(-1, null, 0);
     });
     this.startHealthPoll(config.bridgePort);
   }
@@ -176838,17 +178183,54 @@ var BridgeRunner = class _BridgeRunner {
       this.lastHealthFetchAt = Date.now();
     }
   }
-  /** Decide whether to restart the bridge after an exit and schedule it with backoff. */
-  maybeScheduleRestart(code, signal, uptimeMs) {
+  /** Decide whether to restart the bridge after an exit and schedule it with backoff.
+   *  Async because the EADDRINUSE self-orphan path shells out to lsof/ps and may
+   *  retry the spawn inline. Callers fire-and-forget with `void`. */
+  async maybeScheduleRestart(code, signal, uptimeMs) {
     if (this.stopping) return;
     if (!this.savedConfig) return;
     if (code === 0 && !signal) {
       this.log("clean exit (code 0) \u2014 not restarting");
       return;
     }
+    const signature = this.deriveSignature(code, signal);
     if (uptimeMs >= _BridgeRunner.HEALTHY_UPTIME_MS) {
       if (this.restartAttempt > 0) this.log(`healthy uptime before exit \u2014 resetting backoff counter`);
       this.restartAttempt = 0;
+      this.recentOutcomes = [];
+      this.portKillRetried = false;
+    }
+    this.recentOutcomes.push({ uptimeMs, signature });
+    if (this.recentOutcomes.length > _BridgeRunner.CB_FAILURE_THRESHOLD) this.recentOutcomes.shift();
+    if (this.recentOutcomes.length >= _BridgeRunner.CB_FAILURE_THRESHOLD && this.recentOutcomes.every((o3) => o3.uptimeMs < _BridgeRunner.CB_FAST_FAIL_MS && o3.signature === signature)) {
+      this.circuitBroken = true;
+      this.lastError = `${signature}; auto-restart halted after ${_BridgeRunner.CB_FAILURE_THRESHOLD} identical fast failures \u2014 run torusBridgeReset('whatsapp') (or click Reset) to retry`;
+      this.log(`circuit breaker tripped: ${this.lastError}`);
+      this.activeNotice?.hide();
+      this.activeNotice = new import_obsidian24.Notice(
+        `WhatsApp bridge stopped: ${signature}. Open the Bridges panel and click Reset to retry.`,
+        0
+      );
+      return;
+    }
+    if (signature === this.portSignature() && !this.portKillRetried) {
+      this.portKillRetried = true;
+      const outcome = await this.handlePortConflict();
+      if (outcome.action === "killed") {
+        this.log(`freed port ${this.savedConfig.bridgePort} from orphan pid ${outcome.pids.join(",")} \u2014 retrying spawn in 500ms`);
+        await new Promise((r2) => setTimeout(r2, 500));
+        if (this.stopping || !this.savedConfig) return;
+        void this.start(this.savedConfig).catch((e2) => this.log(`retry spawn failed: ${e2 instanceof Error ? e2.message : String(e2)}`));
+        return;
+      }
+      if (outcome.action === "foreign") {
+        this.circuitBroken = true;
+        this.lastError = outcome.message;
+        this.log(`halting: ${outcome.message}`);
+        this.activeNotice?.hide();
+        this.activeNotice = new import_obsidian24.Notice(outcome.message, 0);
+        return;
+      }
     }
     const now3 = Date.now();
     this.restartHistory = this.restartHistory.filter((t2) => now3 - t2 < _BridgeRunner.RESTART_CYCLE_WINDOW_MS);
@@ -176858,9 +178240,10 @@ var BridgeRunner = class _BridgeRunner {
     if (count5 >= _BridgeRunner.RESTART_HARD_LIMIT) {
       this.persistentlyDegraded = true;
       this.log(`restart hard limit hit (${count5} restarts in ${windowMin}min) \u2014 halting respawn`);
+      this.lastError = `auto-restart halted after ${count5} restarts in ${windowMin}min \u2014 click Reset to retry`;
       this.activeNotice?.hide();
       this.activeNotice = new import_obsidian24.Notice(
-        `WhatsApp bridge halted after ${count5} failed restart attempts. Close and restart Obsidian entirely to remedy.`,
+        `WhatsApp bridge halted after ${count5} failed restart attempts. Open the Bridges panel and click Reset, or restart Obsidian.`,
         0
       );
       return;
@@ -176886,6 +178269,132 @@ var BridgeRunner = class _BridgeRunner {
       this.log(`restart #${this.restartAttempt} \u2014 respawning`);
       this.start(this.savedConfig).catch((e2) => this.log(`restart failed: ${e2 instanceof Error ? e2.message : String(e2)}`));
     }, delayMs);
+  }
+  /** The circuit-breaker signature for a port conflict on our configured port. */
+  portSignature() {
+    return `port_in_use:${this.savedConfig?.bridgePort ?? "?"}`;
+  }
+  /** Stable error signature for "is this the same failure twice?" detection.
+   *  EADDRINUSE normalizes to port_in_use:<port>; other errors use the first
+   *  stderr line (200 char cap); fall back to the exit code/signal. */
+  deriveSignature(code, signal) {
+    const line = this.firstStderrLine;
+    if (line && /EADDRINUSE/.test(line)) return this.portSignature();
+    if (line) return line.slice(0, 200);
+    if (signal) return `signal:${signal}`;
+    return `exit_code:${code}`;
+  }
+  /** Look up the process(es) LISTENING on a port. `-sTCP:LISTEN` excludes
+   *  passive FD-holders like Obsidian's CLOSE_WAIT client socket, so we only
+   *  see the actual listener. Absolute paths because GUI-launched Obsidian
+   *  strips PATH for spawned children. Returns [] when nothing matches. */
+  lookupPortHolders(port) {
+    if (!port) return [];
+    try {
+      const out = (0, import_child_process4.execSync)(`/usr/sbin/lsof -nP -iTCP:${port} -sTCP:LISTEN -t`, {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"]
+      }).trim();
+      if (!out) return [];
+      const pids = [...new Set(out.split("\n").map((s) => parseInt(s.trim(), 10)).filter((n) => Number.isInteger(n)))];
+      return pids.map((pid) => ({ pid, command: this.pidCommand(pid) }));
+    } catch {
+      return [];
+    }
+  }
+  pidCommand(pid) {
+    try {
+      return (0, import_child_process4.execSync)(`/bin/ps -p ${pid} -o command=`, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    } catch {
+      return "";
+    }
+  }
+  /** Short, user-facing process name from a full command line. */
+  shortName(command) {
+    const first2 = command.trim().split(/\s+/)[0] || command;
+    return first2.split("/").pop() || first2;
+  }
+  /** Resolve a port conflict on our configured port:
+   *  - kill any LISTEN holder whose cmdline is our own bridge entry point
+   *  - never touch Obsidian's helper (passive FD) or any unrelated process
+   *  Returns 'killed' (freed ≥1 of our orphans), 'foreign' (a non-ours process
+   *  holds it — manual action needed), or 'clear' (no killable listener). */
+  async handlePortConflict() {
+    const port = this.savedConfig?.bridgePort ?? 0;
+    const entryPoint = this.savedConfig ? `${this.savedConfig.bridgePath}/dist/index.js` : "";
+    const holders = this.lookupPortHolders(port);
+    const killed = [];
+    let foreign = null;
+    for (const h2 of holders) {
+      if (h2.command.includes("Obsidian Helper")) continue;
+      if (entryPoint && h2.command.includes(entryPoint)) {
+        try {
+          process.kill(h2.pid, "SIGKILL");
+          killed.push(h2.pid);
+          this.log(`SIGKILL orphan bridge pid ${h2.pid} holding port ${port}`);
+        } catch (e2) {
+          this.log(`failed to kill pid ${h2.pid}: ${e2 instanceof Error ? e2.message : String(e2)}`);
+        }
+      } else {
+        foreign = foreign ?? h2;
+      }
+    }
+    if (foreign) {
+      return {
+        action: "foreign",
+        pids: [foreign.pid],
+        message: `Port ${port} held by ${this.shortName(foreign.command)} (PID ${foreign.pid}) \u2014 not ours to kill. Stop that process manually, then click Reset.`
+      };
+    }
+    if (killed.length > 0) return { action: "killed", pids: killed, message: "" };
+    return { action: "clear", pids: [], message: "" };
+  }
+  /** Supervisor-derived UI state. See BridgeState. */
+  deriveState(running2, scheduledRestart) {
+    if (this.circuitBroken || this.persistentlyDegraded) return "failed";
+    if (running2) {
+      const hs = this.lastHealth?.state;
+      if (hs === "ready") return "ready";
+      if (hs === "auth") return "awaiting_qr";
+      return "spawning";
+    }
+    if (scheduledRestart) return "restarting";
+    if (this.savedConfig && !this.stopping) return "restarting";
+    return "idle";
+  }
+  /** Full recovery for the WhatsApp bridge: stop → free port from our own
+   *  orphan → optionally wipe the WhatsApp session (forces a fresh QR) → clear
+   *  failure state → respawn. `wipeSession` is whatsapp-only; email/imessage
+   *  have no session cache. Returns post-reset status. */
+  async reset(config, opts) {
+    this.log(`reset requested (wipeSession=${opts.wipeSession})`);
+    this.savedConfig = config;
+    await this.stop();
+    await new Promise((r2) => setTimeout(r2, 2e3));
+    if (this.lookupPortHolders(config.bridgePort).length > 0) {
+      const conflict = await this.handlePortConflict();
+      if (conflict.action === "foreign") {
+        this.lastError = conflict.message;
+        this.circuitBroken = true;
+        return { ok: false, state: "failed", message: conflict.message };
+      }
+    }
+    if (opts.wipeSession) {
+      const sessionDir = `${config.bridgePath}/.wwebjs_auth/session`;
+      try {
+        (0, import_fs4.rmSync)(sessionDir, { recursive: true, force: true });
+        this.log(`wiped WhatsApp session at ${sessionDir}`);
+      } catch (e2) {
+        this.log(`session wipe failed: ${e2 instanceof Error ? e2.message : String(e2)}`);
+      }
+    }
+    await this.start(config, true);
+    const status = this.getStatus();
+    return {
+      ok: true,
+      state: status.state,
+      message: opts.wipeSession ? "WhatsApp re-pairing started. Watch the Bridges panel for the QR." : "Bridge restarted."
+    };
   }
   /** SIGTERM the bridge and wait for graceful exit. Safe to call when not running. */
   async stop() {
@@ -176963,6 +178472,7 @@ var BridgeRunner = class _BridgeRunner {
     const running2 = this.child !== null;
     const scheduledRestart = this.restartTimer !== null;
     return {
+      state: this.deriveState(running2, scheduledRestart),
       running: running2,
       pid: running2 ? this.child?.pid ?? null : null,
       uptime_ms: running2 ? Date.now() - this.lastSpawnTime : 0,
@@ -176985,12 +178495,12 @@ var BridgeRunner = class _BridgeRunner {
       this.log(`killed orphan Chromium processes using ${userDataDir}`);
     } catch {
     }
-    if (!(0, import_fs3.existsSync)(userDataDir)) return;
+    if (!(0, import_fs4.existsSync)(userDataDir)) return;
     let cleared = 0;
-    for (const name of (0, import_fs3.readdirSync)(userDataDir)) {
+    for (const name of (0, import_fs4.readdirSync)(userDataDir)) {
       if (!name.startsWith("Singleton")) continue;
       try {
-        (0, import_fs3.unlinkSync)(`${userDataDir}/${name}`);
+        (0, import_fs4.unlinkSync)(`${userDataDir}/${name}`);
         cleared++;
       } catch {
       }
@@ -177007,7 +178517,7 @@ var import_obsidian26 = require("obsidian");
 var import_imapflow = __toESM(require_imap_flow(), 1);
 var import_mailparser = __toESM(require_mailparser(), 1);
 var import_crypto2 = require("crypto");
-var import_fs5 = require("fs");
+var import_fs6 = require("fs");
 var import_path3 = require("path");
 
 // src/librarian/defuddle.ts
@@ -177015,7 +178525,7 @@ var import_node = __toESM(require_node4(), 1);
 var import_obsidian25 = require("obsidian");
 
 // src/lib/torusLogger.ts
-var import_fs4 = require("fs");
+var import_fs5 = require("fs");
 var import_path2 = require("path");
 var RETENTION_DAYS = 14;
 var TorusLogger = class {
@@ -177026,7 +178536,7 @@ var TorusLogger = class {
   constructor(logDir) {
     this.logDir = logDir;
     this.currentFile = (0, import_path2.join)(logDir, "torus.log");
-    if (!(0, import_fs4.existsSync)(logDir)) (0, import_fs4.mkdirSync)(logDir, { recursive: true });
+    if (!(0, import_fs5.existsSync)(logDir)) (0, import_fs5.mkdirSync)(logDir, { recursive: true });
     this.lastRotateCheck = (/* @__PURE__ */ new Date()).toDateString();
   }
   /** Write a single line: `<ISO-UTC-ms> [<label>] <content>`. Fire-and-forget. */
@@ -177035,7 +178545,7 @@ var TorusLogger = class {
       this.rotateIfNeeded();
       const line = `${(/* @__PURE__ */ new Date()).toISOString()} [${label}] ${content}
 `;
-      (0, import_fs4.appendFileSync)(this.currentFile, line);
+      (0, import_fs5.appendFileSync)(this.currentFile, line);
     } catch {
     }
   }
@@ -177069,23 +178579,23 @@ var TorusLogger = class {
     const today = (/* @__PURE__ */ new Date()).toDateString();
     if (today === this.lastRotateCheck) return;
     this.lastRotateCheck = today;
-    if (!(0, import_fs4.existsSync)(this.currentFile)) return;
+    if (!(0, import_fs5.existsSync)(this.currentFile)) return;
     const yesterday = new Date(Date.now() - 864e5);
     const yyyymmdd = yesterday.toISOString().slice(0, 10);
     const rotatedPath = (0, import_path2.join)(this.logDir, `torus-${yyyymmdd}.log`);
-    if (!(0, import_fs4.existsSync)(rotatedPath)) {
+    if (!(0, import_fs5.existsSync)(rotatedPath)) {
       try {
-        (0, import_fs4.renameSync)(this.currentFile, rotatedPath);
+        (0, import_fs5.renameSync)(this.currentFile, rotatedPath);
       } catch {
       }
     }
     const cutoffMs = Date.now() - RETENTION_DAYS * 864e5;
     try {
-      for (const name of (0, import_fs4.readdirSync)(this.logDir)) {
+      for (const name of (0, import_fs5.readdirSync)(this.logDir)) {
         if (!name.startsWith("torus-") || !name.endsWith(".log")) continue;
         const full = (0, import_path2.join)(this.logDir, name);
         try {
-          if ((0, import_fs4.statSync)(full).mtimeMs < cutoffMs) (0, import_fs4.unlinkSync)(full);
+          if ((0, import_fs5.statSync)(full).mtimeMs < cutoffMs) (0, import_fs5.unlinkSync)(full);
         } catch {
         }
       }
@@ -177275,7 +178785,7 @@ async function downloadAndEmbedImages(body, dateStr, hash, imagesDir, log) {
   const matches = [...body.matchAll(imageLineRe)];
   if (matches.length === 0) return body;
   let result = body;
-  if (!(0, import_fs5.existsSync)(imagesDir)) (0, import_fs5.mkdirSync)(imagesDir, { recursive: true });
+  if (!(0, import_fs6.existsSync)(imagesDir)) (0, import_fs6.mkdirSync)(imagesDir, { recursive: true });
   for (let i3 = 0; i3 < matches.length; i3++) {
     const fullMatch = matches[i3][0];
     const url = matches[i3][1];
@@ -177289,7 +178799,7 @@ async function downloadAndEmbedImages(body, dateStr, hash, imagesDir, log) {
         continue;
       }
       const buffer = Buffer.from(response.arrayBuffer);
-      (0, import_fs5.writeFileSync)((0, import_path3.join)(imagesDir, filename), buffer);
+      (0, import_fs6.writeFileSync)((0, import_path3.join)(imagesDir, filename), buffer);
       result = result.replace(fullMatch, `![[${filename}]]`);
       log(`downloaded image: ${filename} (${Math.round(buffer.length / 1024)}KB)`);
     } catch (e2) {
@@ -177356,8 +178866,8 @@ async function processMessage(client, uid, config, log) {
     (0, import_path3.join)(config.vaultPath, config.torusRoot, "Sources")
   ];
   for (const dir of dedupDirs) {
-    if ((0, import_fs5.existsSync)(dir)) {
-      const existing = (0, import_fs5.readdirSync)(dir).filter((f) => f.includes(hash) && f.endsWith(".md"));
+    if ((0, import_fs6.existsSync)(dir)) {
+      const existing = (0, import_fs6.readdirSync)(dir).filter((f) => f.includes(hash) && f.endsWith(".md"));
       if (existing.length > 0) {
         log(`skipping duplicate (hash ${hash}): ${existing[0]}`);
         return;
@@ -177370,8 +178880,8 @@ async function processMessage(client, uid, config, log) {
     if (!att.contentType.startsWith("image/")) continue;
     const ext = att.contentType.split("/")[1] || "bin";
     const attFilename = `${dateStr}-${hash}-${att.filename || `attachment.${ext}`}`;
-    if (!(0, import_fs5.existsSync)(imagesDir)) (0, import_fs5.mkdirSync)(imagesDir, { recursive: true });
-    (0, import_fs5.writeFileSync)((0, import_path3.join)(imagesDir, attFilename), att.content);
+    if (!(0, import_fs6.existsSync)(imagesDir)) (0, import_fs6.mkdirSync)(imagesDir, { recursive: true });
+    (0, import_fs6.writeFileSync)((0, import_path3.join)(imagesDir, attFilename), att.content);
     mediaEmbeds.push(`![[${attFilename}]]`);
     log(`saved attachment: ${attFilename}`);
   }
@@ -177392,8 +178902,8 @@ async function processMessage(client, uid, config, log) {
   parts.push("---", "", `*Captured: ${timestamp}*`, "");
   const filename = `${dateStr}-${hash}.md`;
   const inputDir = (0, import_path3.join)(config.vaultPath, config.torusRoot, "input-queue");
-  if (!(0, import_fs5.existsSync)(inputDir)) (0, import_fs5.mkdirSync)(inputDir, { recursive: true });
-  (0, import_fs5.writeFileSync)((0, import_path3.join)(inputDir, filename), parts.join("\n"), "utf8");
+  if (!(0, import_fs6.existsSync)(inputDir)) (0, import_fs6.mkdirSync)(inputDir, { recursive: true });
+  (0, import_fs6.writeFileSync)((0, import_path3.join)(inputDir, filename), parts.join("\n"), "utf8");
   log(`created note: ${config.torusRoot}/input-queue/${filename} \u2014 "${subject}" from ${from}`);
 }
 var ImapRunner = class {
@@ -177552,14 +179062,338 @@ var ImapRunner = class {
   }
 };
 
+// src/inbox/telegram.ts
+var import_obsidian27 = require("obsidian");
+var import_fs7 = require("fs");
+var import_crypto3 = require("crypto");
+var import_path4 = require("path");
+var API_BASE = "https://api.telegram.org";
+var LONG_POLL_SECONDS = 25;
+var ERROR_BACKOFF_MS = 3e3;
+function toLocalTimestamp3(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  const datePart = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const timePart = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  const tzAbbr = new Intl.DateTimeFormat("en-US", { timeZoneName: "short" }).formatToParts(date).find((p3) => p3.type === "timeZoneName")?.value || "";
+  return `${datePart} ${timePart} ${tzAbbr}`;
+}
+function extFor(filePath, mime, fallback) {
+  if (filePath && filePath.includes(".")) return filePath.slice(filePath.lastIndexOf("."));
+  if (mime) {
+    const m2 = mime.split("/")[1];
+    if (m2) return `.${m2.split(";")[0]}`;
+  }
+  return fallback;
+}
+var TelegramRunner = class {
+  config = null;
+  log;
+  running = false;
+  looping = false;
+  state = "idle";
+  startedAt = null;
+  lastPollAt = null;
+  lastInboundAt = null;
+  messagesCapturedSession = 0;
+  lastError = null;
+  botUsername = null;
+  offset = 0;
+  constructor(log = (m2) => console.log(`[TelegramRunner] ${m2}`)) {
+    this.log = log;
+  }
+  async start(config) {
+    if (this.running) {
+      this.log("start called but Telegram poller is already running");
+      return;
+    }
+    if (!config.botToken) {
+      this.log("start aborted: telegramBotToken not configured");
+      this.state = "idle";
+      return;
+    }
+    if (!config.vaultPath) {
+      this.log("start aborted: vaultPath missing");
+      return;
+    }
+    this.config = config;
+    this.state = "starting";
+    this.lastError = null;
+    this.messagesCapturedSession = 0;
+    try {
+      const me = await this.apiGet("getMe");
+      if (!me?.ok || !me.result) {
+        throw new Error(me?.description || "getMe returned not-ok");
+      }
+      this.botUsername = me.result.username ?? null;
+      this.log(`token verified \u2014 bot is @${this.botUsername ?? "(unknown)"}`);
+    } catch (e2) {
+      this.state = "failed";
+      this.lastError = `Invalid bot token. Get a fresh one from @BotFather and paste it in settings. (${e2 instanceof Error ? e2.message : e2})`;
+      this.log(`start aborted: ${this.lastError}`);
+      return;
+    }
+    this.offset = this.readOffset();
+    if (this.offset === 0) {
+      try {
+        const primed = await this.apiGet("getUpdates", { offset: -1, timeout: 0 });
+        const updates = primed?.result ?? [];
+        if (updates.length > 0) {
+          this.offset = updates[updates.length - 1].update_id + 1;
+          this.writeOffset(this.offset);
+          this.log(`primed offset to ${this.offset} \u2014 skipped ${updates.length} pre-enable update(s)`);
+        }
+      } catch (e2) {
+        this.log(`offset prime failed (continuing from 0): ${e2 instanceof Error ? e2.message : e2}`);
+      }
+    }
+    this.running = true;
+    this.state = "ready";
+    this.startedAt = /* @__PURE__ */ new Date();
+    this.log(`started: long-polling getUpdates (timeout=${LONG_POLL_SECONDS}s) for ${config.authorizedUserIds.length} authorized user(s)`);
+    void this.pollLoop();
+  }
+  async stop() {
+    this.running = false;
+    this.state = "idle";
+    this.startedAt = null;
+    this.log("stopped (in-flight poll will drain)");
+  }
+  isRunning() {
+    return this.running;
+  }
+  /** Structured snapshot for UI consumers (Bridges tab, settings status row).
+   *  Mirrors ImessageRunner.getStatus()'s universal triple (running + uptime +
+   *  lastError) plus Telegram-specifics, and carries the supervisor `state`
+   *  enum for parity with BridgeRunner. Plain serializable. */
+  getStatus() {
+    return {
+      running: this.running,
+      state: this.state,
+      botUsername: this.botUsername,
+      authorizedUserCount: this.config?.authorizedUserIds.length ?? 0,
+      startedAt: this.startedAt ? this.startedAt.toISOString() : null,
+      uptime_ms: this.startedAt ? Date.now() - this.startedAt.getTime() : 0,
+      lastPollAt: this.lastPollAt ? this.lastPollAt.toISOString() : null,
+      lastInboundAt: this.lastInboundAt ? this.lastInboundAt.toISOString() : null,
+      offset: this.offset,
+      messagesCapturedSession: this.messagesCapturedSession,
+      lastError: this.lastError
+    };
+  }
+  // ── Long-poll loop ──
+  async pollLoop() {
+    if (this.looping) return;
+    this.looping = true;
+    while (this.running) {
+      try {
+        const res = await this.apiGet("getUpdates", { offset: this.offset, timeout: LONG_POLL_SECONDS });
+        this.lastPollAt = /* @__PURE__ */ new Date();
+        if (!res?.ok) {
+          throw new Error(res?.description || "getUpdates returned not-ok");
+        }
+        const updates = res.result ?? [];
+        for (const update4 of updates) {
+          this.offset = update4.update_id + 1;
+          try {
+            await this.handleUpdate(update4);
+          } catch (e2) {
+            this.log(`error handling update ${update4.update_id}: ${e2 instanceof Error ? e2.message : e2}`);
+          }
+        }
+        if (updates.length > 0) this.writeOffset(this.offset);
+        this.lastError = null;
+      } catch (e2) {
+        const msg = e2 instanceof Error ? e2.message : String(e2);
+        this.lastError = msg;
+        this.log(`poll error: ${msg} \u2014 backing off ${ERROR_BACKOFF_MS}ms`);
+        await this.sleep(ERROR_BACKOFF_MS);
+      }
+    }
+    this.looping = false;
+  }
+  async handleUpdate(update4) {
+    const msg = update4.message;
+    if (!msg) return;
+    if (!this.config) return;
+    const fromId = msg.from?.id != null ? String(msg.from.id) : "";
+    if (!fromId || !this.config.authorizedUserIds.includes(fromId)) {
+      this.log(`ignored message from unauthorized user id=${fromId || "(unknown)"} (@${msg.from?.username ?? "?"}) \u2014 add this ID to settings to capture`);
+      return;
+    }
+    this.lastInboundAt = /* @__PURE__ */ new Date();
+    await this.writeCapture(msg);
+  }
+  // ── Capture → input-queue note ──
+  async writeCapture(msg) {
+    if (!this.config) return;
+    const date = new Date(msg.date * 1e3);
+    const timestamp = toLocalTimestamp3(date);
+    const dateStr = timestamp.split(" ")[0];
+    const text = (msg.caption ?? msg.text ?? "").trim();
+    let mediaLine = "";
+    let mediaKind = "";
+    try {
+      if (msg.photo && msg.photo.length > 0) {
+        const best = msg.photo[msg.photo.length - 1];
+        const saved = await this.downloadFile(best.file_id, msg.message_id, msg.date, ".jpg");
+        if (saved) {
+          mediaLine = `![[${saved}]]`;
+          mediaKind = "photo";
+        }
+      } else if (msg.video) {
+        const saved = await this.downloadFile(msg.video.file_id, msg.message_id, msg.date, ".mp4", msg.video.mime_type);
+        if (saved) {
+          mediaLine = `![[${saved}]]`;
+          mediaKind = "video";
+        }
+      } else if (msg.voice) {
+        const saved = await this.downloadFile(msg.voice.file_id, msg.message_id, msg.date, ".ogg", msg.voice.mime_type);
+        if (saved) {
+          mediaLine = `![[${saved}]]`;
+          mediaKind = "voice";
+        }
+      } else if (msg.audio) {
+        const saved = await this.downloadFile(msg.audio.file_id, msg.message_id, msg.date, ".mp3", msg.audio.mime_type);
+        if (saved) {
+          mediaLine = `![[${saved}]]`;
+          mediaKind = "audio";
+        }
+      } else if (msg.document) {
+        const ext = extFor(msg.document.file_name, msg.document.mime_type, ".bin");
+        const saved = await this.downloadFile(msg.document.file_id, msg.message_id, msg.date, ext, msg.document.mime_type);
+        if (saved) {
+          mediaLine = `![[${saved}]]`;
+          mediaKind = "document";
+        }
+      }
+    } catch (e2) {
+      this.log(`media download failed for message ${msg.message_id}: ${e2 instanceof Error ? e2.message : e2}`);
+    }
+    let locationLine = "";
+    if (msg.location) {
+      locationLine = `\u{1F4CD} ${msg.location.latitude}, ${msg.location.longitude} ([map](https://maps.google.com/?q=${msg.location.latitude},${msg.location.longitude}))`;
+    }
+    if (!text && !mediaLine && !locationLine) {
+      this.log(`skipping empty message ${msg.message_id}`);
+      return;
+    }
+    const forwarded = !!(msg.forward_from || msg.forward_sender_name || msg.forward_date);
+    const forwardOrigin = msg.forward_from ? `@${msg.forward_from.username ?? ""} ${msg.forward_from.first_name ?? ""}`.trim() : msg.forward_sender_name ?? "unknown sender";
+    const replyText = msg.reply_to_message?.text?.trim() || msg.reply_to_message?.caption?.trim() || "";
+    const hash = (0, import_crypto3.createHash)("md5").update(`${msg.message_id}
+${text}`).digest("hex").slice(0, 6);
+    const dedupDirs = [
+      (0, import_path4.join)(this.config.vaultPath, this.config.torusRoot, "input-queue"),
+      (0, import_path4.join)(this.config.vaultPath, this.config.torusRoot, "Sources")
+    ];
+    for (const dir of dedupDirs) {
+      if ((0, import_fs7.existsSync)(dir)) {
+        const existing = (0, import_fs7.readdirSync)(dir).filter((f) => f.includes(hash) && f.endsWith(".md"));
+        if (existing.length > 0) {
+          this.log(`skipping duplicate (hash ${hash}): ${existing[0]}`);
+          return;
+        }
+      }
+    }
+    const frontmatter = [
+      "---",
+      "torus_status: pending",
+      "torus_source: telegram",
+      `torus_created: ${timestamp}`,
+      "---"
+    ].join("\n");
+    const parts = [frontmatter, ""];
+    if (forwarded) parts.push(`> Forwarded from ${forwardOrigin}`, "");
+    if (replyText) parts.push(`> In reply to: ${replyText.slice(0, 280)}`, "");
+    if (text) parts.push("**Original Request:**", text, "");
+    if (locationLine) parts.push("**Location:**", locationLine, "");
+    if (mediaLine) parts.push(`**Attachment (${mediaKind}):**`, mediaLine, "");
+    parts.push(
+      "---",
+      "",
+      `*Captured from Telegram (msg ${msg.message_id}, chat ${msg.chat?.id ?? "?"}) \u2014 ${timestamp}*`,
+      ""
+    );
+    const content = parts.join("\n");
+    const filename = `${dateStr}-tg-${hash}.md`;
+    const inputDir = (0, import_path4.join)(this.config.vaultPath, this.config.torusRoot, "input-queue");
+    if (!(0, import_fs7.existsSync)(inputDir)) (0, import_fs7.mkdirSync)(inputDir, { recursive: true });
+    (0, import_fs7.writeFileSync)((0, import_path4.join)(inputDir, filename), content, "utf-8");
+    this.log(`created note: ${this.config.torusRoot}/input-queue/${filename}${mediaKind ? ` (+${mediaKind})` : ""}`);
+    this.messagesCapturedSession++;
+  }
+  /** Download a Telegram file by file_id. Two-step: getFile resolves a
+   *  server-side file_path, then we GET the file endpoint for the raw bytes.
+   *  Saves to <torusRoot>/_images/ under our own grep-friendly name. Returns
+   *  the saved basename (for an embed), or null on failure. */
+  async downloadFile(fileId, messageId, unixTs, fallbackExt, mime) {
+    if (!this.config) return null;
+    const meta = await this.apiGet("getFile", { file_id: fileId });
+    if (!meta?.ok || !meta.result?.file_path) {
+      this.log(`getFile failed for ${fileId}: ${meta?.description ?? "no file_path"}`);
+      return null;
+    }
+    const filePath = meta.result.file_path;
+    const ext = extFor(filePath, mime, fallbackExt);
+    const url = `${API_BASE}/file/bot${this.config.botToken}/${filePath}`;
+    const res = await (0, import_obsidian27.requestUrl)({ url, method: "GET", throw: false });
+    if (res.status < 200 || res.status >= 300) {
+      this.log(`file download HTTP ${res.status} for ${fileId}`);
+      return null;
+    }
+    const basename2 = `tg-${messageId}-${unixTs}${ext}`;
+    const imagesDir = (0, import_path4.join)(this.config.vaultPath, this.config.torusRoot, "_images");
+    if (!(0, import_fs7.existsSync)(imagesDir)) (0, import_fs7.mkdirSync)(imagesDir, { recursive: true });
+    (0, import_fs7.writeFileSync)((0, import_path4.join)(imagesDir, basename2), Buffer.from(res.arrayBuffer));
+    this.log(`saved ${this.config.torusRoot}/_images/${basename2}`);
+    return basename2;
+  }
+  // ── Telegram API helper ──
+  /** GET an API method. Returns the parsed JSON ({ ok, result, description }).
+   *  Uses Obsidian's requestUrl (CORS-safe) with throw:false so we handle
+   *  not-ok responses (bad token, 409 conflict) as data, not exceptions. */
+  async apiGet(method, params = {}) {
+    if (!this.config) throw new Error("config not set");
+    const qs = Object.entries(params).map(([k2, v3]) => `${k2}=${encodeURIComponent(String(v3))}`).join("&");
+    const url = `${API_BASE}/bot${this.config.botToken}/${method}${qs ? `?${qs}` : ""}`;
+    const res = await (0, import_obsidian27.requestUrl)({ url, method: "GET", throw: false });
+    try {
+      return res.json;
+    } catch {
+      return { ok: false, description: `non-JSON response (HTTP ${res.status})` };
+    }
+  }
+  offsetPath() {
+    if (!this.config) throw new Error("config not set");
+    return (0, import_path4.join)(this.config.vaultPath, this.config.torusRoot, ".twin", "telegram-offset.json");
+  }
+  readOffset() {
+    try {
+      const parsed = JSON.parse((0, import_fs7.readFileSync)(this.offsetPath(), "utf-8"));
+      return parsed.offset ?? 0;
+    } catch {
+      return 0;
+    }
+  }
+  writeOffset(offset) {
+    const path2 = this.offsetPath();
+    const dir = path2.slice(0, path2.lastIndexOf("/"));
+    if (!(0, import_fs7.existsSync)(dir)) (0, import_fs7.mkdirSync)(dir, { recursive: true });
+    (0, import_fs7.writeFileSync)(path2, JSON.stringify({ offset, updated: (/* @__PURE__ */ new Date()).toISOString() }, null, 2), "utf-8");
+  }
+  sleep(ms) {
+    return new Promise((resolve2) => setTimeout(resolve2, ms));
+  }
+};
+
 // src/qmdBundleShas.ts
 var QMD_BUNDLE_SHAS = {
-  "darwin-arm64": "6403c6eec053cbc41c707f5bcc3b6ffc4b64e8fc3f2578cbb4d4af04fccb7cd7",
-  "darwin-x64": "3de0109e2516ed37cb182c4e115350a09b3ecb1948c9d3b29dfacd99b8a21840"
+  "darwin-arm64": "a5c752c354165e27e641c44ae2378354676a4762b14621f18b66c887455176db",
+  "darwin-x64": "2a5c410645e539e970746ff6ad8b955a5a7a83d19d10705df12686aeff58aa0a"
 };
 
 // src/librarian/urlScraper.ts
-var import_obsidian27 = require("obsidian");
+var import_obsidian28 = require("obsidian");
 var MAX_CONTENT_CHARS = 15e3;
 var MAX_URLS_TO_FETCH = 3;
 function formatYoutubeContent(content, meta) {
@@ -177645,7 +179479,7 @@ function decodeXmlEntities(s) {
 async function fetchFullYoutubeTranscript(videoId) {
   torusTrace(`fetch:scraper`, `YouTube: fetching transcript for ${videoId}`);
   try {
-    const playerResponse = await (0, import_obsidian27.requestUrl)({
+    const playerResponse = await (0, import_obsidian28.requestUrl)({
       url: INNERTUBE_PLAYER_URL,
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -177671,7 +179505,7 @@ async function fetchFullYoutubeTranscript(videoId) {
       return null;
     }
     torusTrace(`fetch:scraper`, `YouTube: fetching captions: ${track.languageCode} ${track.kind || "manual"}`);
-    const captionResponse = await (0, import_obsidian27.requestUrl)({ url: track.baseUrl });
+    const captionResponse = await (0, import_obsidian28.requestUrl)({ url: track.baseUrl });
     const xml = captionResponse.text;
     const sRegex = /<s[^>]*>([^<]*)<\/s>/g;
     let paragraphs = xml.split(/<\/p>/).map((block) => {
@@ -177740,7 +179574,7 @@ function stripJinaHeaders(text) {
 async function fetchViaJina(url) {
   try {
     const response = await withTimeout(
-      (0, import_obsidian27.requestUrl)({
+      (0, import_obsidian28.requestUrl)({
         url: `${JINA_PREFIX}${url}`,
         headers: { Accept: "text/markdown", "X-No-Cache": "true" }
       }),
@@ -177909,7 +179743,7 @@ async function fetchFxContent(url) {
   torusTrace(`fetch:scraper`, `FxTwitter: ${username}/status/${tweetId}`);
   try {
     const resp = await withTimeout(
-      (0, import_obsidian27.requestUrl)({ url: `${FX_API}/${username}/status/${tweetId}`, headers: { "User-Agent": FX_UA } }),
+      (0, import_obsidian28.requestUrl)({ url: `${FX_API}/${username}/status/${tweetId}`, headers: { "User-Agent": FX_UA } }),
       FETCH_TIMEOUT_MS,
       "FxTwitter fetch"
     );
@@ -177941,7 +179775,7 @@ async function unrollXThread(url, bearerToken) {
   const tweetId = extractTweetId(url);
   if (!tweetId) return null;
   try {
-    const metaResp = await (0, import_obsidian27.requestUrl)({
+    const metaResp = await (0, import_obsidian28.requestUrl)({
       url: `https://api.x.com/2/tweets/${tweetId}?tweet.fields=conversation_id&expansions=author_id&user.fields=username`,
       headers: { Authorization: `Bearer ${bearerToken}` }
     });
@@ -177957,7 +179791,7 @@ async function unrollXThread(url, bearerToken) {
       max_results: "100",
       "tweet.fields": "created_at"
     });
-    const searchResp = await (0, import_obsidian27.requestUrl)({
+    const searchResp = await (0, import_obsidian28.requestUrl)({
       url: `https://api.x.com/2/tweets/search/recent?${searchParams}`,
       headers: { Authorization: `Bearer ${bearerToken}` }
     });
@@ -177995,7 +179829,7 @@ async function fetchViaDefuddle(url) {
   torusTrace(`fetch:scraper`, `Defuddle: attempting ${url}`);
   try {
     const response = await withTimeout(
-      (0, import_obsidian27.requestUrl)({
+      (0, import_obsidian28.requestUrl)({
         url,
         headers: {
           "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
@@ -178110,7 +179944,7 @@ async function downloadImages(app, markdown, imagesDir, noteSlug, cache3, startI
     if (SKIP_IMAGE_KEYWORDS.some((kw) => imgUrl.includes(kw))) return "";
     if (cache3[imgUrl]) return `![[${cache3[imgUrl]}]]`;
     try {
-      const response = await (0, import_obsidian27.requestUrl)({ url: imgUrl });
+      const response = await (0, import_obsidian28.requestUrl)({ url: imgUrl });
       if (response.status >= 400) return match;
       const contentType = response.headers["content-type"] ?? "";
       const ext = extFromContentType(contentType);
@@ -178191,7 +180025,7 @@ async function fetchFullViaDefuddle(url) {
   torusTrace(`fetch:scraper`, `Defuddle (full): attempting ${url}`);
   try {
     const response = await withTimeout(
-      (0, import_obsidian27.requestUrl)({
+      (0, import_obsidian28.requestUrl)({
         url,
         headers: {
           "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
@@ -178218,7 +180052,7 @@ async function fetchFullViaDefuddle(url) {
 async function fetchFullViaJina(url) {
   try {
     const response = await withTimeout(
-      (0, import_obsidian27.requestUrl)({
+      (0, import_obsidian28.requestUrl)({
         url: `${JINA_PREFIX}${url}`,
         headers: { Accept: "text/markdown", "X-No-Cache": "true" }
       }),
@@ -178309,7 +180143,7 @@ function cleanJinaContent(urlContent) {
 var import_react64 = __toESM(require_react(), 1);
 var import_react65 = __toESM(require_react(), 1);
 var import_client2 = __toESM(require_client(), 1);
-var import_obsidian28 = require("obsidian");
+var import_obsidian29 = require("obsidian");
 var import_jsx_runtime52 = __toESM(require_jsx_runtime(), 1);
 function loadManifestRooms(plugin) {
   try {
@@ -178367,7 +180201,7 @@ function AddNoteForm({ plugin, filePath, onClose }) {
   (0, import_react64.useEffect)(() => {
     const { rooms: rooms2, error } = loadManifestRooms(plugin);
     if (error) {
-      new import_obsidian28.Notice(`Couldn't load manifest: ${error}`);
+      new import_obsidian29.Notice(`Couldn't load manifest: ${error}`);
       return;
     }
     setRooms(rooms2);
@@ -178379,27 +180213,27 @@ function AddNoteForm({ plugin, filePath, onClose }) {
   const confirm = (0, import_react64.useCallback)(() => {
     if (busy) return;
     if (target === "shelf" && (!room || !shelf)) {
-      new import_obsidian28.Notice("Pick a room and shelf, or switch to Inbox.");
+      new import_obsidian29.Notice("Pick a room and shelf, or switch to Inbox.");
       return;
     }
     setBusy(true);
     const targetArg = target === "inbox" ? "inbox" : `${room}::${shelf}`;
-    const notice = new import_obsidian28.Notice("Adding to Torus\u2026", 0);
+    const notice = new import_obsidian29.Notice("Adding to Torus\u2026", 0);
     try {
       const raw = plugin.torusAddNote(filePath, targetArg, summary);
       const parsed = JSON.parse(raw);
       notice.hide();
       if (parsed.error) {
-        new import_obsidian28.Notice(`Add failed: ${parsed.error}${parsed.hint ? ` \u2014 ${parsed.hint}` : ""}`);
+        new import_obsidian29.Notice(`Add failed: ${parsed.error}${parsed.hint ? ` \u2014 ${parsed.hint}` : ""}`);
         setBusy(false);
         return;
       }
       const where = target === "inbox" ? "Inbox" : `${room}::${shelf}`;
-      new import_obsidian28.Notice(`Added to ${where}.`);
+      new import_obsidian29.Notice(`Added to ${where}.`);
       onClose();
     } catch (e2) {
       notice.hide();
-      new import_obsidian28.Notice(`Add failed: ${String(e2)}`);
+      new import_obsidian29.Notice(`Add failed: ${String(e2)}`);
       setBusy(false);
     }
   }, [busy, target, room, shelf, summary, filePath, plugin, onClose]);
@@ -178470,7 +180304,7 @@ function AddNoteForm({ plugin, filePath, onClose }) {
     ] })
   ] });
 }
-var AddNoteModal = class extends import_obsidian28.Modal {
+var AddNoteModal = class extends import_obsidian29.Modal {
   constructor(app, plugin, filePath) {
     super(app);
     this.plugin = plugin;
@@ -178495,15 +180329,15 @@ var AddNoteModal = class extends import_obsidian28.Modal {
 };
 function listMarkdownInFolder(app, folderPath) {
   const folder = app.vault.getAbstractFileByPath(folderPath);
-  if (!(folder instanceof import_obsidian28.TFolder)) return [];
-  return folder.children.filter((c4) => c4 instanceof import_obsidian28.TFile && c4.extension === "md").map((f) => f.path);
+  if (!(folder instanceof import_obsidian29.TFolder)) return [];
+  return folder.children.filter((c4) => c4 instanceof import_obsidian29.TFile && c4.extension === "md").map((f) => f.path);
 }
 function listAllFolders(app) {
   const out = [];
   const walk = (folder) => {
     out.push(folder.path === "" ? "/" : folder.path);
     for (const child of folder.children) {
-      if (child instanceof import_obsidian28.TFolder) walk(child);
+      if (child instanceof import_obsidian29.TFolder) walk(child);
     }
   };
   walk(app.vault.getRoot());
@@ -178532,27 +180366,27 @@ function AddDirectoryForm({ app, plugin, initialFolder, onClose }) {
   const confirm = (0, import_react64.useCallback)(async () => {
     if (busy) return;
     if (target === "shelf" && (!room || !shelf)) {
-      new import_obsidian28.Notice("Pick a room and shelf, or switch to Inbox.");
+      new import_obsidian29.Notice("Pick a room and shelf, or switch to Inbox.");
       return;
     }
     setBusy(true);
     setFailed([]);
     setResultSummary(null);
     const targetArg = target === "inbox" ? "inbox" : `${room}::${shelf}`;
-    const notice = summary ? new import_obsidian28.Notice("Processing\u2026 (AI summary on \u2014 slower)", 0) : new import_obsidian28.Notice("Adding\u2026", 0);
+    const notice = summary ? new import_obsidian29.Notice("Processing\u2026 (AI summary on \u2014 slower)", 0) : new import_obsidian29.Notice("Adding\u2026", 0);
     try {
       const raw = await plugin.torusAddDirectory(folderPath, targetArg, summary);
       const parsed = JSON.parse(raw);
       notice.hide();
       if (parsed.error) {
-        new import_obsidian28.Notice(`Add failed: ${parsed.error}`);
+        new import_obsidian29.Notice(`Add failed: ${parsed.error}`);
         setBusy(false);
         return;
       }
       const where = target === "inbox" ? "Inbox" : `${room}::${shelf}`;
       const { added = 0, skipped = 0, failed: fails = [] } = parsed;
       const summaryLine = `Added ${added} files to ${where}; ${skipped} skipped (already members); ${fails.length} failed.`;
-      new import_obsidian28.Notice(summaryLine);
+      new import_obsidian29.Notice(summaryLine);
       if (fails.length > 0) {
         setFailed(fails);
         setResultSummary(summaryLine);
@@ -178562,14 +180396,14 @@ function AddDirectoryForm({ app, plugin, initialFolder, onClose }) {
       }
     } catch (e2) {
       notice.hide();
-      new import_obsidian28.Notice(`Add failed: ${String(e2)}`);
+      new import_obsidian29.Notice(`Add failed: ${String(e2)}`);
       setBusy(false);
     }
   }, [busy, target, room, shelf, summary, folderPath, plugin, onClose]);
   if (failed.length > 0) {
     const copy = () => {
       navigator.clipboard.writeText(failed.map((f) => `${f.path}	${f.error}`).join("\n"));
-      new import_obsidian28.Notice("Copied failed-file list to clipboard.");
+      new import_obsidian29.Notice("Copied failed-file list to clipboard.");
     };
     return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: formStyle, children: [
       /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("div", { style: { ...fieldRowStyle, color: "var(--text-warning)" }, children: resultSummary }),
@@ -178678,7 +180512,7 @@ function AddDirectoryForm({ app, plugin, initialFolder, onClose }) {
     ] })
   ] });
 }
-var AddDirectoryModal = class extends import_obsidian28.Modal {
+var AddDirectoryModal = class extends import_obsidian29.Modal {
   constructor(app, plugin, initialFolder) {
     super(app);
     this.plugin = plugin;
@@ -178713,15 +180547,15 @@ function EjectForm({ plugin, filePath, status, location, onClose }) {
       const raw = plugin.torusEject(filePath);
       const parsed = JSON.parse(raw);
       if (parsed.error) {
-        new import_obsidian28.Notice(`Eject failed: ${parsed.error}`);
+        new import_obsidian29.Notice(`Eject failed: ${parsed.error}`);
         setBusy(false);
         return;
       }
       const removed = (parsed.removed_fields ?? []).length;
-      new import_obsidian28.Notice(`Ejected \u2014 ${removed} torus_ field${removed === 1 ? "" : "s"} removed${parsed.manifest_entry_removed ? ", manifest entry cleared" : ""}.`);
+      new import_obsidian29.Notice(`Ejected \u2014 ${removed} torus_ field${removed === 1 ? "" : "s"} removed${parsed.manifest_entry_removed ? ", manifest entry cleared" : ""}.`);
       onClose();
     } catch (e2) {
-      new import_obsidian28.Notice(`Eject failed: ${String(e2)}`);
+      new import_obsidian29.Notice(`Eject failed: ${String(e2)}`);
       setBusy(false);
     }
   }, [busy, filePath, plugin, onClose]);
@@ -178766,7 +180600,7 @@ function EjectForm({ plugin, filePath, status, location, onClose }) {
     ] })
   ] });
 }
-var EjectModal = class extends import_obsidian28.Modal {
+var EjectModal = class extends import_obsidian29.Modal {
   constructor(app, plugin, filePath, status, location) {
     super(app);
     this.plugin = plugin;
@@ -189403,8 +191237,8 @@ async function restore(format, data, runtime) {
 }
 
 // src/librarian/searchIndex.ts
-var import_fs6 = require("fs");
-var import_path4 = require("path");
+var import_fs8 = require("fs");
+var import_path5 = require("path");
 var SCHEMA = {
   title: "string",
   body: "string",
@@ -189425,15 +191259,15 @@ function getTitle(content, fallback) {
   return h1?.trim() || fallback;
 }
 function indexDir(db, absDir, dirLabel) {
-  if (!(0, import_fs6.existsSync)(absDir)) return { docs: 0, bytes: 0 };
+  if (!(0, import_fs8.existsSync)(absDir)) return { docs: 0, bytes: 0 };
   let docs = 0;
   let bytes = 0;
-  for (const f of (0, import_fs6.readdirSync)(absDir)) {
+  for (const f of (0, import_fs8.readdirSync)(absDir)) {
     if (!f.endsWith(".md")) continue;
-    const full = (0, import_path4.join)(absDir, f);
-    const stat = (0, import_fs6.statSync)(full);
+    const full = (0, import_path5.join)(absDir, f);
+    const stat = (0, import_fs8.statSync)(full);
     if (!stat.isFile()) continue;
-    const content = (0, import_fs6.readFileSync)(full, "utf-8");
+    const content = (0, import_fs8.readFileSync)(full, "utf-8");
     const body = stripFrontmatter3(content);
     const title = getTitle(content, f.replace(/\.md$/, ""));
     insert3(db, {
@@ -189460,14 +191294,14 @@ function buildIndex(dirs) {
   return { db, docs, bytes };
 }
 async function saveIndex(db, indexPath) {
-  (0, import_fs6.mkdirSync)((0, import_path4.dirname)(indexPath), { recursive: true });
+  (0, import_fs8.mkdirSync)((0, import_path5.dirname)(indexPath), { recursive: true });
   const data = await persist(db, "json");
-  (0, import_fs6.writeFileSync)(indexPath, data, "utf-8");
+  (0, import_fs8.writeFileSync)(indexPath, data, "utf-8");
 }
 async function loadIndex(indexPath) {
-  if (!(0, import_fs6.existsSync)(indexPath)) return null;
+  if (!(0, import_fs8.existsSync)(indexPath)) return null;
   try {
-    const data = (0, import_fs6.readFileSync)(indexPath, "utf-8");
+    const data = (0, import_fs8.readFileSync)(indexPath, "utf-8");
     const db = await restore("json", data);
     return db;
   } catch {
@@ -189654,14 +191488,18 @@ function resummarizeTaskId(path2) {
   const slug = path2.replace(/\.md$/, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   return `resummarize-${slug}`;
 }
-var TorusPlugin = class extends import_obsidian29.Plugin {
+var TorusPlugin = class extends import_obsidian30.Plugin {
   settings = DEFAULT_LLM_SETTINGS;
   taskrunner = null;
   bridgeRunner = null;
   imapRunner = null;
   imessageRunner = null;
+  telegramRunner = null;
   /** Unified forensic log. Initialized early in onload (before runners start). */
   torusLogger = null;
+  /** Reference to our settings tab so deep-links (e.g. the Services panel's
+   *  Pair button) can pre-select the Bridges sub-tab before Obsidian opens it. */
+  settingTab = null;
   /** Bundled BM25 index (Orama). Populated async on onload — null while
    *  building or after a load failure. Lex-tier fallback when qmd is absent;
    *  see torusSearch for backend-selection logic. */
@@ -189692,17 +191530,19 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
     try {
       const vaultRoot = this.app.vault.adapter.basePath;
       if (!vaultRoot) {
-        new import_obsidian29.Notice("Cannot determine vault path");
+        new import_obsidian30.Notice("Cannot determine vault path");
         return;
       }
-      const torusDir = (0, import_path5.join)(vaultRoot, this.settings.torusRoot);
+      const torusDir = (0, import_path6.join)(vaultRoot, this.settings.torusRoot);
       const resourcesPath = process.resourcesPath;
-      const obsidianBinDir = process.platform === "darwin" ? (0, import_path5.join)((0, import_path5.dirname)(resourcesPath), "MacOS") : (0, import_path5.dirname)(resourcesPath);
-      const pathLine = `export PATH="${obsidianBinDir}${import_path5.delimiter}$PATH"`;
+      const obsidianBinDir = process.platform === "darwin" ? (0, import_path6.join)((0, import_path6.dirname)(resourcesPath), "MacOS") : (0, import_path6.dirname)(resourcesPath);
+      const pathLine = `export PATH="${obsidianBinDir}${import_path6.delimiter}$PATH"`;
       const greetingPrompt = tier === "low" ? "" : tier === "med" ? "Medium Context Session" : "Full Context Session";
-      const cmd = greetingPrompt ? `claude "${greetingPrompt.replace(/"/g, '\\"')}"` : "claude";
-      const scriptPath = (0, import_path5.join)((0, import_os2.tmpdir)(), "torus-cc-zero.sh");
-      (0, import_fs7.writeFileSync)(scriptPath, [
+      const claudeBin = await resolveBin("claude", (m2) => this.torusTrace("plugin:launchCCZero", m2));
+      const claudeRef = claudeBin ? `"${claudeBin.replace(/"/g, '\\"')}"` : "claude";
+      const cmd = greetingPrompt ? `${claudeRef} "${greetingPrompt.replace(/"/g, '\\"')}"` : claudeRef;
+      const scriptPath = (0, import_path6.join)((0, import_os2.tmpdir)(), "torus-cc-zero.sh");
+      (0, import_fs9.writeFileSync)(scriptPath, [
         "#!/bin/bash",
         pathLine,
         `export ZERO_CONTEXT="${tier}"`,
@@ -189716,7 +191556,7 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
       });
     } catch (e2) {
       console.error("[CC-Zero] launch error:", e2 instanceof Error ? e2.message : e2);
-      new import_obsidian29.Notice("Failed to launch Claude Code");
+      new import_obsidian30.Notice("Failed to launch Claude Code");
     }
   }
   // ── Vault API methods (callable via obsidian eval) ──
@@ -189725,7 +191565,7 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
   // that need Obsidian's requestUrl use the protocol handler fallback.
   /** Get absolute path from vault-relative path */
   absPath(vaultRelative) {
-    return (0, import_path5.join)(this.app.vault.adapter.basePath, vaultRelative);
+    return (0, import_path6.join)(this.app.vault.adapter.basePath, vaultRelative);
   }
   /** Return the absolute path to the torus working directory (where .claude/skills/, .twin/, etc. live). */
   torusHome() {
@@ -189737,13 +191577,13 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
    *  user's notes — community-directory reviewers expect this, uninstall is
    *  cleaner, and the vault stays free of opaque binary content. */
   pluginDataDir() {
-    return (0, import_path5.join)(this.app.vault.adapter.basePath, this.manifest.dir);
+    return (0, import_path6.join)(this.app.vault.adapter.basePath, this.manifest.dir);
   }
   /** Absolute path to the extracted qmd bundle dir. v0.3.0-rc.1 placed this
    *  at <vault>/<torusRoot>/.twin/bin/qmd-bundle/; rc.2+ relocated to
    *  <plugin-data-dir>/qmd-bundle/ — migration runs in ensureQmdBundle. */
   qmdBundleDir() {
-    return (0, import_path5.join)(this.pluginDataDir(), "qmd-bundle");
+    return (0, import_path6.join)(this.pluginDataDir(), "qmd-bundle");
   }
   /** Legacy bundle dir from rc.1 (vault-relative). Migration source on first
    *  onload after relocation; deleted after successful move. */
@@ -189755,14 +191595,14 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
    *  with bundle present means stage B was interrupted or never ran — onload
    *  reconciliation auto-resumes. */
   smartSearchReadyMarker() {
-    return (0, import_path5.join)(this.pluginDataDir(), "qmd-bundle.smartSearchReady");
+    return (0, import_path6.join)(this.pluginDataDir(), "qmd-bundle.smartSearchReady");
   }
   /** True when the Smart Search stage B marker is on disk. Derived state —
    *  not a stored flag — so we never get out of sync with what's actually
    *  ready. */
   smartSearchReady() {
     try {
-      return (0, import_fs7.existsSync)(this.smartSearchReadyMarker());
+      return (0, import_fs9.existsSync)(this.smartSearchReadyMarker());
     } catch {
       return false;
     }
@@ -189781,8 +191621,8 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
    *  Returns: { entries: [...], total: <count after filter, before tail> }. */
   torusActivityTail(n = 50, typeFilter, actorFilter) {
     const path2 = this.contextPath("activity.jsonl");
-    if (!(0, import_fs7.existsSync)(path2)) return JSON.stringify({ entries: [], total: 0 });
-    const raw = (0, import_fs7.readFileSync)(path2, "utf-8").trim();
+    if (!(0, import_fs9.existsSync)(path2)) return JSON.stringify({ entries: [], total: 0 });
+    const raw = (0, import_fs9.readFileSync)(path2, "utf-8").trim();
     if (!raw) return JSON.stringify({ entries: [], total: 0 });
     const allLines = raw.split("\n").filter(Boolean);
     const filtered = allLines.filter((line) => {
@@ -189821,8 +191661,8 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
    *  Returns: { entries: [{ts, ts_local, ago, message}, ...], total } */
   torusTaskrunnerLogTail(n = 50) {
     const path2 = this.absPath(`${this.settings.torusRoot}/.twin/logs/torus.log`);
-    if (!(0, import_fs7.existsSync)(path2)) return JSON.stringify({ entries: [], total: 0 });
-    const allLines = (0, import_fs7.readFileSync)(path2, "utf-8").split("\n").filter(Boolean);
+    if (!(0, import_fs9.existsSync)(path2)) return JSON.stringify({ entries: [], total: 0 });
+    const allLines = (0, import_fs9.readFileSync)(path2, "utf-8").split("\n").filter(Boolean);
     const pattern = /^(\S+)\s+\[taskrunner\]\s+(.+)$/;
     const filtered = [];
     for (const line of allLines) {
@@ -189848,7 +191688,7 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
    *  Lines that don't match the `<ISO> [<label>] <msg>` shape get label=''. */
   torusLogTail(n = 50, labelFilter) {
     const logDir = this.absPath(`${this.settings.torusRoot}/.twin/logs`);
-    if (!(0, import_fs7.existsSync)(logDir)) return JSON.stringify({ entries: [], total: 0 });
+    if (!(0, import_fs9.existsSync)(logDir)) return JSON.stringify({ entries: [], total: 0 });
     const labelled = /^(\S+)\s+\[([^\]]+)\]\s+(.+)$/;
     const tsOnly = /^(\S+)\s+(.+)$/;
     const includePatterns = [];
@@ -189877,18 +191717,18 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
     };
     let rotatedFiles = [];
     try {
-      rotatedFiles = (0, import_fs7.readdirSync)(logDir).filter((f) => f.startsWith("torus-") && f.endsWith(".log")).sort().reverse();
+      rotatedFiles = (0, import_fs9.readdirSync)(logDir).filter((f) => f.startsWith("torus-") && f.endsWith(".log")).sort().reverse();
     } catch {
     }
     const fileOrder = ["torus.log", ...rotatedFiles];
     const collected = [];
     let totalScanned = 0;
     for (const fname of fileOrder) {
-      const path2 = (0, import_path5.join)(logDir, fname);
-      if (!(0, import_fs7.existsSync)(path2)) continue;
+      const path2 = (0, import_path6.join)(logDir, fname);
+      if (!(0, import_fs9.existsSync)(path2)) continue;
       let allLines;
       try {
-        allLines = (0, import_fs7.readFileSync)(path2, "utf-8").split("\n").filter(Boolean);
+        allLines = (0, import_fs9.readFileSync)(path2, "utf-8").split("\n").filter(Boolean);
       } catch {
         continue;
       }
@@ -189943,8 +191783,8 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
    *  epoch); local-date comparison happens in this method. */
   torusTimeAwareness() {
     const torusDir = this.absPath(this.settings.torusRoot);
-    const stateFile = (0, import_path5.join)(torusDir, ".twin", "tmp", ".last-message-time");
-    const reflectionsDir = (0, import_path5.join)(torusDir, ".twin", "context", "reflections");
+    const stateFile = (0, import_path6.join)(torusDir, ".twin", "tmp", ".last-message-time");
+    const reflectionsDir = (0, import_path6.join)(torusDir, ".twin", "context", "reflections");
     const now3 = Math.floor(Date.now() / 1e3);
     const localDate = (epochSec) => {
       const d = new Date(epochSec * 1e3);
@@ -189955,7 +191795,7 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
     let last = 0;
     let lastDate = "";
     try {
-      const raw = (0, import_fs7.readFileSync)(stateFile, "utf-8").trim();
+      const raw = (0, import_fs9.readFileSync)(stateFile, "utf-8").trim();
       const parsed = parseInt(raw, 10);
       if (!isNaN(parsed) && parsed > 0) {
         last = parsed;
@@ -189964,8 +191804,8 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
     } catch {
     }
     try {
-      (0, import_fs7.mkdirSync)((0, import_path5.dirname)(stateFile), { recursive: true });
-      (0, import_fs7.writeFileSync)(stateFile, String(now3));
+      (0, import_fs9.mkdirSync)((0, import_path6.dirname)(stateFile), { recursive: true });
+      (0, import_fs9.writeFileSync)(stateFile, String(now3));
     } catch {
     }
     const nudges = [];
@@ -189977,9 +191817,9 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
       const hours = Math.floor(elapsed / 3600);
       nudges.push(`${hours} hours have passed since we last spoke. Check if anything has changed \u2014 new inbox notes, overnight reflection, bridge health.`);
     }
-    const reflectFile = (0, import_path5.join)(reflectionsDir, `${today}-overnight-reflection.md`);
-    const reflectRead = (0, import_path5.join)(torusDir, ".twin", "tmp", `.reflect-surfaced-${today}`);
-    if ((0, import_fs7.existsSync)(reflectFile) && !(0, import_fs7.existsSync)(reflectRead)) {
+    const reflectFile = (0, import_path6.join)(reflectionsDir, `${today}-overnight-reflection.md`);
+    const reflectRead = (0, import_path6.join)(torusDir, ".twin", "tmp", `.reflect-surfaced-${today}`);
+    if ((0, import_fs9.existsSync)(reflectFile) && !(0, import_fs9.existsSync)(reflectRead)) {
       nudges.push("An overnight reflection is available for today. Surface the highlights \u2014 especially Speculative Bridges and Gaps.");
     }
     return nudges.join("\n");
@@ -190022,7 +191862,7 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
     const tokensOf = (s) => Math.ceil(s.length / CHARS_PER_TOKEN);
     const safeRead = (p3) => {
       try {
-        return (0, import_fs7.readFileSync)(p3, "utf-8");
+        return (0, import_fs9.readFileSync)(p3, "utf-8");
       } catch {
         return null;
       }
@@ -190058,11 +191898,11 @@ var TorusPlugin = class extends import_obsidian29.Plugin {
       compact: "Context was compacted. Re-hydrated context."
     };
     const headerText = sourceHeader[source] || "Session starting.";
-    const reportPath = (0, import_path5.join)(root, ".twin", "context", "context-report.md");
+    const reportPath = (0, import_path6.join)(root, ".twin", "context", "context-report.md");
     const report = safeRead(reportPath);
     const reportSection = report ? `## Context Report
 ${report.trim()}` : "";
-    const activityPath = (0, import_path5.join)(root, ".twin", "context", "activity.jsonl");
+    const activityPath = (0, import_path6.join)(root, ".twin", "context", "activity.jsonl");
     const activityRaw = safeRead(activityPath);
     let activitySection = "";
     if (activityRaw) {
@@ -190085,10 +191925,10 @@ ${report.trim()}` : "";
 ${enriched.join("\n")}
 \`\`\``;
     }
-    const briefingsDir = (0, import_path5.join)(root, ".twin", "briefings");
+    const briefingsDir = (0, import_path6.join)(root, ".twin", "briefings");
     let briefingSection = "";
     let briefingInlineNote = "";
-    if ((0, import_fs7.existsSync)(briefingsDir)) {
+    if ((0, import_fs9.existsSync)(briefingsDir)) {
       const localYmd = (d) => torusFormatLocal(d, "date-only");
       const morningCron = new Date(now3);
       morningCron.setHours(7, 0, 0, 0);
@@ -190123,8 +191963,8 @@ ${enriched.join("\n")}
       };
       const tryLoad = (ymd, p3) => {
         const filename = `${ymd}-${p3}.md`;
-        const absPath = (0, import_path5.join)(briefingsDir, filename);
-        if (!(0, import_fs7.existsSync)(absPath)) return null;
+        const absPath = (0, import_path6.join)(briefingsDir, filename);
+        if (!(0, import_fs9.existsSync)(absPath)) return null;
         const raw = safeRead(absPath);
         if (!raw) return null;
         const fm = parseFrontmatter(raw);
@@ -190159,32 +191999,32 @@ ${enriched.join("\n")}
         briefingInlineNote = `**Undelivered ${tag} briefing** waiting in part 1 \u2014 lead your first response with it, then log delivery.`;
       }
     }
-    const reflectionsDir = (0, import_path5.join)(root, ".twin", "context", "reflections");
+    const reflectionsDir = (0, import_path6.join)(root, ".twin", "context", "reflections");
     let reflectionSection = "";
     let reflectionCount = 0;
-    if ((0, import_fs7.existsSync)(reflectionsDir)) {
-      const files = (0, import_fs7.readdirSync)(reflectionsDir).filter((f) => f.endsWith(".md")).sort((a2, b2) => b2.localeCompare(a2)).slice(0, cfg.MAX_REFLECTIONS);
+    if ((0, import_fs9.existsSync)(reflectionsDir)) {
+      const files = (0, import_fs9.readdirSync)(reflectionsDir).filter((f) => f.endsWith(".md")).sort((a2, b2) => b2.localeCompare(a2)).slice(0, cfg.MAX_REFLECTIONS);
       reflectionCount = files.length;
       if (files.length > 0) {
-        const bodies = files.map((f) => safeRead((0, import_path5.join)(reflectionsDir, f))).filter(Boolean).map((c4) => c4.trim()).join("\n\n---\n\n");
+        const bodies = files.map((f) => safeRead((0, import_path6.join)(reflectionsDir, f))).filter(Boolean).map((c4) => c4.trim()).join("\n\n---\n\n");
         reflectionSection = `## Recent Reflections
 _Editorial commentary from overnight runs. What's unresolved, stuck, or worth connecting._
 
 ${bodies}`;
       }
     }
-    const transcriptsDir = (0, import_path5.join)(root, ".twin", "context", "session-transcripts");
+    const transcriptsDir = (0, import_path6.join)(root, ".twin", "context", "session-transcripts");
     const sessions = [];
-    if ((0, import_fs7.existsSync)(transcriptsDir)) {
-      for (const file of (0, import_fs7.readdirSync)(transcriptsDir)) {
+    if ((0, import_fs9.existsSync)(transcriptsDir)) {
+      for (const file of (0, import_fs9.readdirSync)(transcriptsDir)) {
         if (!file.endsWith(".md")) continue;
-        const transcriptPath = (0, import_path5.join)(transcriptsDir, file);
+        const transcriptPath = (0, import_path6.join)(transcriptsDir, file);
         const raw = safeRead(transcriptPath);
         if (!raw) continue;
         const fm = parseFrontmatter(raw);
         if (!fm) continue;
         const messages = parseInt(fm.messages || "0", 10);
-        const dateIso = (0, import_fs7.statSync)(transcriptPath).mtime.toISOString();
+        const dateIso = (0, import_fs9.statSync)(transcriptPath).mtime.toISOString();
         const daysOld = daysBetween(dateIso, nowIso);
         sessions.push({
           sessionId: file.replace(/\.md$/, ""),
@@ -190227,12 +192067,12 @@ ${bodies}`;
       rawPickedIds.add(s.sessionId);
       rawTokens += cost;
     }
-    const digestsDir = (0, import_path5.join)(root, ".twin", "context", "session-digests");
+    const digestsDir = (0, import_path6.join)(root, ".twin", "context", "session-digests");
     let digestTokens = 0;
     const digestPicks = [];
     const remaining = sessions.filter((s) => !rawPickedIds.has(s.sessionId)).sort((a2, b2) => Date.parse(b2.dateIso) - Date.parse(a2.dateIso));
     for (const s of remaining) {
-      const digest = safeRead((0, import_path5.join)(digestsDir, `${s.sessionId}.md`));
+      const digest = safeRead((0, import_path6.join)(digestsDir, `${s.sessionId}.md`));
       if (!digest) continue;
       const cost = tokensOf(digest);
       if (digestTokens + cost > cfg.BUDGET_DIGEST) continue;
@@ -190271,9 +192111,9 @@ ${digest.trim()}`)
       currentTokens += cost;
     }
     const N = Math.min(filesBlocks.length, MAX_FILES);
-    const tmpDir = (0, import_path5.join)(root, ".twin", "tmp");
+    const tmpDir = (0, import_path6.join)(root, ".twin", "tmp");
     const filePaths = [];
-    for (let i3 = 1; i3 <= N; i3++) filePaths.push((0, import_path5.join)(tmpDir, `orient-part-${i3}.md`));
+    for (let i3 = 1; i3 <= N; i3++) filePaths.push((0, import_path6.join)(tmpDir, `orient-part-${i3}.md`));
     const filesOut = [];
     for (let i3 = 0; i3 < N; i3++) {
       const partBlocks = filesBlocks[i3];
@@ -190318,13 +192158,13 @@ If you omit this acknowledgment, the user will know you skipped the load.`
       filesOut.push({ path: filePaths[i3], content, lines: content.split("\n").length, tokens: tokensOf(content) });
     }
     try {
-      (0, import_fs7.mkdirSync)(tmpDir, { recursive: true });
-      for (const f of filesOut) (0, import_fs7.writeFileSync)(f.path, f.content, "utf-8");
+      (0, import_fs9.mkdirSync)(tmpDir, { recursive: true });
+      for (const f of filesOut) (0, import_fs9.writeFileSync)(f.path, f.content, "utf-8");
       for (let i3 = filesOut.length + 1; i3 <= MAX_FILES; i3++) {
-        const stale = (0, import_path5.join)(tmpDir, `orient-part-${i3}.md`);
-        if ((0, import_fs7.existsSync)(stale)) {
+        const stale = (0, import_path6.join)(tmpDir, `orient-part-${i3}.md`);
+        if ((0, import_fs9.existsSync)(stale)) {
           try {
-            (0, import_fs7.unlinkSync)(stale);
+            (0, import_fs9.unlinkSync)(stale);
           } catch {
           }
         }
@@ -190352,10 +192192,10 @@ If you omit this acknowledgment, the user will know you skipped the load.`
     compactParts.push("");
     compactParts.push(`Part ${N} ends with an acknowledgment line you must emit. If your user doesn't see it, they know you skipped the load.`);
     compactParts.push("");
-    if (cfg.INCLUDE_REFLECTIONS && (0, import_fs7.existsSync)(reflectionsDir)) {
-      const files = (0, import_fs7.readdirSync)(reflectionsDir).filter((f) => f.endsWith(".md")).sort((a2, b2) => b2.localeCompare(a2));
+    if (cfg.INCLUDE_REFLECTIONS && (0, import_fs9.existsSync)(reflectionsDir)) {
+      const files = (0, import_fs9.readdirSync)(reflectionsDir).filter((f) => f.endsWith(".md")).sort((a2, b2) => b2.localeCompare(a2));
       if (files.length > 0) {
-        const latest = safeRead((0, import_path5.join)(reflectionsDir, files[0]));
+        const latest = safeRead((0, import_path6.join)(reflectionsDir, files[0]));
         if (latest) {
           const sectionRe = /\n##\s+(.*?(?:Bridge|Gap|Unresolved|Stuck).*?)\n([\s\S]*?)(?=\n##\s|\n---|$)/g;
           const sections = [];
@@ -190377,7 +192217,7 @@ If you omit this acknowledgment, the user will know you skipped the load.`
     }
     const manifest2 = compactParts.join("\n");
     try {
-      (0, import_fs7.writeFileSync)((0, import_path5.join)(tmpDir, "orient-manifest.md"), manifest2, "utf-8");
+      (0, import_fs9.writeFileSync)((0, import_path6.join)(tmpDir, "orient-manifest.md"), manifest2, "utf-8");
     } catch (e2) {
       this.torusTrace("plugin:torusOrientPayload", `manifest write failed: ${e2.message}`);
     }
@@ -190394,7 +192234,7 @@ If you omit this acknowledgment, the user will know you skipped the load.`
     if (!active) return JSON.stringify({ error: "no_active_file" });
     if (active.extension !== "md") return JSON.stringify({ error: "not_markdown", path: active.path });
     try {
-      const content = (0, import_fs7.readFileSync)(this.absPath(active.path), "utf-8");
+      const content = (0, import_fs9.readFileSync)(this.absPath(active.path), "utf-8");
       return JSON.stringify({ status: "ok", path: active.path, content });
     } catch (e2) {
       return JSON.stringify({ error: "read_failed", path: active.path, message: e2 instanceof Error ? e2.message : String(e2) });
@@ -190415,9 +192255,9 @@ If you omit this acknowledgment, the user will know you skipped the load.`
    *  layer adds *_local + *_ago triples for human readability (A8). */
   torusSchedule() {
     const tasksPath = this.controlsPath("tasks.jsonl");
-    if (!(0, import_fs7.existsSync)(tasksPath)) return JSON.stringify({ error: "no_tasks_file", path: tasksPath });
+    if (!(0, import_fs9.existsSync)(tasksPath)) return JSON.stringify({ error: "no_tasks_file", path: tasksPath });
     const now3 = /* @__PURE__ */ new Date();
-    const lines = (0, import_fs7.readFileSync)(tasksPath, "utf-8").split("\n").filter((l2) => l2.trim());
+    const lines = (0, import_fs9.readFileSync)(tasksPath, "utf-8").split("\n").filter((l2) => l2.trim());
     const tasks = lines.map((line) => {
       try {
         const t2 = JSON.parse(line);
@@ -190476,7 +192316,7 @@ If you omit this acknowledgment, the user will know you skipped the load.`
    *  taskrunner tick. Cheap (~ms): just stringify + write. */
   torusScheduleNoteRender() {
     const tasksPath = this.controlsPath("tasks.jsonl");
-    const raw = (0, import_fs7.existsSync)(tasksPath) ? (0, import_fs7.readFileSync)(tasksPath, "utf-8") : "";
+    const raw = (0, import_fs9.existsSync)(tasksPath) ? (0, import_fs9.readFileSync)(tasksPath, "utf-8") : "";
     const tasks = raw.split("\n").filter((l2) => l2.trim()).map((l2) => {
       try {
         return JSON.parse(l2);
@@ -190541,9 +192381,9 @@ If you omit this acknowledgment, the user will know you skipped the load.`
     const noteRel = `${this.settings.torusRoot}/Sources/Torus Schedule.md`;
     const notePath = this.absPath(noteRel);
     let created = rendered;
-    if ((0, import_fs7.existsSync)(notePath)) {
+    if ((0, import_fs9.existsSync)(notePath)) {
       try {
-        const existing = (0, import_fs7.readFileSync)(notePath, "utf-8");
+        const existing = (0, import_fs9.readFileSync)(notePath, "utf-8");
         const m2 = existing.match(/^torus_created:\s*(.+)$/m);
         if (m2) created = m2[1].trim();
       } catch {
@@ -190568,8 +192408,8 @@ ${body}---
 _Last rendered: ${rendered}_
 `;
     try {
-      (0, import_fs7.mkdirSync)(this.absPath(`${this.settings.torusRoot}/Sources`), { recursive: true });
-      (0, import_fs7.writeFileSync)(notePath, content, "utf-8");
+      (0, import_fs9.mkdirSync)(this.absPath(`${this.settings.torusRoot}/Sources`), { recursive: true });
+      (0, import_fs9.writeFileSync)(notePath, content, "utf-8");
     } catch (e2) {
       return JSON.stringify({ status: "error", error: e2.message });
     }
@@ -190584,29 +192424,29 @@ _Last rendered: ${rendered}_
   async torusMigrateFrontmatter() {
     const t02 = performance.now();
     const torusRoot = this.absPath(this.settings.torusRoot);
-    const sourcesAbs = (0, import_path5.join)(torusRoot, "Sources");
-    const ideasAbs = (0, import_path5.join)(torusRoot, "Ideas");
-    if (!(0, import_fs7.existsSync)(sourcesAbs) && !(0, import_fs7.existsSync)(ideasAbs)) {
+    const sourcesAbs = (0, import_path6.join)(torusRoot, "Sources");
+    const ideasAbs = (0, import_path6.join)(torusRoot, "Ideas");
+    if (!(0, import_fs9.existsSync)(sourcesAbs) && !(0, import_fs9.existsSync)(ideasAbs)) {
       return JSON.stringify({ status: "error", error: "no_sources_or_ideas_dir", sourcesAbs, ideasAbs });
     }
     const now3 = /* @__PURE__ */ new Date();
     const pad = (n) => String(n).padStart(2, "0");
     const stamp = `${now3.getFullYear()}-${pad(now3.getMonth() + 1)}-${pad(now3.getDate())}-${pad(now3.getHours())}${pad(now3.getMinutes())}${pad(now3.getSeconds())}`;
-    const backupDir = (0, import_path5.join)(torusRoot, ".twin", `migration-backup-${stamp}`);
-    const reportPath = (0, import_path5.join)(torusRoot, ".twin", `migration-report-${stamp}.md`);
+    const backupDir = (0, import_path6.join)(torusRoot, ".twin", `migration-backup-${stamp}`);
+    const reportPath = (0, import_path6.join)(torusRoot, ".twin", `migration-report-${stamp}.md`);
     const manifestIndex = this.buildManifestPositionIndex();
     const plans = [];
     const walkMd = (absDir) => {
-      if (!(0, import_fs7.existsSync)(absDir)) return [];
+      if (!(0, import_fs9.existsSync)(absDir)) return [];
       const out = [];
       const stack = [absDir];
       while (stack.length) {
         const cur = stack.pop();
-        for (const name of (0, import_fs7.readdirSync)(cur)) {
-          const full = (0, import_path5.join)(cur, name);
+        for (const name of (0, import_fs9.readdirSync)(cur)) {
+          const full = (0, import_path6.join)(cur, name);
           let st;
           try {
-            st = (0, import_fs7.statSync)(full);
+            st = (0, import_fs9.statSync)(full);
           } catch {
             continue;
           }
@@ -190628,17 +192468,17 @@ _Last rendered: ${rendered}_
     const manifestOrphans = [];
     for (const [vaultRel, location] of manifestIndex.entries()) {
       const abs = this.absPath(vaultRel);
-      if (!(0, import_fs7.existsSync)(abs)) manifestOrphans.push({ entry: location, resolvedPath: vaultRel });
+      if (!(0, import_fs9.existsSync)(abs)) manifestOrphans.push({ entry: location, resolvedPath: vaultRel });
     }
     let backedUp = 0;
     if (plans.some((p3) => p3.action === "migrate")) {
-      (0, import_fs7.mkdirSync)(backupDir, { recursive: true });
+      (0, import_fs9.mkdirSync)(backupDir, { recursive: true });
       for (const p3 of plans) {
         if (p3.action !== "migrate" || !p3.originalFmRaw) continue;
         const rel = p3.vaultRelPath;
-        const targetDir = (0, import_path5.dirname)((0, import_path5.join)(backupDir, rel));
-        (0, import_fs7.mkdirSync)(targetDir, { recursive: true });
-        (0, import_fs7.writeFileSync)((0, import_path5.join)(backupDir, rel) + ".fm", p3.originalFmRaw, "utf-8");
+        const targetDir = (0, import_path6.dirname)((0, import_path6.join)(backupDir, rel));
+        (0, import_fs9.mkdirSync)(targetDir, { recursive: true });
+        (0, import_fs9.writeFileSync)((0, import_path6.join)(backupDir, rel) + ".fm", p3.originalFmRaw, "utf-8");
         backedUp++;
       }
     }
@@ -190648,7 +192488,7 @@ _Last rendered: ${rendered}_
     for (const p3 of plans) {
       if (p3.action !== "migrate") continue;
       try {
-        const raw = (0, import_fs7.readFileSync)(p3.absPath, "utf-8");
+        const raw = (0, import_fs9.readFileSync)(p3.absPath, "utf-8");
         const m2 = raw.match(/^---\n([\s\S]*?)\n---\n?/);
         if (!m2) {
           failed++;
@@ -190660,7 +192500,7 @@ _Last rendered: ${rendered}_
 ${p3.newFmYaml}
 ---
 ` + body;
-        (0, import_fs7.writeFileSync)(p3.absPath, next, "utf-8");
+        (0, import_fs9.writeFileSync)(p3.absPath, next, "utf-8");
         migrated++;
       } catch (e2) {
         failed++;
@@ -190714,8 +192554,8 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
 \`\`\`
 `;
     try {
-      (0, import_fs7.mkdirSync)((0, import_path5.dirname)(reportPath), { recursive: true });
-      (0, import_fs7.writeFileSync)(reportPath, report, "utf-8");
+      (0, import_fs9.mkdirSync)((0, import_path6.dirname)(reportPath), { recursive: true });
+      (0, import_fs9.writeFileSync)(reportPath, report, "utf-8");
     } catch (e2) {
       this.torusTrace("plugin:torusMigrateFrontmatter", `report write failed: ${e2.message}`);
     }
@@ -190753,7 +192593,7 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
     const skip = (reason) => ({ vaultRelPath, absPath, kind, action: "skip", reason });
     let raw;
     try {
-      raw = (0, import_fs7.readFileSync)(absPath, "utf-8");
+      raw = (0, import_fs9.readFileSync)(absPath, "utf-8");
     } catch (e2) {
       return skip(`read_failed: ${e2.message}`);
     }
@@ -190797,7 +192637,7 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
       let torus_created = (fm.created || "").trim();
       if (!torus_created) {
         try {
-          torus_created = torusFormatLocal((0, import_fs7.statSync)(absPath).mtime, "datetime");
+          torus_created = torusFormatLocal((0, import_fs9.statSync)(absPath).mtime, "datetime");
         } catch {
           torus_created = "";
         }
@@ -190825,7 +192665,7 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
     }
     const ideaCreated = (fm.created || "").trim() || (() => {
       try {
-        return torusFormatLocal((0, import_fs7.statSync)(absPath).mtime, "datetime");
+        return torusFormatLocal((0, import_fs9.statSync)(absPath).mtime, "datetime");
       } catch {
         return "";
       }
@@ -190911,10 +192751,10 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
     const manifestRel = this.settings.manifest;
     if (!manifestRel) return out;
     const manifestAbs = this.absPath(manifestRel);
-    if (!(0, import_fs7.existsSync)(manifestAbs)) return out;
+    if (!(0, import_fs9.existsSync)(manifestAbs)) return out;
     let raw;
     try {
-      raw = (0, import_fs7.readFileSync)(manifestAbs, "utf-8");
+      raw = (0, import_fs9.readFileSync)(manifestAbs, "utf-8");
     } catch {
       return out;
     }
@@ -190944,7 +192784,7 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
    *  backup tree, finds each *.fm file, replaces the corresponding note's
    *  frontmatter block with the original. Idempotent — safe to re-run. */
   torusMigrationRollback(backupDir) {
-    if (!(0, import_fs7.existsSync)(backupDir)) {
+    if (!(0, import_fs9.existsSync)(backupDir)) {
       return JSON.stringify({ status: "error", error: "backup_dir_not_found", backupDir });
     }
     const vaultBase = this.app.vault.adapter.basePath;
@@ -190952,11 +192792,11 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
     let failed = 0;
     const failures = [];
     const walk = (dir) => {
-      for (const name of (0, import_fs7.readdirSync)(dir)) {
-        const full = (0, import_path5.join)(dir, name);
+      for (const name of (0, import_fs9.readdirSync)(dir)) {
+        const full = (0, import_path6.join)(dir, name);
         let st;
         try {
-          st = (0, import_fs7.statSync)(full);
+          st = (0, import_fs9.statSync)(full);
         } catch {
           continue;
         }
@@ -190966,14 +192806,14 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
         }
         if (!st.isFile() || !name.endsWith(".fm")) continue;
         const rel = full.slice(backupDir.length + 1).replace(/\.fm$/, "");
-        const noteAbs = (0, import_path5.join)(vaultBase, rel);
+        const noteAbs = (0, import_path6.join)(vaultBase, rel);
         try {
-          if (!(0, import_fs7.existsSync)(noteAbs)) {
+          if (!(0, import_fs9.existsSync)(noteAbs)) {
             failed++;
             failures.push({ path: rel, error: "note_missing" });
             continue;
           }
-          const noteRaw = (0, import_fs7.readFileSync)(noteAbs, "utf-8");
+          const noteRaw = (0, import_fs9.readFileSync)(noteAbs, "utf-8");
           const m2 = noteRaw.match(/^---\n[\s\S]*?\n---\n?/);
           if (!m2) {
             failed++;
@@ -190981,9 +192821,9 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
             continue;
           }
           const body = noteRaw.slice(m2[0].length);
-          const fmRestored = (0, import_fs7.readFileSync)(full, "utf-8");
+          const fmRestored = (0, import_fs9.readFileSync)(full, "utf-8");
           const next = fmRestored.endsWith("\n") ? fmRestored + body : fmRestored + "\n" + body;
-          (0, import_fs7.writeFileSync)(noteAbs, next, "utf-8");
+          (0, import_fs9.writeFileSync)(noteAbs, next, "utf-8");
           restored++;
         } catch (e2) {
           failed++;
@@ -190999,39 +192839,39 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
    *  migration result. Refuses paths outside .twin/ for safety. */
   torusMigrationCleanup(backupDir) {
     const torusRoot = this.absPath(this.settings.torusRoot);
-    const expectedPrefix = (0, import_path5.join)(torusRoot, ".twin/");
+    const expectedPrefix = (0, import_path6.join)(torusRoot, ".twin/");
     if (!backupDir.startsWith(expectedPrefix)) {
       return JSON.stringify({ status: "error", error: "refuses_path_outside_twin", backupDir, expectedPrefix });
     }
-    if (!(0, import_fs7.existsSync)(backupDir)) {
+    if (!(0, import_fs9.existsSync)(backupDir)) {
       return JSON.stringify({ status: "error", error: "backup_dir_not_found", backupDir });
     }
     const rmAll = (dir) => {
-      for (const name of (0, import_fs7.readdirSync)(dir)) {
-        const full = (0, import_path5.join)(dir, name);
+      for (const name of (0, import_fs9.readdirSync)(dir)) {
+        const full = (0, import_path6.join)(dir, name);
         let st;
         try {
-          st = (0, import_fs7.statSync)(full);
+          st = (0, import_fs9.statSync)(full);
         } catch {
           continue;
         }
         if (st.isDirectory()) {
           rmAll(full);
           try {
-            (0, import_fs7.rmdirSync)(full);
+            (0, import_fs9.rmdirSync)(full);
           } catch {
           }
           continue;
         }
         try {
-          (0, import_fs7.unlinkSync)(full);
+          (0, import_fs9.unlinkSync)(full);
         } catch {
         }
       }
     };
     rmAll(backupDir);
     try {
-      (0, import_fs7.rmdirSync)(backupDir);
+      (0, import_fs9.rmdirSync)(backupDir);
     } catch {
     }
     this.torusLog("frontmatter_migration_cleanup", JSON.stringify({ backupDir }));
@@ -191067,8 +192907,8 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
       return JSON.stringify({ status: "error", error: "invalid_model", expected: 'string (e.g. "opus", "sonnet", "haiku")' });
     }
     const tasksPath = this.controlsPath("tasks.jsonl");
-    if ((0, import_fs7.existsSync)(tasksPath)) {
-      const existing = (0, import_fs7.readFileSync)(tasksPath, "utf-8").split("\n").filter((l2) => l2.trim());
+    if ((0, import_fs9.existsSync)(tasksPath)) {
+      const existing = (0, import_fs9.readFileSync)(tasksPath, "utf-8").split("\n").filter((l2) => l2.trim());
       for (const line of existing) {
         try {
           if (JSON.parse(line).id === id) {
@@ -191099,7 +192939,7 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
       }
       entry.status = "active";
     }
-    (0, import_fs7.appendFileSync)(tasksPath, JSON.stringify(entry) + "\n", "utf-8");
+    (0, import_fs9.appendFileSync)(tasksPath, JSON.stringify(entry) + "\n", "utf-8");
     this.torusLog("task_add", JSON.stringify({ id, type, action }));
     this.torusTrace("plugin:torusTaskAdd", `id=${id} type=${type} action=${action}`);
     this.torusScheduleNoteRender();
@@ -191154,8 +192994,8 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
    *  Returning null from the mutator deletes the entry. */
   rewriteTask(id, mutator) {
     const tasksPath = this.controlsPath("tasks.jsonl");
-    if (!(0, import_fs7.existsSync)(tasksPath)) return JSON.stringify({ status: "error", error: "no_tasks_file" });
-    const lines = (0, import_fs7.readFileSync)(tasksPath, "utf-8").split("\n").filter((l2) => l2.trim());
+    if (!(0, import_fs9.existsSync)(tasksPath)) return JSON.stringify({ status: "error", error: "no_tasks_file" });
+    const lines = (0, import_fs9.readFileSync)(tasksPath, "utf-8").split("\n").filter((l2) => l2.trim());
     let found = false;
     let result = null;
     const newLines = [];
@@ -191176,7 +193016,7 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
       }
     }
     if (!found) return JSON.stringify({ status: "error", error: "task_not_found", id });
-    (0, import_fs7.writeFileSync)(tasksPath, newLines.join("\n") + "\n", "utf-8");
+    (0, import_fs9.writeFileSync)(tasksPath, newLines.join("\n") + "\n", "utf-8");
     return JSON.stringify({ status: "ok", id, entry: result });
   }
   /** Absolute path inside Zero's memory directory (`.twin/context/`).
@@ -191282,9 +193122,9 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
     } else {
       filePath = pathOrQuery;
     }
-    if (looksLikePath && (0, import_fs7.existsSync)(this.absPath(filePath))) {
+    if (looksLikePath && (0, import_fs9.existsSync)(this.absPath(filePath))) {
       try {
-        const content = (0, import_fs7.readFileSync)(this.absPath(filePath), "utf-8");
+        const content = (0, import_fs9.readFileSync)(this.absPath(filePath), "utf-8");
         this.torusLog("read", JSON.stringify({ query: pathOrQuery, resolved: filePath }));
         this.torusTrace("plugin:torusRead", `${Math.round(performance.now() - t02)}ms path=${filePath}`);
         return JSON.stringify(this.buildReadResponse(filePath, content, opts));
@@ -191293,9 +193133,9 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
       }
     }
     const file = this.app.vault.getAbstractFileByPath(filePath);
-    if (file instanceof import_obsidian29.TFile) {
+    if (file instanceof import_obsidian30.TFile) {
       try {
-        const content = (0, import_fs7.readFileSync)(this.absPath(file.path), "utf-8");
+        const content = (0, import_fs9.readFileSync)(this.absPath(file.path), "utf-8");
         this.torusLog("read", JSON.stringify({ query: pathOrQuery, resolved: file.path }));
         this.torusTrace("plugin:torusRead", `${Math.round(performance.now() - t02)}ms path=${file.path}`);
         return JSON.stringify(this.buildReadResponse(file.path, content, opts));
@@ -191310,7 +193150,7 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
     }
     filePath = matches[0].path;
     try {
-      const content = (0, import_fs7.readFileSync)(this.absPath(filePath), "utf-8");
+      const content = (0, import_fs9.readFileSync)(this.absPath(filePath), "utf-8");
       this.torusLog("read", JSON.stringify({ query: pathOrQuery, resolved: filePath }));
       this.torusTrace("plugin:torusRead", `${Math.round(performance.now() - t02)}ms path=${filePath}`);
       return JSON.stringify(this.buildReadResponse(filePath, content, opts));
@@ -191366,11 +193206,11 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
       const resolved = this.resolveVaultPath(input);
       if (resolved.error) return { path: input, error: resolved.error.error };
       const candidate = this.resolvePath(input);
-      if ((0, import_fs7.existsSync)(this.absPath(candidate))) {
+      if ((0, import_fs9.existsSync)(this.absPath(candidate))) {
         filePath = candidate;
       } else {
         const file = this.app.vault.getAbstractFileByPath(candidate);
-        if (file instanceof import_obsidian29.TFile) filePath = file.path;
+        if (file instanceof import_obsidian30.TFile) filePath = file.path;
       }
     }
     if (!filePath) {
@@ -191383,7 +193223,7 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
     }
     let content;
     try {
-      content = (0, import_fs7.readFileSync)(this.absPath(filePath), "utf-8");
+      content = (0, import_fs9.readFileSync)(this.absPath(filePath), "utf-8");
     } catch {
       return { path: filePath, error: "read_failed" };
     }
@@ -191396,7 +193236,7 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
       summary = body || null;
     }
     const tfile = this.app.vault.getAbstractFileByPath(filePath);
-    const frontmatter = tfile instanceof import_obsidian29.TFile ? this.app.metadataCache.getFileCache(tfile)?.frontmatter ?? {} : {};
+    const frontmatter = tfile instanceof import_obsidian30.TFile ? this.app.metadataCache.getFileCache(tfile)?.frontmatter ?? {} : {};
     return { path: filePath, title, summary, frontmatter };
   }
   /** Look up a skill note by name. Skills are vault notes with frontmatter
@@ -191455,7 +193295,7 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
     const file = scored[0].file;
     let raw;
     try {
-      raw = (0, import_fs7.readFileSync)(this.absPath(file.path), "utf-8");
+      raw = (0, import_fs9.readFileSync)(this.absPath(file.path), "utf-8");
     } catch (e2) {
       return JSON.stringify({ status: "error", error: "read_failed", path: file.path, detail: e2 instanceof Error ? e2.message : String(e2) });
     }
@@ -191520,7 +193360,7 @@ obsidian eval 'code=app.plugins.plugins["the-torus"].torusMigrationCleanup("${ba
     const filePath = readResult.path;
     let targetContent;
     try {
-      targetContent = (0, import_fs7.readFileSync)(this.absPath(filePath), "utf-8");
+      targetContent = (0, import_fs9.readFileSync)(this.absPath(filePath), "utf-8");
     } catch {
       return JSON.stringify({ ok: false, error: "target_read_failed", path: filePath });
     }
@@ -191545,7 +193385,7 @@ ${titled}
 `;
     const newContent = position === "before" ? targetContent.slice(0, anchorIdx) + wrapped + targetContent.slice(anchorIdx) : targetContent.slice(0, anchorIdx + anchor.length) + wrapped + targetContent.slice(anchorIdx + anchor.length);
     try {
-      (0, import_fs7.writeFileSync)(this.absPath(filePath), newContent, "utf-8");
+      (0, import_fs9.writeFileSync)(this.absPath(filePath), newContent, "utf-8");
     } catch (e2) {
       return JSON.stringify({ ok: false, error: "target_write_failed", path: filePath, detail: e2.message });
     }
@@ -191576,13 +193416,13 @@ ${titled}
       return JSON.stringify({ ok: false, error: "invalid_position", got: position, expected: ["before", "after"] });
     }
     const slug = this.torusHome().replace(/\//g, "-");
-    const projectDir = (0, import_path5.join)((0, import_os2.homedir)(), ".claude", "projects", slug);
-    if (!(0, import_fs7.existsSync)(projectDir)) {
+    const projectDir = (0, import_path6.join)((0, import_os2.homedir)(), ".claude", "projects", slug);
+    if (!(0, import_fs9.existsSync)(projectDir)) {
       return JSON.stringify({ ok: false, error: "project_dir_not_found", slug, checked: projectDir });
     }
     let jsonlPath = null;
     try {
-      const jsonls = (0, import_fs7.readdirSync)(projectDir).filter((f) => f.endsWith(".jsonl")).map((f) => ({ path: (0, import_path5.join)(projectDir, f), mtime: (0, import_fs7.statSync)((0, import_path5.join)(projectDir, f)).mtimeMs })).sort((a2, b2) => b2.mtime - a2.mtime);
+      const jsonls = (0, import_fs9.readdirSync)(projectDir).filter((f) => f.endsWith(".jsonl")).map((f) => ({ path: (0, import_path6.join)(projectDir, f), mtime: (0, import_fs9.statSync)((0, import_path6.join)(projectDir, f)).mtimeMs })).sort((a2, b2) => b2.mtime - a2.mtime);
       if (jsonls.length === 0) {
         return JSON.stringify({ ok: false, error: "no_jsonl_in_project", slug });
       }
@@ -191592,7 +193432,7 @@ ${titled}
     }
     let turnText = null;
     try {
-      const lines = (0, import_fs7.readFileSync)(jsonlPath, "utf-8").split("\n").filter((l2) => l2.trim());
+      const lines = (0, import_fs9.readFileSync)(jsonlPath, "utf-8").split("\n").filter((l2) => l2.trim());
       let startIdx = lines.length - 1;
       for (let i3 = lines.length - 1; i3 >= 0; i3--) {
         let record;
@@ -191689,12 +193529,12 @@ ${titled}
       return JSON.stringify({ ok: false, error: "absolute_path_rejected", detail: resolved.error.error, ...resolved.error.suggestion ? { suggestion: resolved.error.suggestion } : {} });
     }
     const absContentPath = resolved.absPath;
-    if (!(0, import_fs7.existsSync)(absContentPath)) {
+    if (!(0, import_fs9.existsSync)(absContentPath)) {
       return JSON.stringify({ ok: false, error: "content_file_not_found", contentPath });
     }
     let raw;
     try {
-      raw = (0, import_fs7.readFileSync)(absContentPath, "utf-8");
+      raw = (0, import_fs9.readFileSync)(absContentPath, "utf-8");
     } catch (e2) {
       return JSON.stringify({ ok: false, error: "content_file_read_failed", contentPath, detail: e2.message });
     }
@@ -191709,7 +193549,7 @@ ${titled}
       this.torusTrace("plugin:torusInsertFromFile", `${Math.round(performance.now() - t02)}ms bytes=${parsed.inserted_bytes}`);
       if (deleteAfter) {
         try {
-          (0, import_fs7.unlinkSync)(absContentPath);
+          (0, import_fs9.unlinkSync)(absContentPath);
         } catch (e2) {
           this.torusTrace("plugin:torusInsertFromFile", `cleanup_failed path=${contentPath} detail=${e2.message}`);
         }
@@ -191745,6 +193585,7 @@ ${titled}
     if (!this.bridgeRunner) {
       return JSON.stringify({
         ok: true,
+        state: "idle",
         running: false,
         disabled: true,
         pid: null,
@@ -191765,7 +193606,7 @@ ${titled}
     }
     if (!this.bridgeRunner) this.bridgeRunner = new BridgeRunner(this);
     try {
-      await this.bridgeRunner.start(this.buildBridgeConfig());
+      await this.bridgeRunner.start(this.buildBridgeConfig(), true);
       return JSON.stringify({ ok: true, ...this.bridgeRunner.getStatus() });
     } catch (e2) {
       return JSON.stringify({ ok: false, error: "start_failed", detail: e2 instanceof Error ? e2.message : String(e2) });
@@ -191788,19 +193629,102 @@ ${titled}
     if (!this.bridgeRunner) this.bridgeRunner = new BridgeRunner(this);
     try {
       if (this.bridgeRunner.isRunning()) await this.bridgeRunner.stop();
-      await this.bridgeRunner.start(this.buildBridgeConfig());
+      await this.bridgeRunner.start(this.buildBridgeConfig(), true);
       return JSON.stringify({ ok: true, ...this.bridgeRunner.getStatus() });
     } catch (e2) {
       return JSON.stringify({ ok: false, error: "restart_failed", detail: e2 instanceof Error ? e2.message : String(e2) });
     }
   }
+  /** One-shot recovery for a bridge. For 'whatsapp': stop → free port from our
+   *  own orphan (refuses to kill a foreign holder) → wipe the WhatsApp session
+   *  to force a fresh QR → clear the circuit breaker → respawn. For 'email' /
+   *  'imessage': a clean stop+start of the in-plugin runner (no port, no session
+   *  cache to wipe). Returns { ok, state, message }. */
+  async torusBridgeReset(bridgeName = "whatsapp") {
+    try {
+      if (bridgeName === "whatsapp") {
+        if (!this.settings.bridgePath) {
+          return JSON.stringify({ ok: false, state: "idle", message: "bridge_path_not_configured" });
+        }
+        if (!this.bridgeRunner) this.bridgeRunner = new BridgeRunner(this);
+        const result = await this.bridgeRunner.reset(this.buildBridgeConfig(), { wipeSession: true });
+        return JSON.stringify(result);
+      }
+      if (bridgeName === "email") {
+        if (!this.settings.enablePluginImap || !this.settings.imapHost || !this.settings.imapUser) {
+          return JSON.stringify({ ok: false, state: "idle", message: "email_bridge_not_configured" });
+        }
+        const vaultPath2 = this.app.vault.adapter.basePath;
+        if (this.imapRunner) await this.imapRunner.stop();
+        else this.imapRunner = new ImapRunner((m2) => this.torusTrace("capture:email", m2));
+        await this.imapRunner.start({
+          host: this.settings.imapHost,
+          port: this.settings.imapPort,
+          user: this.settings.imapUser,
+          password: this.settings.imapPassword,
+          tls: this.settings.imapTls,
+          vaultPath: vaultPath2,
+          torusRoot: this.settings.torusRoot
+        });
+        return JSON.stringify({ ok: true, state: "ready", message: "Email (IMAP) bridge restarted." });
+      }
+      if (bridgeName === "telegram") {
+        if (!this.settings.enableTelegramBridge || !this.settings.telegramBotToken) {
+          return JSON.stringify({ ok: false, state: "idle", message: "telegram_bridge_not_configured" });
+        }
+        const vaultPath2 = this.app.vault.adapter.basePath;
+        if (this.telegramRunner) await this.telegramRunner.stop();
+        else this.telegramRunner = new TelegramRunner((m2) => this.torusTrace("capture:telegram", m2));
+        await this.telegramRunner.start({
+          botToken: this.settings.telegramBotToken,
+          authorizedUserIds: this.parseTelegramUserIds(),
+          vaultPath: vaultPath2,
+          torusRoot: this.settings.torusRoot
+        });
+        return JSON.stringify({ ok: true, ...this.telegramRunner.getStatus() });
+      }
+      if (!this.settings.enablePluginImessage || parseHandles(this.settings.imessageSelfHandles).length === 0) {
+        return JSON.stringify({ ok: false, state: "idle", message: "imessage_bridge_not_configured" });
+      }
+      const vaultPath = this.app.vault.adapter.basePath;
+      if (this.imessageRunner) await this.imessageRunner.stop();
+      else this.imessageRunner = new ImessageRunner((m2) => this.torusTrace("capture:imessage", m2));
+      await this.imessageRunner.start({
+        vaultPath,
+        torusRoot: this.settings.torusRoot,
+        selfHandles: parseHandles(this.settings.imessageSelfHandles)
+      });
+      return JSON.stringify({ ok: true, state: "ready", message: "iMessage bridge restarted." });
+    } catch (e2) {
+      return JSON.stringify({ ok: false, state: "failed", message: e2 instanceof Error ? e2.message : String(e2) });
+    }
+  }
+  /** Fetch the current WhatsApp pairing QR from the bridge's GET /qr endpoint
+   *  (via requestUrl — CORS-safe). Returns { state, qr, ts } where state is
+   *  'awaiting_qr' | 'paired' | 'no_qr_yet', or an error shape if the bridge is
+   *  unreachable. Only meaningful for 'whatsapp'. */
+  async torusBridgeQr(bridgeName = "whatsapp") {
+    if (bridgeName !== "whatsapp") {
+      return JSON.stringify({ ok: false, state: "no_qr_yet", qr: null, error: "qr_only_for_whatsapp" });
+    }
+    const port = this.settings.bridgePort || 3001;
+    try {
+      const res = await (0, import_obsidian30.requestUrl)({ url: `http://127.0.0.1:${port}/qr`, method: "GET", throw: false });
+      if (res.status >= 200 && res.status < 300) {
+        return JSON.stringify({ ok: true, ...res.json });
+      }
+      return JSON.stringify({ ok: false, state: "no_qr_yet", qr: null, error: `HTTP ${res.status}` });
+    } catch (e2) {
+      return JSON.stringify({ ok: false, state: "no_qr_yet", qr: null, error: e2 instanceof Error ? e2.message : String(e2) });
+    }
+  }
   /** Return the last N bridge-related lines from torus.log.
    *  Filters for the `capture:whatsapp` label family. */
   torusBridgeLog(limit = 40) {
-    const logPath = (0, import_path5.join)(this.absPath(this.settings.torusRoot), ".twin", "logs", "torus.log");
-    if (!(0, import_fs7.existsSync)(logPath)) return JSON.stringify({ ok: true, lines: [] });
+    const logPath = (0, import_path6.join)(this.absPath(this.settings.torusRoot), ".twin", "logs", "torus.log");
+    if (!(0, import_fs9.existsSync)(logPath)) return JSON.stringify({ ok: true, lines: [] });
     try {
-      const raw = (0, import_fs7.readFileSync)(logPath, "utf-8");
+      const raw = (0, import_fs9.readFileSync)(logPath, "utf-8");
       const filtered = raw.split("\n").filter((l2) => l2.includes("[capture:whatsapp")).slice(-limit);
       return JSON.stringify({ ok: true, lines: filtered });
     } catch (e2) {
@@ -191829,7 +193753,7 @@ ${titled}
     let filePath = this.resolvePath(pathOrQuery);
     if (mode === "append") {
       const file = this.app.vault.getAbstractFileByPath(pathOrQuery);
-      if (!(file instanceof import_obsidian29.TFile)) {
+      if (!(file instanceof import_obsidian30.TFile)) {
         const matches = this.resolveQuery(pathOrQuery);
         if (matches.length === 0) return JSON.stringify({ error: "not_found", query: pathOrQuery });
         if (matches.length > 1 && (!matches[0].score || matches[0].score < 0.8)) {
@@ -191838,7 +193762,7 @@ ${titled}
         filePath = matches[0].path;
       }
       try {
-        (0, import_fs7.appendFileSync)(this.absPath(filePath), "\n" + content, "utf-8");
+        (0, import_fs9.appendFileSync)(this.absPath(filePath), "\n" + content, "utf-8");
         this.torusLog("write", JSON.stringify({ path: filePath, mode: "append" }));
         this.torusTrace(`plugin:torusWrite`, `append ${Math.round(performance.now() - t02)}ms path=${filePath}`);
         return JSON.stringify({ status: "ok", path: filePath, mode: "append" });
@@ -191858,13 +193782,13 @@ ${titled}
       }
     }
     const absPath = this.absPath(filePath);
-    if ((0, import_fs7.existsSync)(absPath) && mode === "new") return JSON.stringify({ error: "exists", path: filePath, message: "File already exists. Use mode=append or overwrite." });
+    if ((0, import_fs9.existsSync)(absPath) && mode === "new") return JSON.stringify({ error: "exists", path: filePath, message: "File already exists. Use mode=append or overwrite." });
     const dir = filePath.substring(0, filePath.lastIndexOf("/"));
     if (dir) {
       const absDirPath = this.absPath(dir);
-      if (!(0, import_fs7.existsSync)(absDirPath)) (0, import_fs7.mkdirSync)(absDirPath, { recursive: true });
+      if (!(0, import_fs9.existsSync)(absDirPath)) (0, import_fs9.mkdirSync)(absDirPath, { recursive: true });
     }
-    (0, import_fs7.writeFileSync)(absPath, content, "utf-8");
+    (0, import_fs9.writeFileSync)(absPath, content, "utf-8");
     this.torusLog("write", JSON.stringify({ path: filePath, mode: "new" }));
     this.torusTrace(`plugin:torusWrite`, `new ${Math.round(performance.now() - t02)}ms path=${filePath}`);
     return JSON.stringify({ status: "ok", path: filePath, mode: "new" });
@@ -191927,12 +193851,12 @@ ${titled}
     const expectedSha = QMD_BUNDLE_SHAS[target];
     if (!expectedSha) return null;
     const bundleDir = this.qmdBundleDir();
-    const nodePath = (0, import_path5.join)(bundleDir, "node");
-    const qmdJs = (0, import_path5.join)(bundleDir, "dist/cli/qmd.js");
+    const nodePath = (0, import_path6.join)(bundleDir, "node");
+    const qmdJs = (0, import_path6.join)(bundleDir, "dist/cli/qmd.js");
     const sidecarPath = `${bundleDir}.sha256`;
-    if (!(0, import_fs7.existsSync)(nodePath) || !(0, import_fs7.existsSync)(qmdJs) || !(0, import_fs7.existsSync)(sidecarPath)) return null;
+    if (!(0, import_fs9.existsSync)(nodePath) || !(0, import_fs9.existsSync)(qmdJs) || !(0, import_fs9.existsSync)(sidecarPath)) return null;
     try {
-      const sidecarSha = (0, import_fs7.readFileSync)(sidecarPath, "utf-8").trim();
+      const sidecarSha = (0, import_fs9.readFileSync)(sidecarPath, "utf-8").trim();
       if (sidecarSha !== expectedSha) return null;
     } catch {
       return null;
@@ -191983,14 +193907,14 @@ ${titled}
     });
     const probeTextures = () => {
       const basePath = this.app.vault.adapter.basePath;
-      const texturesDir = (0, import_path5.join)(basePath, this.manifest.dir, "textures");
-      if (!(0, import_fs7.existsSync)(texturesDir)) return false;
+      const texturesDir = (0, import_path6.join)(basePath, this.manifest.dir, "textures");
+      if (!(0, import_fs9.existsSync)(texturesDir)) return false;
       try {
-        const entries = (0, import_fs7.readdirSync)(texturesDir, { withFileTypes: true });
+        const entries = (0, import_fs9.readdirSync)(texturesDir, { withFileTypes: true });
         return entries.some((e2) => {
           if (!e2.isDirectory()) return false;
           try {
-            return (0, import_fs7.readdirSync)((0, import_path5.join)(texturesDir, e2.name)).length > 0;
+            return (0, import_fs9.readdirSync)((0, import_path6.join)(texturesDir, e2.name)).length > 0;
           } catch {
             return false;
           }
@@ -192033,15 +193957,15 @@ ${titled}
   async installTexturePack(onProgress) {
     const TEXTURE_RELEASE_URL = "https://github.com/harrybuck/the-torus/releases/latest/download/textures.tar.gz";
     const basePath = this.app.vault.adapter.basePath;
-    const pluginDir = (0, import_path5.join)(basePath, this.manifest.dir);
-    const tmpFile = (0, import_path5.join)((0, import_os2.tmpdir)(), `torus-textures-${Date.now()}.tar.gz`);
+    const pluginDir = (0, import_path6.join)(basePath, this.manifest.dir);
+    const tmpFile = (0, import_path6.join)((0, import_os2.tmpdir)(), `torus-textures-${Date.now()}.tar.gz`);
     onProgress?.("Downloading texture pack\u2026");
     try {
-      const res = await (0, import_obsidian29.requestUrl)({ url: TEXTURE_RELEASE_URL, method: "GET" });
+      const res = await (0, import_obsidian30.requestUrl)({ url: TEXTURE_RELEASE_URL, method: "GET" });
       if (res.status !== 200) {
         return { ok: false, error: `download failed: HTTP ${res.status}` };
       }
-      (0, import_fs7.writeFileSync)(tmpFile, Buffer.from(res.arrayBuffer));
+      (0, import_fs9.writeFileSync)(tmpFile, Buffer.from(res.arrayBuffer));
       const size = res.arrayBuffer.byteLength;
       onProgress?.(`Extracting ${Math.round(size / 1024 / 1024)} MB\u2026`);
       const tarListing = await new Promise((resolveP, rejectP) => {
@@ -192056,8 +193980,8 @@ ${titled}
         const m2 = /^textures\/([^/]+)\/$/.exec(line);
         if (m2) packSets.add(m2[1]);
       }
-      const texturesDir = (0, import_path5.join)(pluginDir, "textures");
-      const existingDirs = (0, import_fs7.existsSync)(texturesDir) ? (0, import_fs7.readdirSync)(texturesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name) : [];
+      const texturesDir = (0, import_path6.join)(pluginDir, "textures");
+      const existingDirs = (0, import_fs9.existsSync)(texturesDir) ? (0, import_fs9.readdirSync)(texturesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name) : [];
       await new Promise((resolveP, rejectP) => {
         (0, import_child_process6.exec)(
           `tar -xzf ${JSON.stringify(tmpFile)} -C ${JSON.stringify(pluginDir)}`,
@@ -192066,7 +193990,7 @@ ${titled}
         );
       });
       try {
-        (0, import_fs7.unlinkSync)(tmpFile);
+        (0, import_fs9.unlinkSync)(tmpFile);
       } catch {
       }
       const orphans = existingDirs.filter((d) => !packSets.has(d));
@@ -192079,7 +194003,7 @@ ${titled}
       return { ok: true, size, orphans };
     } catch (e2) {
       try {
-        (0, import_fs7.unlinkSync)(tmpFile);
+        (0, import_fs9.unlinkSync)(tmpFile);
       } catch {
       }
       const msg = e2?.message || String(e2);
@@ -192123,13 +194047,13 @@ ${titled}
       const legacySidecar = `${legacyDir}.sha256`;
       const newDir = this.qmdBundleDir();
       const newSidecar = `${newDir}.sha256`;
-      if ((0, import_fs7.existsSync)(legacyDir) && !(0, import_fs7.existsSync)(newDir)) {
-        const parent = (0, import_path5.dirname)(newDir);
-        if (!(0, import_fs7.existsSync)(parent)) (0, import_fs7.mkdirSync)(parent, { recursive: true });
-        (0, import_fs7.renameSync)(legacyDir, newDir);
-        if ((0, import_fs7.existsSync)(legacySidecar) && !(0, import_fs7.existsSync)(newSidecar)) {
+      if ((0, import_fs9.existsSync)(legacyDir) && !(0, import_fs9.existsSync)(newDir)) {
+        const parent = (0, import_path6.dirname)(newDir);
+        if (!(0, import_fs9.existsSync)(parent)) (0, import_fs9.mkdirSync)(parent, { recursive: true });
+        (0, import_fs9.renameSync)(legacyDir, newDir);
+        if ((0, import_fs9.existsSync)(legacySidecar) && !(0, import_fs9.existsSync)(newSidecar)) {
           try {
-            (0, import_fs7.renameSync)(legacySidecar, newSidecar);
+            (0, import_fs9.renameSync)(legacySidecar, newSidecar);
           } catch {
           }
         }
@@ -192142,11 +194066,11 @@ ${titled}
     const sidecarPath = `${bundleDir}.sha256`;
     if (opts?.force) {
       try {
-        if ((0, import_fs7.existsSync)(bundleDir)) (0, import_fs7.rmSync)(bundleDir, { recursive: true, force: true });
+        if ((0, import_fs9.existsSync)(bundleDir)) (0, import_fs9.rmSync)(bundleDir, { recursive: true, force: true });
       } catch {
       }
       try {
-        if ((0, import_fs7.existsSync)(sidecarPath)) (0, import_fs7.unlinkSync)(sidecarPath);
+        if ((0, import_fs9.existsSync)(sidecarPath)) (0, import_fs9.unlinkSync)(sidecarPath);
       } catch {
       }
     }
@@ -192159,11 +194083,11 @@ ${titled}
     const pluginVersion = this.manifest.version;
     const tarballName = `qmd-bundle-${target}.tar.xz`;
     const url = `https://github.com/harrybuck/the-torus/releases/download/v${pluginVersion}/${tarballName}`;
-    const tmpFile = (0, import_path5.join)((0, import_os2.tmpdir)(), `torus-qmd-bundle-${Date.now()}-${target}.tar.xz`);
-    const binDir = (0, import_path5.dirname)(bundleDir);
-    if (!(0, import_fs7.existsSync)(binDir)) (0, import_fs7.mkdirSync)(binDir, { recursive: true });
+    const tmpFile = (0, import_path6.join)((0, import_os2.tmpdir)(), `torus-qmd-bundle-${Date.now()}-${target}.tar.xz`);
+    const binDir = (0, import_path6.dirname)(bundleDir);
+    if (!(0, import_fs9.existsSync)(binDir)) (0, import_fs9.mkdirSync)(binDir, { recursive: true });
     try {
-      if ((0, import_fs7.existsSync)(this.smartSearchReadyMarker())) (0, import_fs7.unlinkSync)(this.smartSearchReadyMarker());
+      if ((0, import_fs9.existsSync)(this.smartSearchReadyMarker())) (0, import_fs9.unlinkSync)(this.smartSearchReadyMarker());
     } catch {
     }
     this.prereqStatus.qmdBundleState = "downloading";
@@ -192171,20 +194095,20 @@ ${titled}
     this.torusTrace("plugin:ensureQmdBundle", `DOWNLOAD ${url} \u2192 ${tmpFile}`);
     onProgress?.("Downloading qmd bundle\u2026");
     try {
-      const res = await (0, import_obsidian29.requestUrl)({ url, method: "GET" });
+      const res = await (0, import_obsidian30.requestUrl)({ url, method: "GET" });
       if (res.status !== 200) {
         throw new Error(`download failed: HTTP ${res.status}`);
       }
-      (0, import_fs7.writeFileSync)(tmpFile, Buffer.from(res.arrayBuffer));
+      (0, import_fs9.writeFileSync)(tmpFile, Buffer.from(res.arrayBuffer));
       const sizeBytes = res.arrayBuffer.byteLength;
-      const sha = (0, import_crypto3.createHash)("sha256").update((0, import_fs7.readFileSync)(tmpFile)).digest("hex");
+      const sha = (0, import_crypto4.createHash)("sha256").update((0, import_fs9.readFileSync)(tmpFile)).digest("hex");
       if (sha !== expectedSha) {
         throw new Error(`SHA-256 mismatch: expected ${expectedSha.slice(0, 12)}\u2026, got ${sha.slice(0, 12)}\u2026`);
       }
       this.torusTrace("plugin:ensureQmdBundle", `SHA verified ${sha.slice(0, 12)}\u2026 size=${sizeBytes}`);
-      if ((0, import_fs7.existsSync)(bundleDir)) (0, import_fs7.rmSync)(bundleDir, { recursive: true, force: true });
-      if ((0, import_fs7.existsSync)(sidecarPath)) try {
-        (0, import_fs7.unlinkSync)(sidecarPath);
+      if ((0, import_fs9.existsSync)(bundleDir)) (0, import_fs9.rmSync)(bundleDir, { recursive: true, force: true });
+      if ((0, import_fs9.existsSync)(sidecarPath)) try {
+        (0, import_fs9.unlinkSync)(sidecarPath);
       } catch {
       }
       this.prereqStatus.qmdBundleState = "extracting";
@@ -192196,30 +194120,30 @@ ${titled}
           (err) => err ? rejectP(new Error(`tar -xJf failed: ${err.message}`)) : resolveP()
         );
       });
-      const extractedDir = (0, import_path5.join)(binDir, `qmd-bundle-${target}`);
-      if (!(0, import_fs7.existsSync)(extractedDir)) {
+      const extractedDir = (0, import_path6.join)(binDir, `qmd-bundle-${target}`);
+      if (!(0, import_fs9.existsSync)(extractedDir)) {
         throw new Error(`extraction produced no '${extractedDir}' \u2014 tarball layout drift?`);
       }
-      (0, import_fs7.renameSync)(extractedDir, bundleDir);
-      const nodePath = (0, import_path5.join)(bundleDir, "node");
-      const qmdJs = (0, import_path5.join)(bundleDir, "dist/cli/qmd.js");
-      if (!(0, import_fs7.existsSync)(nodePath) || !(0, import_fs7.existsSync)(qmdJs)) {
-        throw new Error(`bundle missing required files: node=${(0, import_fs7.existsSync)(nodePath)} qmd.js=${(0, import_fs7.existsSync)(qmdJs)}`);
+      (0, import_fs9.renameSync)(extractedDir, bundleDir);
+      const nodePath = (0, import_path6.join)(bundleDir, "node");
+      const qmdJs = (0, import_path6.join)(bundleDir, "dist/cli/qmd.js");
+      if (!(0, import_fs9.existsSync)(nodePath) || !(0, import_fs9.existsSync)(qmdJs)) {
+        throw new Error(`bundle missing required files: node=${(0, import_fs9.existsSync)(nodePath)} qmd.js=${(0, import_fs9.existsSync)(qmdJs)}`);
       }
       try {
-        (0, import_fs7.chmodSync)(nodePath, 493);
+        (0, import_fs9.chmodSync)(nodePath, 493);
       } catch {
       }
-      const binQmd = (0, import_path5.join)(bundleDir, "bin/qmd");
-      if ((0, import_fs7.existsSync)(binQmd)) {
+      const binQmd = (0, import_path6.join)(bundleDir, "bin/qmd");
+      if ((0, import_fs9.existsSync)(binQmd)) {
         try {
-          (0, import_fs7.chmodSync)(binQmd, 493);
+          (0, import_fs9.chmodSync)(binQmd, 493);
         } catch {
         }
       }
-      (0, import_fs7.writeFileSync)(sidecarPath, expectedSha + "\n", "utf-8");
+      (0, import_fs9.writeFileSync)(sidecarPath, expectedSha + "\n", "utf-8");
       try {
-        (0, import_fs7.unlinkSync)(tmpFile);
+        (0, import_fs9.unlinkSync)(tmpFile);
       } catch {
       }
       this.prereqStatus.qmdBundleState = "idle";
@@ -192242,15 +194166,15 @@ ${titled}
       return { ok: true, source: "bundle", bundlePath: bundleDir, sizeBytes };
     } catch (e2) {
       try {
-        (0, import_fs7.unlinkSync)(tmpFile);
+        (0, import_fs9.unlinkSync)(tmpFile);
       } catch {
       }
-      if ((0, import_fs7.existsSync)(bundleDir)) try {
-        (0, import_fs7.rmSync)(bundleDir, { recursive: true, force: true });
+      if ((0, import_fs9.existsSync)(bundleDir)) try {
+        (0, import_fs9.rmSync)(bundleDir, { recursive: true, force: true });
       } catch {
       }
-      if ((0, import_fs7.existsSync)(sidecarPath)) try {
-        (0, import_fs7.unlinkSync)(sidecarPath);
+      if ((0, import_fs9.existsSync)(sidecarPath)) try {
+        (0, import_fs9.unlinkSync)(sidecarPath);
       } catch {
       }
       const msg = e2?.message || String(e2);
@@ -192309,16 +194233,16 @@ ${titled}
         throw new Error(`qmd embed failed: ${emb.err.message}`);
       }
       const markerPath = this.smartSearchReadyMarker();
-      const parent = (0, import_path5.dirname)(markerPath);
-      if (!(0, import_fs7.existsSync)(parent)) (0, import_fs7.mkdirSync)(parent, { recursive: true });
-      (0, import_fs7.writeFileSync)(markerPath, (/* @__PURE__ */ new Date()).toISOString() + "\n", "utf-8");
+      const parent = (0, import_path6.dirname)(markerPath);
+      if (!(0, import_fs9.existsSync)(parent)) (0, import_fs9.mkdirSync)(parent, { recursive: true });
+      (0, import_fs9.writeFileSync)(markerPath, (/* @__PURE__ */ new Date()).toISOString() + "\n", "utf-8");
       this.prereqStatus.smartSearchWarmupState = "idle";
       this.prereqStatus.smartSearchWarmupError = void 0;
       this.prereqStatus.smartSearchReady = true;
       const ms = Math.round(performance.now() - t02);
       this.torusLog("smart_search_ready", JSON.stringify({ ms }), "pipeline");
       this.torusTrace("plugin:warmupSemanticIndex", `OK ${ms}ms`);
-      new import_obsidian29.Notice("Smart Search is fully ready.");
+      new import_obsidian30.Notice("Smart Search is fully ready.");
       return { ok: true };
     } catch (e2) {
       const msg = e2?.message || String(e2);
@@ -192335,7 +194259,7 @@ ${titled}
    *  caller can surface partial failures. */
   async removeTextureOrphans(names) {
     const basePath = this.app.vault.adapter.basePath;
-    const texturesDir = (0, import_path5.join)(basePath, this.manifest.dir, "textures");
+    const texturesDir = (0, import_path6.join)(basePath, this.manifest.dir, "textures");
     const removed = [];
     const failed = [];
     for (const name of names) {
@@ -192343,9 +194267,9 @@ ${titled}
         failed.push({ name, error: "invalid name" });
         continue;
       }
-      const target = (0, import_path5.join)(texturesDir, name);
+      const target = (0, import_path6.join)(texturesDir, name);
       try {
-        (0, import_fs7.rmSync)(target, { recursive: true, force: true });
+        (0, import_fs9.rmSync)(target, { recursive: true, force: true });
         removed.push(name);
       } catch (e2) {
         failed.push({ name, error: e2?.message || String(e2) });
@@ -192365,8 +194289,8 @@ ${titled}
    *  this method. */
   async runFirstInstallIfNeeded() {
     const torusDir = this.absPath(this.settings.torusRoot);
-    const markerPath = (0, import_path5.join)(torusDir, ".twin", ".installed");
-    if ((0, import_fs7.existsSync)(markerPath)) return;
+    const markerPath = (0, import_path6.join)(torusDir, ".twin", ".installed");
+    if ((0, import_fs9.existsSync)(markerPath)) return;
     await this.refreshPrereqs();
     if (!this.prereqStatus.claude || !this.prereqStatus.obsidianCli) {
       const missing = [];
@@ -192394,14 +194318,14 @@ ${titled}
     this.torusTrace("plugin:install", `fresh install \u2014 torusDir=${torusDir}`);
     try {
       const result = await this.runVaultAssetSync();
-      (0, import_fs7.writeFileSync)(markerPath, JSON.stringify({
+      (0, import_fs9.writeFileSync)(markerPath, JSON.stringify({
         installed_at: (/* @__PURE__ */ new Date()).toISOString(),
         plugin_version: this.manifest.version
       }, null, 2));
       if (this.prereqStatus.qmd) {
-        const day2Marker = (0, import_path5.join)(torusDir, ".twin", ".qmd-day2-shown");
+        const day2Marker = (0, import_path6.join)(torusDir, ".twin", ".qmd-day2-shown");
         try {
-          (0, import_fs7.writeFileSync)(day2Marker, JSON.stringify({
+          (0, import_fs9.writeFileSync)(day2Marker, JSON.stringify({
             shown: (/* @__PURE__ */ new Date()).toISOString(),
             choice: "present_at_install"
           }));
@@ -192409,9 +194333,9 @@ ${titled}
         }
       }
       const summary = result.copied.length > 0 ? `${result.copied.length} file${result.copied.length === 1 ? "" : "s"} installed at ${this.settings.torusRoot}` : `Already up-to-date at ${this.settings.torusRoot}`;
-      new import_obsidian29.Notice(`Torus: ${summary}`);
+      new import_obsidian30.Notice(`Torus: ${summary}`);
       if (result.conflicted.length > 0) {
-        new import_obsidian29.Notice(`${result.conflicted.length} conflict${result.conflicted.length === 1 ? "" : "s"} \u2014 see Settings \u2192 The Torus`);
+        new import_obsidian30.Notice(`${result.conflicted.length} conflict${result.conflicted.length === 1 ? "" : "s"} \u2014 see Settings \u2192 The Torus`);
       }
       this.torusTrace("plugin:install", `done copied=${result.copied.length} conflicts=${result.conflicted.length}`);
     } catch (e2) {
@@ -192436,8 +194360,8 @@ ${titled}
   runQmdDay2ModalIfNeeded() {
     if (!this.prereqStatus.qmd) return;
     const torusDir = this.absPath(this.settings.torusRoot);
-    const markerPath = (0, import_path5.join)(torusDir, ".twin", ".qmd-day2-shown");
-    if ((0, import_fs7.existsSync)(markerPath)) return;
+    const markerPath = (0, import_path6.join)(torusDir, ".twin", ".qmd-day2-shown");
+    if ((0, import_fs9.existsSync)(markerPath)) return;
     this.torusTrace("plugin:qmd-day2", "qmd detected for first time \u2014 opening Modal");
     new QmdDay2Modal(
       this.app,
@@ -192445,7 +194369,7 @@ ${titled}
       // user doesn't wait for the next 30-min qmd-update tick.
       () => {
         try {
-          (0, import_fs7.writeFileSync)(markerPath, JSON.stringify({
+          (0, import_fs9.writeFileSync)(markerPath, JSON.stringify({
             shown: (/* @__PURE__ */ new Date()).toISOString(),
             choice: "add"
           }));
@@ -192454,7 +194378,7 @@ ${titled}
         this.settings.enableSemanticSearch = true;
         saveSettings(this).catch(() => {
         });
-        new import_obsidian29.Notice("Adding qmd semantic search \u2014 first embed in progress.");
+        new import_obsidian30.Notice("Adding qmd semantic search \u2014 first embed in progress.");
         this.torusQmdUpdate().catch((e2) => console.error("[Torus qmd-day2 add]", e2));
       },
       // Not now: write marker (so we don't ask again), set semantic OFF so
@@ -192462,7 +194386,7 @@ ${titled}
       // User can flip the toggle in Settings → The Torus → Search to enable.
       () => {
         try {
-          (0, import_fs7.writeFileSync)(markerPath, JSON.stringify({
+          (0, import_fs9.writeFileSync)(markerPath, JSON.stringify({
             shown: (/* @__PURE__ */ new Date()).toISOString(),
             choice: "not_now"
           }));
@@ -192471,7 +194395,7 @@ ${titled}
         this.settings.enableSemanticSearch = false;
         saveSettings(this).catch(() => {
         });
-        new import_obsidian29.Notice("Skipping semantic search. Re-enable in Settings \u2192 The Torus \u2192 Search.");
+        new import_obsidian30.Notice("Skipping semantic search. Re-enable in Settings \u2192 The Torus \u2192 Search.");
       }
     ).open();
   }
@@ -192546,7 +194470,7 @@ ${titled}
     ];
     for (const d of stdDirs) {
       try {
-        (0, import_fs7.mkdirSync)((0, import_path5.join)(torusDir, d), { recursive: true });
+        (0, import_fs9.mkdirSync)((0, import_path6.join)(torusDir, d), { recursive: true });
       } catch {
       }
     }
@@ -192561,7 +194485,7 @@ ${titled}
    *  disk roundtrip, no subprocess. */
   deployVaultAssetsInline(opts) {
     const torusDir = this.absPath(this.settings.torusRoot);
-    const conflictReport = (0, import_path5.join)(torusDir, ".twin", "install-conflicts.md");
+    const conflictReport = (0, import_path6.join)(torusDir, ".twin", "install-conflicts.md");
     if (opts.applyResolutions) {
       return this.applyDeployResolutions(conflictReport, torusDir);
     }
@@ -192577,14 +194501,14 @@ ${titled}
     const SEED_EXACT = /* @__PURE__ */ new Set(["torus-manifest.md"]);
     const isSeedFile = (rel) => SEED_EXACT.has(rel) || SEED_PATTERNS.some((p3) => rel.startsWith(p3));
     for (const [rel, content] of Object.entries(BUNDLED_TWIN_ASSETS)) {
-      const dst = (0, import_path5.join)(torusDir, rel);
-      if (!(0, import_fs7.existsSync)(dst)) {
+      const dst = (0, import_path6.join)(torusDir, rel);
+      if (!(0, import_fs9.existsSync)(dst)) {
         if (!opts.dryRun) {
-          (0, import_fs7.mkdirSync)((0, import_path5.dirname)(dst), { recursive: true });
-          (0, import_fs7.writeFileSync)(dst, content);
+          (0, import_fs9.mkdirSync)((0, import_path6.dirname)(dst), { recursive: true });
+          (0, import_fs9.writeFileSync)(dst, content);
           if (rel.endsWith(".sh")) {
             try {
-              (0, import_fs7.chmodSync)(dst, 493);
+              (0, import_fs9.chmodSync)(dst, 493);
             } catch {
             }
           }
@@ -192602,7 +194526,7 @@ ${titled}
       }
       let dstContent = "";
       try {
-        dstContent = (0, import_fs7.readFileSync)(dst, "utf-8");
+        dstContent = (0, import_fs9.readFileSync)(dst, "utf-8");
       } catch {
         result.skipped.push(rel);
         continue;
@@ -192612,7 +194536,7 @@ ${titled}
         continue;
       }
       if (matchesForce(rel)) {
-        if (!opts.dryRun) (0, import_fs7.writeFileSync)(dst, content);
+        if (!opts.dryRun) (0, import_fs9.writeFileSync)(dst, content);
         result.forced.push(rel);
       } else {
         result.conflicted.push(rel);
@@ -192621,9 +194545,9 @@ ${titled}
     if (!opts.dryRun) {
       if (result.conflicted.length > 0) {
         this.writeConflictReport(conflictReport, result.conflicted);
-      } else if ((0, import_fs7.existsSync)(conflictReport)) {
+      } else if ((0, import_fs9.existsSync)(conflictReport)) {
         try {
-          (0, import_fs7.unlinkSync)(conflictReport);
+          (0, import_fs9.unlinkSync)(conflictReport);
         } catch {
         }
       }
@@ -192656,8 +194580,8 @@ ${titled}
       ""
     ];
     try {
-      (0, import_fs7.mkdirSync)((0, import_path5.dirname)(reportPath), { recursive: true });
-      (0, import_fs7.writeFileSync)(reportPath, lines.join("\n"));
+      (0, import_fs9.mkdirSync)((0, import_path6.dirname)(reportPath), { recursive: true });
+      (0, import_fs9.writeFileSync)(reportPath, lines.join("\n"));
     } catch (e2) {
       this.torusTrace("plugin:install", `writeConflictReport failed: ${e2.message}`);
     }
@@ -192675,8 +194599,8 @@ ${titled}
       kept: [],
       unparsed: []
     };
-    if (!(0, import_fs7.existsSync)(reportPath)) return out;
-    const text = (0, import_fs7.readFileSync)(reportPath, "utf-8");
+    if (!(0, import_fs9.existsSync)(reportPath)) return out;
+    const text = (0, import_fs9.readFileSync)(reportPath, "utf-8");
     let inFiles = false;
     for (const line of text.split("\n")) {
       const trimmed = line.trim();
@@ -192699,13 +194623,13 @@ ${titled}
           out.unparsed.push(`${rel}: source missing in bundle`);
           continue;
         }
-        const dst = (0, import_path5.join)(torusDir, rel);
+        const dst = (0, import_path6.join)(torusDir, rel);
         try {
-          (0, import_fs7.mkdirSync)((0, import_path5.dirname)(dst), { recursive: true });
-          (0, import_fs7.writeFileSync)(dst, content);
+          (0, import_fs9.mkdirSync)((0, import_path6.dirname)(dst), { recursive: true });
+          (0, import_fs9.writeFileSync)(dst, content);
           if (rel.endsWith(".sh")) {
             try {
-              (0, import_fs7.chmodSync)(dst, 493);
+              (0, import_fs9.chmodSync)(dst, 493);
             } catch {
             }
           }
@@ -192719,7 +194643,7 @@ ${titled}
     }
     if (out.unparsed.length === 0 && out.replaced.length + out.kept.length > 0) {
       try {
-        (0, import_fs7.unlinkSync)(reportPath);
+        (0, import_fs9.unlinkSync)(reportPath);
       } catch {
       }
     }
@@ -192730,10 +194654,10 @@ ${titled}
    *  conflicts land in $torusRoot/.twin/install-conflicts.md for resolution. */
   async installVaultAssets() {
     const torusDir = this.absPath(this.settings.torusRoot);
-    const markerPath = (0, import_path5.join)(torusDir, ".twin", ".installed");
-    if ((0, import_fs7.existsSync)(markerPath)) {
+    const markerPath = (0, import_path6.join)(torusDir, ".twin", ".installed");
+    if ((0, import_fs9.existsSync)(markerPath)) {
       try {
-        (0, import_fs7.unlinkSync)(markerPath);
+        (0, import_fs9.unlinkSync)(markerPath);
       } catch {
       }
     }
@@ -192751,7 +194675,7 @@ ${titled}
   }
   /** Path to the install-conflicts report (may not exist). */
   conflictsReportPath() {
-    return (0, import_path5.join)(this.absPath(this.settings.torusRoot), ".twin", "install-conflicts.md");
+    return (0, import_path6.join)(this.absPath(this.settings.torusRoot), ".twin", "install-conflicts.md");
   }
   /** Write the two CC hook wrapper scripts to `$torusRoot/.claude/`. These
    *  are tiny shell scripts that bridge CC hooks to plugin methods via
@@ -192762,10 +194686,10 @@ ${titled}
    *  plugin upgrades its hook signature. */
   writeClaudeHookWrappers() {
     const torusDir = this.absPath(this.settings.torusRoot);
-    const claudeDir = (0, import_path5.join)(torusDir, ".claude");
-    const orientPath = (0, import_path5.join)(claudeDir, "torus-orient.sh");
-    const timePath = (0, import_path5.join)(claudeDir, "torus-time.sh");
-    const postCompactPath = (0, import_path5.join)(claudeDir, "torus-post-compact.sh");
+    const claudeDir = (0, import_path6.join)(torusDir, ".claude");
+    const orientPath = (0, import_path6.join)(claudeDir, "torus-orient.sh");
+    const timePath = (0, import_path6.join)(claudeDir, "torus-time.sh");
+    const postCompactPath = (0, import_path6.join)(claudeDir, "torus-post-compact.sh");
     const orientWrapper = `#!/bin/bash
 # Ensure the obsidian-cli binary is reachable (CC hooks run with a minimal PATH).
 export PATH="/Applications/Obsidian.app/Contents/MacOS:$PATH"
@@ -192835,13 +194759,13 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
 ' "$MANIFEST" "$TORUS_ROOT/.twin/tmp"
 `;
     try {
-      (0, import_fs7.mkdirSync)(claudeDir, { recursive: true });
-      (0, import_fs7.writeFileSync)(orientPath, orientWrapper);
-      (0, import_fs7.writeFileSync)(timePath, timeWrapper);
-      (0, import_fs7.writeFileSync)(postCompactPath, postCompactWrapper);
-      (0, import_fs7.chmodSync)(orientPath, 493);
-      (0, import_fs7.chmodSync)(timePath, 493);
-      (0, import_fs7.chmodSync)(postCompactPath, 493);
+      (0, import_fs9.mkdirSync)(claudeDir, { recursive: true });
+      (0, import_fs9.writeFileSync)(orientPath, orientWrapper);
+      (0, import_fs9.writeFileSync)(timePath, timeWrapper);
+      (0, import_fs9.writeFileSync)(postCompactPath, postCompactWrapper);
+      (0, import_fs9.chmodSync)(orientPath, 493);
+      (0, import_fs9.chmodSync)(timePath, 493);
+      (0, import_fs9.chmodSync)(postCompactPath, 493);
     } catch (e2) {
       this.torusTrace("plugin:writeHookWrappers", `failed: ${e2.message}`);
     }
@@ -192851,18 +194775,28 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
    *  .mjs scripts under `<plugin-dir>/scripts/` and rewrites them. Otherwise
    *  preserves user-edited config (don't clobber custom hook setups). */
   writeClaudeHooks(torusDir) {
-    const claudeDir = (0, import_path5.join)(torusDir, ".claude");
-    const settingsPath = (0, import_path5.join)(claudeDir, "settings.local.json");
-    const orientPath = (0, import_path5.join)(claudeDir, "torus-orient.sh");
-    const timePath = (0, import_path5.join)(claudeDir, "torus-time.sh");
-    const postCompactPath = (0, import_path5.join)(claudeDir, "torus-post-compact.sh");
+    const claudeDir = (0, import_path6.join)(torusDir, ".claude");
+    const settingsPath = (0, import_path6.join)(claudeDir, "settings.local.json");
+    const orientPath = (0, import_path6.join)(claudeDir, "torus-orient.sh");
+    const timePath = (0, import_path6.join)(claudeDir, "torus-time.sh");
+    const postCompactPath = (0, import_path6.join)(claudeDir, "torus-post-compact.sh");
+    const STARTER_ALLOW = [
+      "Bash(obsidian eval *)",
+      // every plugin method call
+      `Write(${torusDir}/.twin/tmp/**)`,
+      // enrich JSON, orient manifest, splice temp files
+      `Read(${torusDir}/.twin/**)`,
+      // orient packet, transcripts, activity log
+      `Read(${torusDir}/.claude/skills/**)`
+      // skill files
+    ];
     let cfg = { hooks: {} };
     let writeReason = "";
-    if (!(0, import_fs7.existsSync)(settingsPath)) {
+    if (!(0, import_fs9.existsSync)(settingsPath)) {
       writeReason = "fresh install";
     } else {
       try {
-        cfg = JSON.parse((0, import_fs7.readFileSync)(settingsPath, "utf-8"));
+        cfg = JSON.parse((0, import_fs9.readFileSync)(settingsPath, "utf-8"));
         const collect = (h2) => h2?.hooks?.[0]?.command || "";
         const cmds = [
           collect(cfg.hooks?.SessionStart?.[0]),
@@ -192892,8 +194826,11 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
     if (!cfg.hooks.SessionStart) cfg.hooks.SessionStart = [{ matcher: "", hooks: [{ type: "command", command: shQuote(orientPath) }] }];
     if (!cfg.hooks.UserPromptSubmit) cfg.hooks.UserPromptSubmit = [{ matcher: "", hooks: [{ type: "command", command: shQuote(timePath) }] }];
     if (!cfg.hooks.PostCompact) cfg.hooks.PostCompact = [{ matcher: "", hooks: [{ type: "command", command: shQuote(postCompactPath) }] }];
-    (0, import_fs7.mkdirSync)(claudeDir, { recursive: true });
-    (0, import_fs7.writeFileSync)(settingsPath, JSON.stringify(cfg, null, 2));
+    if (!cfg.permissions) {
+      cfg.permissions = { allow: STARTER_ALLOW };
+    }
+    (0, import_fs9.mkdirSync)(claudeDir, { recursive: true });
+    (0, import_fs9.writeFileSync)(settingsPath, JSON.stringify(cfg, null, 2));
     this.torusTrace("plugin:install", `wrote ${settingsPath} (${writeReason})`);
   }
   /** Absolute path to the persisted bundled-search index. */
@@ -193107,7 +195044,7 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
     } else {
       collections = ["-c", qmdCollection(collection)];
     }
-    (0, import_fs7.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
+    (0, import_fs9.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
     this.torusTrace(`plugin:torusSearch`, `DISPATCH ${mode}/qmd ${Math.round(performance.now() - t02)}ms query="${query2}"`);
     const qmdCmd = mode === "lex" ? "search" : mode === "vec" ? "vsearch" : "query";
     const timeout = mode === "hybrid" ? 3e4 : 8e3;
@@ -193115,8 +195052,8 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
     this.resolveQmdBin().then((launcher) => {
       if (!launcher) {
         const result = JSON.stringify({ status: "error", error: "qmd_not_found: Smart Search bundle not installed. Open Settings \u2192 The Torus \u2192 Setup status \u2192 click Install on the Smart Search row (needs internet for the ~60 MB download)." });
-        (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-        (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+        (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+        (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
         return;
       }
       (0, import_child_process6.execFile)(launcher.cmd, [...launcher.preArgs, qmdCmd, query2, ...collections, "-n", qmdLimit, "--json"], { timeout }, (err, stdout) => {
@@ -193133,8 +195070,8 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
           }
         }
         this.torusTrace(`plugin:torusSearch`, `COMPLETE ${Math.round(performance.now() - t02)}ms query="${query2}"`);
-        (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-        (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+        (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+        (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
       });
     });
     return JSON.stringify({ status: "pending", resultFile });
@@ -193152,9 +195089,9 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
     const t02 = performance.now();
     const TORUS_ROOT = this.absPath(this.settings.torusRoot);
     const TORUS_VAULT = this.app.vault.adapter.basePath;
-    const CLAUDE_DIR = (0, import_path5.join)((0, import_os2.homedir)(), ".claude", "projects");
-    const ZERO_DIR = (0, import_path5.join)(TORUS_ROOT, ".twin", "context", "session-transcripts");
-    const DEBUG_DIR = (0, import_path5.join)(TORUS_ROOT, ".twin", "debug-sessions");
+    const CLAUDE_DIR = (0, import_path6.join)((0, import_os2.homedir)(), ".claude", "projects");
+    const ZERO_DIR = (0, import_path6.join)(TORUS_ROOT, ".twin", "context", "session-transcripts");
+    const DEBUG_DIR = (0, import_path6.join)(TORUS_ROOT, ".twin", "debug-sessions");
     const DEBUG_RETENTION_MS = 48 * 60 * 60 * 1e3;
     const PREFIXES = [TORUS_ROOT, TORUS_VAULT].filter(Boolean);
     const isTorusProject = (p3) => PREFIXES.some((pf) => p3 === pf || p3.startsWith(pf + "/"));
@@ -193172,7 +195109,7 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
     };
     const classify = (jsonlPath) => {
       try {
-        const raw = (0, import_fs7.readFileSync)(jsonlPath, "utf-8");
+        const raw = (0, import_fs9.readFileSync)(jsonlPath, "utf-8");
         for (const line of raw.split("\n")) {
           if (!line.trim()) continue;
           let obj;
@@ -193192,16 +195129,16 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
       return { category: "debug", cwd: "" };
     };
     const bySession = /* @__PURE__ */ new Map();
-    if ((0, import_fs7.existsSync)(CLAUDE_DIR)) {
-      for (const project of (0, import_fs7.readdirSync)(CLAUDE_DIR)) {
+    if ((0, import_fs9.existsSync)(CLAUDE_DIR)) {
+      for (const project of (0, import_fs9.readdirSync)(CLAUDE_DIR)) {
         if (!isTorusProjectDir(project)) continue;
-        const projectDir = (0, import_path5.join)(CLAUDE_DIR, project);
+        const projectDir = (0, import_path6.join)(CLAUDE_DIR, project);
         try {
-          for (const file of (0, import_fs7.readdirSync)(projectDir)) {
+          for (const file of (0, import_fs9.readdirSync)(projectDir)) {
             if (!file.endsWith(".jsonl")) continue;
-            const sessionId = (0, import_path5.basename)(file, ".jsonl");
-            const filePath = (0, import_path5.join)(projectDir, file);
-            const size = (0, import_fs7.statSync)(filePath).size;
+            const sessionId = (0, import_path6.basename)(file, ".jsonl");
+            const filePath = (0, import_path6.join)(projectDir, file);
+            const size = (0, import_fs9.statSync)(filePath).size;
             const existing = bySession.get(sessionId);
             if (!existing || size > existing.size) {
               bySession.set(sessionId, { path: filePath, project: "", sessionId, size });
@@ -193211,32 +195148,32 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
         }
       }
     }
-    (0, import_fs7.mkdirSync)(ZERO_DIR, { recursive: true });
-    (0, import_fs7.mkdirSync)(DEBUG_DIR, { recursive: true });
+    (0, import_fs9.mkdirSync)(ZERO_DIR, { recursive: true });
+    (0, import_fs9.mkdirSync)(DEBUG_DIR, { recursive: true });
     let exportedZero = 0, exportedDebug = 0, skippedZero = 0, skippedDebug = 0, trivial = 0;
     for (const sf of Array.from(bySession.values())) {
       const { category, cwd } = classify(sf.path);
       sf.project = cwd;
       const outDir = category === "zero" ? ZERO_DIR : DEBUG_DIR;
       const otherDir = category === "zero" ? DEBUG_DIR : ZERO_DIR;
-      const outPath = (0, import_path5.join)(outDir, `${sf.sessionId}.md`);
-      const stalePath = (0, import_path5.join)(otherDir, `${sf.sessionId}.md`);
-      if ((0, import_fs7.existsSync)(stalePath)) {
+      const outPath = (0, import_path6.join)(outDir, `${sf.sessionId}.md`);
+      const stalePath = (0, import_path6.join)(otherDir, `${sf.sessionId}.md`);
+      if ((0, import_fs9.existsSync)(stalePath)) {
         try {
-          (0, import_fs7.unlinkSync)(stalePath);
+          (0, import_fs9.unlinkSync)(stalePath);
         } catch {
         }
       }
-      if ((0, import_fs7.existsSync)(outPath)) {
-        const srcMtime = (0, import_fs7.statSync)(sf.path).mtimeMs;
-        const outMtime = (0, import_fs7.statSync)(outPath).mtimeMs;
+      if ((0, import_fs9.existsSync)(outPath)) {
+        const srcMtime = (0, import_fs9.statSync)(sf.path).mtimeMs;
+        const outMtime = (0, import_fs9.statSync)(outPath).mtimeMs;
         if (srcMtime <= outMtime) {
           if (category === "zero") skippedZero++;
           else skippedDebug++;
           continue;
         }
       }
-      const raw = (0, import_fs7.readFileSync)(sf.path, "utf-8");
+      const raw = (0, import_fs9.readFileSync)(sf.path, "utf-8");
       const lines = raw.split("\n").filter(Boolean);
       let firstTimestamp = null;
       const messages = [];
@@ -193274,9 +195211,9 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
         conversation.push("");
       }
       if (messageCount < 2) {
-        if ((0, import_fs7.existsSync)(outPath)) {
+        if ((0, import_fs9.existsSync)(outPath)) {
           try {
-            (0, import_fs7.unlinkSync)(outPath);
+            (0, import_fs9.unlinkSync)(outPath);
           } catch {
           }
         }
@@ -193324,19 +195261,19 @@ messages: ${messageCount}
 
 ${conversation.join("\n")}
 `;
-      (0, import_fs7.writeFileSync)(outPath, md);
+      (0, import_fs9.writeFileSync)(outPath, md);
       if (category === "zero") exportedZero++;
       else exportedDebug++;
     }
     let pruned = 0;
-    if ((0, import_fs7.existsSync)(DEBUG_DIR)) {
+    if ((0, import_fs9.existsSync)(DEBUG_DIR)) {
       const cutoff = Date.now() - DEBUG_RETENTION_MS;
-      for (const name of (0, import_fs7.readdirSync)(DEBUG_DIR)) {
+      for (const name of (0, import_fs9.readdirSync)(DEBUG_DIR)) {
         if (!name.endsWith(".md")) continue;
-        const full = (0, import_path5.join)(DEBUG_DIR, name);
+        const full = (0, import_path6.join)(DEBUG_DIR, name);
         try {
-          if ((0, import_fs7.statSync)(full).mtimeMs < cutoff) {
-            (0, import_fs7.unlinkSync)(full);
+          if ((0, import_fs9.statSync)(full).mtimeMs < cutoff) {
+            (0, import_fs9.unlinkSync)(full);
             pruned++;
           }
         } catch {
@@ -193358,17 +195295,17 @@ ${conversation.join("\n")}
   async torusSessionDigest() {
     const t02 = performance.now();
     const TORUS_ROOT = this.absPath(this.settings.torusRoot);
-    const SESSIONS_DIR = (0, import_path5.join)(TORUS_ROOT, ".twin", "context", "session-transcripts");
-    const DIGESTS_DIR = (0, import_path5.join)(TORUS_ROOT, ".twin", "context", "session-digests");
+    const SESSIONS_DIR = (0, import_path6.join)(TORUS_ROOT, ".twin", "context", "session-transcripts");
+    const DIGESTS_DIR = (0, import_path6.join)(TORUS_ROOT, ".twin", "context", "session-digests");
     const claudeBin = await resolveBin("claude", () => {
     });
     if (!claudeBin) {
       throw new Error("claude not found on PATH \u2014 required for session-digest");
     }
-    if (!(0, import_fs7.existsSync)(SESSIONS_DIR)) {
+    if (!(0, import_fs9.existsSync)(SESSIONS_DIR)) {
       return JSON.stringify({ status: "ok", ms: 0, digested: 0, skipped: 0, pruned: 0, note: "no_sessions_dir" });
     }
-    (0, import_fs7.mkdirSync)(DIGESTS_DIR, { recursive: true });
+    (0, import_fs9.mkdirSync)(DIGESTS_DIR, { recursive: true });
     const DIGEST_PROMPT = `You are writing a terse INDEX entry for a past conversation between James and Zero (his AI twin).
 
 Future-Zero will read this when scanning older sessions that aged out of raw-loading. He has full transcripts available via qmd search when he wants texture. The index answers three questions: what was this about, what got mentioned, is anything unresolved.
@@ -193405,15 +195342,15 @@ Writing notes:
 - Be specific. "AI discussion" is worthless. "Debate over whether agent harnesses are separable from models, skeptical of the three-layer framing" is useful.
 - Never fill a section with filler. An empty section means omit the heading.
 - Never exceed ~400 words total. If you're heading past that, you're probably writing editorial commentary \u2014 that's not this job.`;
-    const sessionFiles = (0, import_fs7.readdirSync)(SESSIONS_DIR).filter((f) => f.endsWith(".md")).map((f) => (0, import_path5.join)(SESSIONS_DIR, f));
-    const validIds = new Set(sessionFiles.map((p3) => (0, import_path5.basename)(p3, ".md")));
+    const sessionFiles = (0, import_fs9.readdirSync)(SESSIONS_DIR).filter((f) => f.endsWith(".md")).map((f) => (0, import_path6.join)(SESSIONS_DIR, f));
+    const validIds = new Set(sessionFiles.map((p3) => (0, import_path6.basename)(p3, ".md")));
     let pruned = 0;
-    for (const name of (0, import_fs7.readdirSync)(DIGESTS_DIR)) {
+    for (const name of (0, import_fs9.readdirSync)(DIGESTS_DIR)) {
       if (!name.endsWith(".md")) continue;
-      const sessionId = (0, import_path5.basename)(name, ".md");
+      const sessionId = (0, import_path6.basename)(name, ".md");
       if (!validIds.has(sessionId)) {
         try {
-          (0, import_fs7.unlinkSync)((0, import_path5.join)(DIGESTS_DIR, name));
+          (0, import_fs9.unlinkSync)((0, import_path6.join)(DIGESTS_DIR, name));
           pruned++;
         } catch {
         }
@@ -193422,11 +195359,11 @@ Writing notes:
     const toDigest = [];
     let skipped = 0;
     for (const sp of sessionFiles) {
-      const sessionId = (0, import_path5.basename)(sp, ".md");
-      const digestPath = (0, import_path5.join)(DIGESTS_DIR, `${sessionId}.md`);
-      if ((0, import_fs7.existsSync)(digestPath)) {
-        const srcMtime = (0, import_fs7.statSync)(sp).mtimeMs;
-        const outMtime = (0, import_fs7.statSync)(digestPath).mtimeMs;
+      const sessionId = (0, import_path6.basename)(sp, ".md");
+      const digestPath = (0, import_path6.join)(DIGESTS_DIR, `${sessionId}.md`);
+      if ((0, import_fs9.existsSync)(digestPath)) {
+        const srcMtime = (0, import_fs9.statSync)(sp).mtimeMs;
+        const outMtime = (0, import_fs9.statSync)(digestPath).mtimeMs;
         if (srcMtime <= outMtime) {
           skipped++;
           continue;
@@ -193450,8 +195387,8 @@ Writing notes:
   }
   /** Helper for torusSessionDigest: digest one session via `claude -p`. */
   async digestOneSession(sessionPath, digestsDir, claudeBin, prompt) {
-    const sessionId = (0, import_path5.basename)(sessionPath, ".md");
-    const content = (0, import_fs7.readFileSync)(sessionPath, "utf-8");
+    const sessionId = (0, import_path6.basename)(sessionPath, ".md");
+    const content = (0, import_fs9.readFileSync)(sessionPath, "utf-8");
     const dateMatch = content.match(/^date:\s*(.+)$/m);
     const date = dateMatch ? dateMatch[1].trim() : "unknown";
     const startedMatch = content.match(/^started:\s*(.+)$/m);
@@ -193461,8 +195398,8 @@ Writing notes:
     const messageMatch = content.match(/^messages:\s*(\d+)$/m);
     const messageCount = messageMatch ? parseInt(messageMatch[1]) : 0;
     const transcript = content.length > 25e3 ? content.slice(0, 25e3) + "\n\n[... transcript truncated for digestion ...]" : content;
-    const tmpInput = (0, import_path5.join)((0, import_os2.tmpdir)(), `digest-input-${sessionId}.txt`);
-    (0, import_fs7.writeFileSync)(tmpInput, `${prompt}
+    const tmpInput = (0, import_path6.join)((0, import_os2.tmpdir)(), `digest-input-${sessionId}.txt`);
+    (0, import_fs9.writeFileSync)(tmpInput, `${prompt}
 
 ---
 
@@ -193480,13 +195417,13 @@ ${transcript}`);
       });
     } catch {
       try {
-        (0, import_fs7.unlinkSync)(tmpInput);
+        (0, import_fs9.unlinkSync)(tmpInput);
       } catch {
       }
       return null;
     }
     try {
-      (0, import_fs7.unlinkSync)(tmpInput);
+      (0, import_fs9.unlinkSync)(tmpInput);
     } catch {
     }
     if (!digestBody || digestBody.length < 50) return null;
@@ -193510,7 +195447,7 @@ digested: ${digestedLocal}
 
 ${cleanBody}
 `;
-    (0, import_fs7.writeFileSync)((0, import_path5.join)(digestsDir, `${sessionId}.md`), digest);
+    (0, import_fs9.writeFileSync)((0, import_path6.join)(digestsDir, `${sessionId}.md`), digest);
     return { sessionId };
   }
   /** Run `qmd update` followed by `qmd embed` so both lex (BM25) and vec (vector)
@@ -193568,7 +195505,7 @@ ${cleanBody}
     const reqId = Date.now() + "-" + Math.random().toString(36).slice(2, 6);
     const resultFile = `${this.settings.torusRoot}/.twin/tmp/async-${reqId}.json`;
     const resultPath = this.absPath(resultFile);
-    (0, import_fs7.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
+    (0, import_fs9.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
     this.torusTrace(`plugin:torusWebFetch`, `DISPATCH url=${url.slice(0, 80)}`);
     const doFetch = async () => {
       let result;
@@ -193585,8 +195522,8 @@ ${cleanBody}
         result = JSON.stringify({ status: "error", error: e2 instanceof Error ? e2.message : String(e2) });
       }
       this.torusTrace(`plugin:torusWebFetch`, `COMPLETE ${Math.round(performance.now() - t02)}ms url=${url.slice(0, 80)}`);
-      (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-      (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+      (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+      (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
     };
     doFetch();
     return JSON.stringify({ status: "pending", resultFile });
@@ -193600,7 +195537,7 @@ ${cleanBody}
     const cacheId = `fetch-${reqId}`;
     const resultFile = `${this.settings.torusRoot}/.twin/tmp/async-${reqId}.json`;
     const resultPath = this.absPath(resultFile);
-    (0, import_fs7.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
+    (0, import_fs9.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
     this.torusTrace(`plugin:torusFetchAndCache`, `DISPATCH url=${url.slice(0, 80)}`);
     const doFetch = async () => {
       let result;
@@ -193608,14 +195545,14 @@ ${cleanBody}
         const r2 = await fetchFullUrl(url, this.settings.twitterBearerToken);
         if (!r2) {
           result = JSON.stringify({ status: "error", error: "fetch_failed", url });
-          (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-          (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+          (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+          (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
           return;
         }
         const titleMatch = r2.content.match(/^# (.+)$/m);
         const title = titleMatch ? titleMatch[1] : "";
         const cachePath = this.absPath(`${this.settings.torusRoot}/.twin/tmp/${cacheId}.json`);
-        (0, import_fs7.writeFileSync)(cachePath, JSON.stringify({ url, title, content: r2.content, source: r2.source }), "utf-8");
+        (0, import_fs9.writeFileSync)(cachePath, JSON.stringify({ url, title, content: r2.content, source: r2.source }), "utf-8");
         this.torusLog("web_fetch", JSON.stringify({ url, source: r2.source, chars: r2.content.length }));
         this.torusTrace(`plugin:torusFetchAndCache`, `COMPLETE ${Math.round(performance.now() - t02)}ms source=${r2.source} chars=${r2.content.length}`);
         result = JSON.stringify({ status: "ok", cacheId, url, title, source: r2.source, chars: r2.content.length });
@@ -193623,8 +195560,8 @@ ${cleanBody}
         console.error("[torusFetchAndCache] error:", e2);
         result = JSON.stringify({ status: "error", error: e2 instanceof Error ? e2.message : String(e2) });
       }
-      (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-      (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+      (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+      (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
     };
     doFetch();
     return JSON.stringify({ status: "pending", resultFile });
@@ -193635,8 +195572,8 @@ ${cleanBody}
   torusCacheRead(cacheId) {
     try {
       const cachePath = this.absPath(`${this.settings.torusRoot}/.twin/tmp/${cacheId}.json`);
-      if (!(0, import_fs7.existsSync)(cachePath)) return JSON.stringify({ status: "error", error: `Cache not found: ${cacheId}` });
-      const data = JSON.parse((0, import_fs7.readFileSync)(cachePath, "utf-8"));
+      if (!(0, import_fs9.existsSync)(cachePath)) return JSON.stringify({ status: "error", error: `Cache not found: ${cacheId}` });
+      const data = JSON.parse((0, import_fs9.readFileSync)(cachePath, "utf-8"));
       const textPath = this.absPath(`${this.settings.torusRoot}/.twin/tmp/${cacheId}.txt`);
       const header = [
         data.title ? `Title: ${data.title}` : "",
@@ -193649,14 +195586,14 @@ ${cleanBody}
       if (!content.includes("\n") || content.split("\n").some((l2) => l2.length > 2e3)) {
         content = content.replace(/([.!?])\s+/g, "$1\n");
       }
-      (0, import_fs7.writeFileSync)(textPath, header + content, "utf-8");
+      (0, import_fs9.writeFileSync)(textPath, header + content, "utf-8");
       try {
-        (0, import_fs7.unlinkSync)(cachePath);
+        (0, import_fs9.unlinkSync)(cachePath);
       } catch {
       }
       setTimeout(() => {
         try {
-          (0, import_fs7.unlinkSync)(textPath);
+          (0, import_fs9.unlinkSync)(textPath);
         } catch {
         }
       }, 5 * 60 * 1e3);
@@ -193674,7 +195611,7 @@ ${cleanBody}
     const cacheId = `fetch-${reqId}`;
     const resultFile = `${this.settings.torusRoot}/.twin/tmp/async-${reqId}.json`;
     const resultPath = this.absPath(resultFile);
-    (0, import_fs7.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
+    (0, import_fs9.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
     this.torusTrace(`plugin:torusFetchToFile`, `DISPATCH url=${url.slice(0, 80)}`);
     const doFetch = async () => {
       let result;
@@ -193682,8 +195619,8 @@ ${cleanBody}
         const r2 = await fetchFullUrl(url, this.settings.twitterBearerToken);
         if (!r2) {
           result = JSON.stringify({ status: "error", error: "fetch_failed", url });
-          (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-          (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+          (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+          (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
           return;
         }
         const titleMatch = r2.content.match(/^# (.+)$/m);
@@ -193700,10 +195637,10 @@ ${cleanBody}
         if (!content.includes("\n") || content.split("\n").some((l2) => l2.length > 2e3)) {
           content = content.replace(/([.!?])\s+/g, "$1\n");
         }
-        (0, import_fs7.writeFileSync)(textPath, header + content, "utf-8");
+        (0, import_fs9.writeFileSync)(textPath, header + content, "utf-8");
         setTimeout(() => {
           try {
-            (0, import_fs7.unlinkSync)(textPath);
+            (0, import_fs9.unlinkSync)(textPath);
           } catch {
           }
         }, 5 * 60 * 1e3);
@@ -193714,8 +195651,8 @@ ${cleanBody}
         console.error("[torusFetchToFile] error:", e2);
         result = JSON.stringify({ status: "error", error: e2 instanceof Error ? e2.message : String(e2) });
       }
-      (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-      (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+      (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+      (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
     };
     doFetch();
     return JSON.stringify({ status: "pending", resultFile });
@@ -193747,17 +195684,17 @@ ${cleanBody}
     }
     const inputDir = this.settings.inputDir;
     const inputAbs = this.absPath(inputDir);
-    if (!(0, import_fs7.existsSync)(inputAbs)) (0, import_fs7.mkdirSync)(inputAbs, { recursive: true });
+    if (!(0, import_fs9.existsSync)(inputAbs)) (0, import_fs9.mkdirSync)(inputAbs, { recursive: true });
     const cutoffMs = Date.now() - 24 * 60 * 60 * 1e3;
     const prefix = `compute-flag-${payload.indicator}-`;
     try {
-      const entries = (0, import_fs7.readdirSync)(inputAbs);
+      const entries = (0, import_fs9.readdirSync)(inputAbs);
       for (const name of entries) {
         if (!name.startsWith(prefix) || !name.endsWith(".md")) continue;
         const abs2 = `${inputAbs}/${name}`;
-        const stat = (0, import_fs7.statSync)(abs2);
+        const stat = (0, import_fs9.statSync)(abs2);
         if (stat.mtimeMs < cutoffMs) continue;
-        const body = (0, import_fs7.readFileSync)(abs2, "utf-8");
+        const body = (0, import_fs9.readFileSync)(abs2, "utf-8");
         const ruleMatch = body.match(/^\*\*Rule\*\*:\s*(.+)$/m);
         if (ruleMatch && ruleMatch[1].trim() === payload.rule.trim()) {
           return JSON.stringify({ ok: true, skipped: "duplicate", path: `${inputDir}/${name}` });
@@ -193794,8 +195731,8 @@ ${cleanBody}
       ""
     );
     const content = lines.join("\n");
-    (0, import_fs7.writeFileSync)(abs + ".tmp", content, "utf-8");
-    (0, import_fs7.renameSync)(abs + ".tmp", abs);
+    (0, import_fs9.writeFileSync)(abs + ".tmp", content, "utf-8");
+    (0, import_fs9.renameSync)(abs + ".tmp", abs);
     this.torusLog("compute_flag", JSON.stringify({
       indicator: payload.indicator,
       rule: payload.rule,
@@ -193813,7 +195750,7 @@ ${cleanBody}
     const pending = this.app.vault.getMarkdownFiles().filter((f) => f.path.startsWith(inputDir + "/") && !f.path.includes("/hide/"));
     const notes = [];
     for (const f of pending) {
-      const content = (0, import_fs7.readFileSync)(this.absPath(f.path), "utf-8");
+      const content = (0, import_fs9.readFileSync)(this.absPath(f.path), "utf-8");
       const statusMatch = content.match(/^torus_status:\s*(.+)$/m);
       const status = statusMatch ? statusMatch[1].trim() : "pending";
       if (status !== "pending" && content.startsWith("---")) continue;
@@ -193850,17 +195787,17 @@ ${cleanBody}
     const resultPath = this.absPath(resultFile);
     const resolved = this.resolveVaultPath(notePath);
     if (resolved.error) {
-      (0, import_fs7.writeFileSync)(resultPath, JSON.stringify(resolved.error), "utf-8");
+      (0, import_fs9.writeFileSync)(resultPath, JSON.stringify(resolved.error), "utf-8");
       return JSON.stringify({ status: "pending", resultFile });
     }
     const absNotePath = resolved.absPath;
     const vaultRelativeNotePath = this.resolvePath(notePath);
-    (0, import_fs7.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
+    (0, import_fs9.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
     this.torusTrace(`plugin:torusEnrichScanNote`, `DISPATCH path=${vaultRelativeNotePath}`);
     const doWork = async () => {
       let result;
       try {
-        const content = (0, import_fs7.readFileSync)(absNotePath, "utf-8");
+        const content = (0, import_fs9.readFileSync)(absNotePath, "utf-8");
         let fetchedContent = "";
         let fetchSources = [];
         let fetchPublishedAts = [];
@@ -193883,21 +195820,21 @@ ${cleanBody}
         const manifestPath2 = this.settings.manifest;
         let manifest2 = "";
         const manifestFile = this.app.vault.getAbstractFileByPath(manifestPath2);
-        if (manifestFile instanceof import_obsidian29.TFile) {
-          const raw = (0, import_fs7.readFileSync)(this.absPath(manifestPath2), "utf-8");
+        if (manifestFile instanceof import_obsidian30.TFile) {
+          const raw = (0, import_fs9.readFileSync)(this.absPath(manifestPath2), "utf-8");
           manifest2 = raw.split("\n").filter((l2) => /^#{1,2} /.test(l2) || l2.trim() === "").join("\n");
         }
         const cacheData = { notePath: vaultRelativeNotePath, content, fetchedContent, fetchSources, fetchPublishedAts };
         const cachePath = this.absPath(`${this.settings.torusRoot}/.twin/tmp/${cacheId}.json`);
-        (0, import_fs7.writeFileSync)(cachePath, JSON.stringify(cacheData), "utf-8");
+        (0, import_fs9.writeFileSync)(cachePath, JSON.stringify(cacheData), "utf-8");
         this.torusTrace(`plugin:torusEnrichScanNote`, `COMPLETE ${Math.round(performance.now() - t02)}ms path=${vaultRelativeNotePath} cacheId=${cacheId}`);
         result = JSON.stringify({ status: "ok", cacheId, path: vaultRelativeNotePath, content, fetchedContent, fetchSources, manifest: manifest2 });
       } catch (e2) {
         console.error("[torusEnrichScanNote] error:", e2);
         result = JSON.stringify({ status: "error", error: e2 instanceof Error ? e2.message : String(e2) });
       }
-      (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-      (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+      (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+      (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
     };
     doWork();
     return JSON.stringify({ status: "pending", resultFile });
@@ -193956,21 +195893,21 @@ ${fetchedContent}
       }
       const fullContent = fm + "\n" + body;
       const origFile = this.app.vault.getAbstractFileByPath(originalPath);
-      const origBasename = origFile instanceof import_obsidian29.TFile ? origFile.name : originalPath.split("/").pop() || "note.md";
+      const origBasename = origFile instanceof import_obsidian30.TFile ? origFile.name : originalPath.split("/").pop() || "note.md";
       const dateMatch = origBasename.match(/^(\d{4}-\d{2}-\d{2})/);
       const datePrefix = dateMatch ? dateMatch[1] : now3.slice(0, 10);
       const slugTitle = title.replace(/[/\\:*?"<>|]/g, "").slice(0, 80).trimEnd();
       let destPath = `${sourcesDir}/${datePrefix} ${slugTitle}.md`;
       const absDestDir = this.absPath(sourcesDir);
-      if (!(0, import_fs7.existsSync)(absDestDir)) (0, import_fs7.mkdirSync)(absDestDir, { recursive: true });
-      if ((0, import_fs7.existsSync)(this.absPath(destPath))) {
+      if (!(0, import_fs9.existsSync)(absDestDir)) (0, import_fs9.mkdirSync)(absDestDir, { recursive: true });
+      if ((0, import_fs9.existsSync)(this.absPath(destPath))) {
         let n = 2;
-        while ((0, import_fs7.existsSync)(this.absPath(`${sourcesDir}/${datePrefix} ${slugTitle}-${n}.md`))) n++;
+        while ((0, import_fs9.existsSync)(this.absPath(`${sourcesDir}/${datePrefix} ${slugTitle}-${n}.md`))) n++;
         destPath = `${sourcesDir}/${datePrefix} ${slugTitle}-${n}.md`;
       }
-      (0, import_fs7.writeFileSync)(this.absPath(destPath), fullContent, "utf-8");
+      (0, import_fs9.writeFileSync)(this.absPath(destPath), fullContent, "utf-8");
       try {
-        (0, import_fs7.unlinkSync)(this.absPath(originalPath));
+        (0, import_fs9.unlinkSync)(this.absPath(originalPath));
       } catch {
       }
       this.torusLog("enrich", JSON.stringify({ note: title, room, shelf }), "pipeline");
@@ -193989,12 +195926,12 @@ ${fetchedContent}
   torusEnrichWriteMeta(cacheId, metaFilePath) {
     try {
       const cachePath = this.absPath(`${this.settings.torusRoot}/.twin/tmp/${cacheId}.json`);
-      if (!(0, import_fs7.existsSync)(cachePath)) return JSON.stringify({ status: "error", error: `Cache not found: ${cacheId}` });
+      if (!(0, import_fs9.existsSync)(cachePath)) return JSON.stringify({ status: "error", error: `Cache not found: ${cacheId}` });
       const resolved = this.resolveVaultPath(metaFilePath);
       if (resolved.error) return JSON.stringify(resolved.error);
       const absMetaPath = resolved.absPath;
-      if (!(0, import_fs7.existsSync)(absMetaPath)) return JSON.stringify({ status: "error", error: `Meta file not found: ${metaFilePath}` });
-      const meta = JSON.parse((0, import_fs7.readFileSync)(absMetaPath, "utf-8"));
+      if (!(0, import_fs9.existsSync)(absMetaPath)) return JSON.stringify({ status: "error", error: `Meta file not found: ${metaFilePath}` });
+      const meta = JSON.parse((0, import_fs9.readFileSync)(absMetaPath, "utf-8"));
       const required = ["title", "summary", "proposed_room", "proposed_shelf", "proposed_confidence", "proposed_reason"];
       const missing = required.filter((f) => !meta[f]);
       if (missing.length > 0) {
@@ -194006,8 +195943,8 @@ ${fetchedContent}
         return JSON.stringify({ status: "error", error: `proposed_room "${proposedRoom}" is a wing name. Wings are UX metadata, not rooms. Pick an existing room (H1) from the manifest, e.g. "Neuroscience", "Investing".` });
       }
       const manifestPath2 = this.absPath(`${this.settings.torusRoot}/torus-manifest.md`);
-      if ((0, import_fs7.existsSync)(manifestPath2)) {
-        const manifestText = (0, import_fs7.readFileSync)(manifestPath2, "utf-8");
+      if ((0, import_fs9.existsSync)(manifestPath2)) {
+        const manifestText = (0, import_fs9.readFileSync)(manifestPath2, "utf-8");
         const validRooms = /* @__PURE__ */ new Set();
         for (const line of manifestText.split("\n")) {
           if (line.startsWith("# ") && !line.startsWith("## ")) {
@@ -194018,11 +195955,11 @@ ${fetchedContent}
           return JSON.stringify({ status: "error", error: `proposed_room "${proposedRoom}" is not an existing room (H1) in the manifest. Valid rooms: ${[...validRooms].join(", ")}.` });
         }
       }
-      const cached = JSON.parse((0, import_fs7.readFileSync)(cachePath, "utf-8"));
+      const cached = JSON.parse((0, import_fs9.readFileSync)(cachePath, "utf-8"));
       cached.meta = meta;
-      (0, import_fs7.writeFileSync)(cachePath, JSON.stringify(cached), "utf-8");
+      (0, import_fs9.writeFileSync)(cachePath, JSON.stringify(cached), "utf-8");
       try {
-        (0, import_fs7.unlinkSync)(absMetaPath);
+        (0, import_fs9.unlinkSync)(absMetaPath);
       } catch {
       }
       return JSON.stringify({ status: "ok" });
@@ -194037,8 +195974,8 @@ ${fetchedContent}
     const t02 = performance.now();
     try {
       const cachePath = this.absPath(`${this.settings.torusRoot}/.twin/tmp/${cacheId}.json`);
-      if (!(0, import_fs7.existsSync)(cachePath)) return JSON.stringify({ status: "error", error: `Cache not found: ${cacheId}` });
-      const cached = JSON.parse((0, import_fs7.readFileSync)(cachePath, "utf-8"));
+      if (!(0, import_fs9.existsSync)(cachePath)) return JSON.stringify({ status: "error", error: `Cache not found: ${cacheId}` });
+      const cached = JSON.parse((0, import_fs9.readFileSync)(cachePath, "utf-8"));
       const { notePath, content, fetchedContent, fetchSources } = cached;
       if (!notePath) return JSON.stringify({ status: "error", error: `Cache missing notePath: ${cacheId}` });
       if (!title && cached.meta) {
@@ -194082,7 +196019,7 @@ ${fetchedContent}
         publishedDate
       );
       try {
-        (0, import_fs7.unlinkSync)(cachePath);
+        (0, import_fs9.unlinkSync)(cachePath);
       } catch {
       }
       this.torusTrace(`plugin:torusEnrichCommit`, `${Math.round(performance.now() - t02)}ms cacheId=${cacheId}`);
@@ -194157,12 +196094,12 @@ ${fetchedContent}
       return JSON.stringify({ ok: false, error: "taskrunner_not_initialized" });
     }
     const folder = this.app.vault.getAbstractFileByPath(this.settings.ideasDir);
-    if (!(folder instanceof import_obsidian29.TFolder)) {
+    if (!(folder instanceof import_obsidian30.TFolder)) {
       return JSON.stringify({ ok: false, error: "ideas_dir_not_found", ideasDir: this.settings.ideasDir });
     }
     const ideaFiles = [];
     for (const child of folder.children) {
-      if (child instanceof import_obsidian29.TFile && child.extension === "md") ideaFiles.push(child);
+      if (child instanceof import_obsidian30.TFile && child.extension === "md") ideaFiles.push(child);
     }
     const stale = await scanStaleSummaries(this.app, ideaFiles);
     const max = this.settings.staleSummaryMaxPerCycle ?? 5;
@@ -194192,7 +196129,7 @@ ${fetchedContent}
   async torusRepointLink(hostPath, oldText, newTarget) {
     const t02 = performance.now();
     const tfile = this.app.vault.getAbstractFileByPath(hostPath);
-    if (!(tfile instanceof import_obsidian29.TFile)) {
+    if (!(tfile instanceof import_obsidian30.TFile)) {
       return JSON.stringify({ status: "error", error: `not_found: ${hostPath}` });
     }
     if (!oldText || !newTarget) {
@@ -194237,7 +196174,7 @@ ${fetchedContent}
   async torusReplaceSummary(path2, summary) {
     const t02 = performance.now();
     const tfile = this.app.vault.getAbstractFileByPath(path2);
-    if (!(tfile instanceof import_obsidian29.TFile)) {
+    if (!(tfile instanceof import_obsidian30.TFile)) {
       return JSON.stringify({ status: "error", error: `not_found: ${path2}` });
     }
     const trimmed = summary.trim().replace(/^["']|["']$/g, "");
@@ -194266,8 +196203,8 @@ ${fetchedContent}
     const ideas = files.filter((f) => f.path.startsWith(this.settings.ideasDir + "/")).length;
     let rooms = 0, shelves = 0;
     const manifestFile = this.app.vault.getAbstractFileByPath(this.settings.manifest);
-    if (manifestFile instanceof import_obsidian29.TFile) {
-      const raw = (0, import_fs7.readFileSync)(this.absPath(this.settings.manifest), "utf-8");
+    if (manifestFile instanceof import_obsidian30.TFile) {
+      const raw = (0, import_fs9.readFileSync)(this.absPath(this.settings.manifest), "utf-8");
       rooms = (raw.match(/^# /gm) || []).length;
       shelves = (raw.match(/^## /gm) || []).length;
     }
@@ -194299,11 +196236,11 @@ ${fetchedContent}
       const resolved = this.resolveVaultPath(tmpPath);
       if (resolved.error) return JSON.stringify(resolved.error);
       const absTmp = resolved.absPath;
-      if (!(0, import_fs7.existsSync)(absTmp)) return JSON.stringify({ status: "error", error: `Tmp file not found: ${tmpPath}` });
-      const content = (0, import_fs7.readFileSync)(absTmp, "utf-8");
+      if (!(0, import_fs9.existsSync)(absTmp)) return JSON.stringify({ status: "error", error: `Tmp file not found: ${tmpPath}` });
+      const content = (0, import_fs9.readFileSync)(absTmp, "utf-8");
       const result = this.torusWrite(destPath, content, mode);
       try {
-        (0, import_fs7.unlinkSync)(absTmp);
+        (0, import_fs9.unlinkSync)(absTmp);
       } catch {
       }
       return result;
@@ -194323,8 +196260,8 @@ ${fetchedContent}
     const rooms = [];
     let totalShelves = 0;
     const manifestFile = this.app.vault.getAbstractFileByPath(this.settings.manifest);
-    if (manifestFile instanceof import_obsidian29.TFile) {
-      const raw = (0, import_fs7.readFileSync)(this.absPath(this.settings.manifest), "utf-8");
+    if (manifestFile instanceof import_obsidian30.TFile) {
+      const raw = (0, import_fs9.readFileSync)(this.absPath(this.settings.manifest), "utf-8");
       let currentRoom = null;
       for (const line of raw.split("\n")) {
         if (line.startsWith("# ")) {
@@ -194343,8 +196280,8 @@ ${fetchedContent}
     const recentApprovals = [];
     const recentRejections = [];
     const enrichedNotes = [];
-    if ((0, import_fs7.existsSync)(logPath)) {
-      const entries = (0, import_fs7.readFileSync)(logPath, "utf-8").split("\n").filter((l2) => l2.trim()).map((l2) => {
+    if ((0, import_fs9.existsSync)(logPath)) {
+      const entries = (0, import_fs9.readFileSync)(logPath, "utf-8").split("\n").filter((l2) => l2.trim()).map((l2) => {
         try {
           return JSON.parse(l2);
         } catch {
@@ -194367,8 +196304,8 @@ ${fetchedContent}
       }
     }
     const crsScores = [];
-    if ((0, import_fs7.existsSync)(logPath)) {
-      const allEntries = (0, import_fs7.readFileSync)(logPath, "utf-8").split("\n").filter((l2) => l2.trim()).map((l2) => {
+    if ((0, import_fs9.existsSync)(logPath)) {
+      const allEntries = (0, import_fs9.readFileSync)(logPath, "utf-8").split("\n").filter((l2) => l2.trim()).map((l2) => {
         try {
           return JSON.parse(l2);
         } catch {
@@ -194391,7 +196328,7 @@ ${fetchedContent}
       let summary = "";
       if (sourceFile) {
         try {
-          const content = (0, import_fs7.readFileSync)(this.absPath(sourceFile.path), "utf-8");
+          const content = (0, import_fs9.readFileSync)(this.absPath(sourceFile.path), "utf-8");
           const sumMatch = content.match(/>\s*\[!auto-summary\][^\n]*\n>\s*(.+)/);
           if (sumMatch) summary = sumMatch[1].trim();
         } catch {
@@ -194400,8 +196337,8 @@ ${fetchedContent}
       enrichedWithSummaries.push({ note: en.note, room: en.room, shelf: en.shelf, summary });
     }
     const roomNoteCounts = [];
-    if (manifestFile instanceof import_obsidian29.TFile) {
-      const raw = (0, import_fs7.readFileSync)(this.absPath(this.settings.manifest), "utf-8");
+    if (manifestFile instanceof import_obsidian30.TFile) {
+      const raw = (0, import_fs9.readFileSync)(this.absPath(this.settings.manifest), "utf-8");
       let currentRoomName = "";
       let count5 = 0;
       for (const line of raw.split("\n")) {
@@ -194419,7 +196356,7 @@ ${fetchedContent}
     const hotIdeas = [];
     for (const idea of ideaFiles.sort((a2, b2) => b2.stat.mtime - a2.stat.mtime).slice(0, 30)) {
       try {
-        const content = (0, import_fs7.readFileSync)(this.absPath(idea.path), "utf-8");
+        const content = (0, import_fs9.readFileSync)(this.absPath(idea.path), "utf-8");
         const scMatch = content.match(/torus_refs:\s*(\d+)/);
         const sc = scMatch ? parseInt(scMatch[1]) : 0;
         const titleMatch = content.match(/^# (.+)/m);
@@ -194451,8 +196388,8 @@ ${fetchedContent}
     let methodologyPatterns = `[Not yet distilled \u2014 run /torus-context-update to generate]`;
     let userProfile = `[Not yet distilled \u2014 run /torus-context-update to generate]`;
     const reportPath = this.contextPath("context-report.md");
-    if ((0, import_fs7.existsSync)(reportPath)) {
-      const existing = (0, import_fs7.readFileSync)(reportPath, "utf-8");
+    if ((0, import_fs9.existsSync)(reportPath)) {
+      const existing = (0, import_fs9.readFileSync)(reportPath, "utf-8");
       const methMatch = existing.match(/## Methodology Patterns\n([\s\S]*?)(?=\n## |$)/);
       if (methMatch && !methMatch[1].includes("[LLM-distilled") && !methMatch[1].includes("[Not yet distilled")) {
         methodologyPatterns = methMatch[1].trim();
@@ -194499,7 +196436,7 @@ ${fetchedContent}
       `## User Profile`,
       userProfile
     ].filter((line) => line !== void 0).join("\n");
-    (0, import_fs7.writeFileSync)(reportPath, report, "utf-8");
+    (0, import_fs9.writeFileSync)(reportPath, report, "utf-8");
     this.torusLog("context_update", JSON.stringify({ sources, ideas, rooms: rooms.length, shelves: totalShelves }), "pipeline");
     this.torusTrace("plugin:torusContextReport", `sources=${sources} ideas=${ideas} rooms=${rooms.length} shelves=${totalShelves}`);
     return JSON.stringify({ status: "ok", sources, ideas, rooms: rooms.length, shelves: totalShelves });
@@ -194510,16 +196447,16 @@ ${fetchedContent}
    *  Sync. */
   torusCCSessions(query2) {
     const sessionsDir = this.contextPath("session-transcripts");
-    if (!(0, import_fs7.existsSync)(sessionsDir)) return JSON.stringify([]);
+    if (!(0, import_fs9.existsSync)(sessionsDir)) return JSON.stringify([]);
     const searching = query2 && query2.trim().length > 0;
     const q = searching ? query2.toLowerCase() : "";
     const limit = searching ? 50 : 20;
     const digestsDir = this.contextPath("session-digests");
     const digestData = {};
-    if ((0, import_fs7.existsSync)(digestsDir)) {
-      for (const df of (0, import_fs7.readdirSync)(digestsDir).filter((f) => f.endsWith(".md"))) {
+    if ((0, import_fs9.existsSync)(digestsDir)) {
+      for (const df of (0, import_fs9.readdirSync)(digestsDir).filter((f) => f.endsWith(".md"))) {
         try {
-          const raw = (0, import_fs7.readFileSync)((0, import_path5.join)(digestsDir, df), "utf-8");
+          const raw = (0, import_fs9.readFileSync)((0, import_path6.join)(digestsDir, df), "utf-8");
           const titleMatch = raw.match(/^title:\s*(.+)$/m);
           const topicsMatch = raw.match(/## Topics\n([\s\S]*?)(?=\n## |$)/);
           digestData[df.replace(/\.md$/, "")] = {
@@ -194530,13 +196467,13 @@ ${fetchedContent}
         }
       }
     }
-    const projectsDir = (0, import_path5.join)((0, import_os2.homedir)(), ".claude", "projects");
+    const projectsDir = (0, import_path6.join)((0, import_os2.homedir)(), ".claude", "projects");
     const resumableIds = /* @__PURE__ */ new Set();
-    if ((0, import_fs7.existsSync)(projectsDir)) {
-      for (const proj of (0, import_fs7.readdirSync)(projectsDir)) {
-        const projDir = (0, import_path5.join)(projectsDir, proj);
+    if ((0, import_fs9.existsSync)(projectsDir)) {
+      for (const proj of (0, import_fs9.readdirSync)(projectsDir)) {
+        const projDir = (0, import_path6.join)(projectsDir, proj);
         try {
-          for (const f of (0, import_fs7.readdirSync)(projDir)) {
+          for (const f of (0, import_fs9.readdirSync)(projDir)) {
             if (f.endsWith(".jsonl")) resumableIds.add(f.replace(/\.jsonl$/, ""));
           }
         } catch {
@@ -194544,13 +196481,13 @@ ${fetchedContent}
       }
     }
     const sessions = [];
-    const files = (0, import_fs7.readdirSync)(sessionsDir).filter((f) => f.endsWith(".md")).map((f) => {
-      const p3 = (0, import_path5.join)(sessionsDir, f);
+    const files = (0, import_fs9.readdirSync)(sessionsDir).filter((f) => f.endsWith(".md")).map((f) => {
+      const p3 = (0, import_path6.join)(sessionsDir, f);
       const fd = require("fs").openSync(p3, "r");
       const buf = Buffer.alloc(500);
       const bytesRead = require("fs").readSync(fd, buf, 0, 500, 0);
       require("fs").closeSync(fd);
-      return { name: f, header: buf.toString("utf-8", 0, bytesRead), mtime: (0, import_fs7.statSync)(p3).mtimeMs };
+      return { name: f, header: buf.toString("utf-8", 0, bytesRead), mtime: (0, import_fs9.statSync)(p3).mtimeMs };
     }).sort((a2, b2) => b2.mtime - a2.mtime);
     const torusAbs = this.absPath(this.settings.torusRoot);
     const vaultAbs = this.app.vault.adapter.basePath;
@@ -194624,12 +196561,12 @@ ${fetchedContent}
     }
     const limit = typeof opts.limit === "number" && opts.limit > 0 ? opts.limit : 0;
     const dir = this.contextPath("session-transcripts");
-    if (!(0, import_fs7.existsSync)(dir)) return JSON.stringify({ status: "not_found", detail: "transcripts_dir_missing" });
-    const files = (0, import_fs7.readdirSync)(dir).filter((f) => f.endsWith(".md"));
+    if (!(0, import_fs9.existsSync)(dir)) return JSON.stringify({ status: "not_found", detail: "transcripts_dir_missing" });
+    const files = (0, import_fs9.readdirSync)(dir).filter((f) => f.endsWith(".md"));
     const q = query2.trim();
     let matchedFile = null;
     if (q === "latest" || q === "current") {
-      const ranked = files.map((f) => ({ f, mtime: (0, import_fs7.statSync)((0, import_path5.join)(dir, f)).mtimeMs })).sort((a2, b2) => b2.mtime - a2.mtime);
+      const ranked = files.map((f) => ({ f, mtime: (0, import_fs9.statSync)((0, import_path6.join)(dir, f)).mtimeMs })).sort((a2, b2) => b2.mtime - a2.mtime);
       if (ranked.length > 0) matchedFile = ranked[0].f;
     } else {
       const stem = q.endsWith(".md") ? q.slice(0, -3) : q;
@@ -194644,8 +196581,8 @@ ${fetchedContent}
       }
     }
     if (!matchedFile) return JSON.stringify({ status: "not_found", query: q });
-    const path2 = (0, import_path5.join)(dir, matchedFile);
-    const raw = (0, import_fs7.readFileSync)(path2, "utf-8");
+    const path2 = (0, import_path6.join)(dir, matchedFile);
+    const raw = (0, import_fs9.readFileSync)(path2, "utf-8");
     const fm = {};
     let body = raw;
     if (raw.startsWith("---\n")) {
@@ -194695,12 +196632,12 @@ ${fetchedContent}
   /** List all torus skills with their first meaningful line. Sync. */
   torusSkillList() {
     const skillsDir = this.absPath(`${this.settings.torusRoot}/.claude/skills`);
-    if (!(0, import_fs7.existsSync)(skillsDir)) return JSON.stringify([]);
+    if (!(0, import_fs9.existsSync)(skillsDir)) return JSON.stringify([]);
     const skills = [];
-    for (const dir of (0, import_fs7.readdirSync)(skillsDir).sort()) {
-      const skillPath = (0, import_path5.join)(skillsDir, dir, "SKILL.md");
-      if (!(0, import_fs7.existsSync)(skillPath)) continue;
-      const content = (0, import_fs7.readFileSync)(skillPath, "utf-8");
+    for (const dir of (0, import_fs9.readdirSync)(skillsDir).sort()) {
+      const skillPath = (0, import_path6.join)(skillsDir, dir, "SKILL.md");
+      if (!(0, import_fs9.existsSync)(skillPath)) continue;
+      const content = (0, import_fs9.readFileSync)(skillPath, "utf-8");
       let inFrontmatter = false;
       let desc = "";
       for (const line of content.split("\n")) {
@@ -194745,14 +196682,14 @@ ${fetchedContent}
     if (parsed.error || parsed.status === "ambiguous") return resolved;
     const filePath = parsed.path;
     const absFile = this.absPath(filePath);
-    const content = (0, import_fs7.readFileSync)(absFile, "utf-8");
+    const content = (0, import_fs9.readFileSync)(absFile, "utf-8");
     const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
     const fm = fmMatch?.[1] || "";
     const statusMatch = fm.match(/^torus_status:\s*(.+)$/m);
     const status = statusMatch?.[1].trim();
     const basename2 = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
     const manifestPath2 = this.absPath(`${this.settings.torusRoot}/torus-manifest.md`);
-    let manifest2 = (0, import_fs7.readFileSync)(manifestPath2, "utf-8");
+    let manifest2 = (0, import_fs9.readFileSync)(manifestPath2, "utf-8");
     const linkRe = new RegExp(`\\[\\[${basename2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\|[^\\]]*)?\\]\\]`);
     const inManifest = linkRe.test(manifest2);
     if (status === "shelved" && inManifest) {
@@ -194775,7 +196712,7 @@ ${fetchedContent}
         return JSON.stringify({ error: "no_classification", message: `"${basename2}" is not in manifest and has no torus_proposed_location. Pass room and shelf arguments.`, path: filePath });
       }
       manifest2 = insertIntoTorus(manifest2, targetRoom, targetShelf, basename2);
-      (0, import_fs7.writeFileSync)(manifestPath2, manifest2, "utf-8");
+      (0, import_fs9.writeFileSync)(manifestPath2, manifest2, "utf-8");
     }
     const location = this.findInManifest(manifest2, basename2);
     const fmChanges = {
@@ -194786,7 +196723,7 @@ ${fetchedContent}
     };
     if (location) fmChanges.torus_location = `${location.room}::${location.shelf}`;
     const updated = editFrontmatter(content, fmChanges);
-    (0, import_fs7.writeFileSync)(absFile, updated, "utf-8");
+    (0, import_fs9.writeFileSync)(absFile, updated, "utf-8");
     const now3 = localIso();
     this.torusTrace(`plugin:torusShelve`, `${Math.round(performance.now() - t02)}ms path=${filePath}`);
     return JSON.stringify({ status: "ok", path: filePath, shelved: now3, ...location || {} });
@@ -194802,15 +196739,15 @@ ${fetchedContent}
     const absFile = this.absPath(filePath);
     const basename2 = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
     const manifestPath2 = this.absPath(`${this.settings.torusRoot}/torus-manifest.md`);
-    const manifest2 = (0, import_fs7.readFileSync)(manifestPath2, "utf-8");
+    const manifest2 = (0, import_fs9.readFileSync)(manifestPath2, "utf-8");
     const removed = removeFromTorus(manifest2, basename2);
     const updated = insertIntoTorus(removed, room, shelf, basename2);
-    (0, import_fs7.writeFileSync)(manifestPath2, updated, "utf-8");
-    const noteContent = (0, import_fs7.readFileSync)(absFile, "utf-8");
+    (0, import_fs9.writeFileSync)(manifestPath2, updated, "utf-8");
+    const noteContent = (0, import_fs9.readFileSync)(absFile, "utf-8");
     const updatedNote = editFrontmatter(noteContent, {
       torus_location: `${room}::${shelf}`
     });
-    (0, import_fs7.writeFileSync)(absFile, updatedNote, "utf-8");
+    (0, import_fs9.writeFileSync)(absFile, updatedNote, "utf-8");
     this.torusTrace(`plugin:torusMove`, `${Math.round(performance.now() - t02)}ms path=${filePath} \u2192 ${room}/${shelf}`);
     return JSON.stringify({ status: "ok", path: filePath, room, shelf });
   }
@@ -194840,7 +196777,7 @@ ${fetchedContent}
         ok: true,
         running: false,
         disabled: true,
-        selfHandle: this.settings.imessageSelfHandle || null,
+        selfHandles: parseHandles(this.settings.imessageSelfHandles),
         startedAt: null,
         uptime_ms: 0,
         lastPollAt: null,
@@ -194851,6 +196788,51 @@ ${fetchedContent}
       });
     }
     return JSON.stringify({ ok: true, ...this.imessageRunner.getStatus() });
+  }
+  /** Hot-reconfigure the iMessage runner from current settings — stop the
+   *  running poller and start a fresh one with the latest handle list, or stop
+   *  it if the bridge was disabled / has no handles. Called from Settings on
+   *  toggle, Detect-confirm, and handle-field blur so a config change takes
+   *  effect immediately instead of holding stale in-memory config until a full
+   *  plugin reload (the 2026-06-26 stale-config bug). */
+  async torusImessageReconfigure() {
+    const handles = parseHandles(this.settings.imessageSelfHandles);
+    if (this.imessageRunner) await this.imessageRunner.stop();
+    if (this.settings.enablePluginImessage && handles.length > 0) {
+      const vaultPath = this.app.vault.adapter.basePath;
+      if (!this.imessageRunner) this.imessageRunner = new ImessageRunner((m2) => this.torusTrace("capture:imessage", m2));
+      await this.imessageRunner.start({ vaultPath, torusRoot: this.settings.torusRoot, selfHandles: handles });
+    }
+    return this.torusImessageStatus();
+  }
+  /** Parse the comma-separated telegramAuthorizedUserIds setting into a clean
+   *  array of numeric-ID strings (trimmed, blanks dropped). */
+  parseTelegramUserIds() {
+    return (this.settings.telegramAuthorizedUserIds || "").split(",").map((s) => s.trim()).filter(Boolean);
+  }
+  /** Structured snapshot of the in-plugin Telegram runner — parity with
+   *  torusImessageStatus for Bridges-tab rendering. Returns
+   *  {ok:true, running:false, disabled:true} when no runner is instantiated
+   *  (disabled in settings or no token) so callers get a clean shape. */
+  torusTelegramStatus() {
+    if (!this.telegramRunner) {
+      return JSON.stringify({
+        ok: true,
+        running: false,
+        disabled: true,
+        state: "idle",
+        botUsername: null,
+        authorizedUserCount: this.parseTelegramUserIds().length,
+        startedAt: null,
+        uptime_ms: 0,
+        lastPollAt: null,
+        lastInboundAt: null,
+        offset: 0,
+        messagesCapturedSession: 0,
+        lastError: null
+      });
+    }
+    return JSON.stringify({ ok: true, ...this.telegramRunner.getStatus() });
   }
   /** List candidate self-chats from chat.db so the user can identify their own
    *  iMessage handle. Returns recent 1:1 chats with handle, chat_id, and last
@@ -194879,11 +196861,11 @@ ${fetchedContent}
     const resolved = this.resolveVaultPath(notePath);
     if (resolved.error) return JSON.stringify(resolved.error);
     const absPath = resolved.absPath;
-    if (!(0, import_fs7.existsSync)(absPath)) return JSON.stringify({ error: "not_found", path: notePath });
+    if (!(0, import_fs9.existsSync)(absPath)) return JSON.stringify({ error: "not_found", path: notePath });
     if (!absPath.endsWith(".md")) return JSON.stringify({ error: "not_markdown", path: notePath });
     let content;
     try {
-      content = (0, import_fs7.readFileSync)(absPath, "utf-8");
+      content = (0, import_fs9.readFileSync)(absPath, "utf-8");
     } catch (e2) {
       return JSON.stringify({ error: "read_failed", path: notePath, detail: String(e2) });
     }
@@ -194908,8 +196890,8 @@ ${fetchedContent}
       const [r2, s] = target.split("::").map((p3) => p3.trim());
       if (!r2 || !s) return JSON.stringify({ error: "invalid_target", target, hint: 'expected "inbox" or "<Room>::<Shelf>"' });
       const manifestPath2 = this.absPath(`${this.settings.torusRoot}/torus-manifest.md`);
-      if (!(0, import_fs7.existsSync)(manifestPath2)) return JSON.stringify({ error: "manifest_not_found" });
-      const manifest2 = (0, import_fs7.readFileSync)(manifestPath2, "utf-8");
+      if (!(0, import_fs9.existsSync)(manifestPath2)) return JSON.stringify({ error: "manifest_not_found" });
+      const manifest2 = (0, import_fs9.readFileSync)(manifestPath2, "utf-8");
       const lines = manifest2.split("\n");
       let roomFound = false, shelfFound = false, currentRoom = "";
       for (const line of lines) {
@@ -194935,7 +196917,7 @@ ${fetchedContent}
     }
     let torus_created;
     try {
-      torus_created = torusFormatLocal((0, import_fs7.statSync)(absPath).ctime, "datetime-sec");
+      torus_created = torusFormatLocal((0, import_fs9.statSync)(absPath).ctime, "datetime-sec");
     } catch {
       torus_created = torusFormatLocal(/* @__PURE__ */ new Date(), "datetime-sec");
     }
@@ -194952,16 +196934,16 @@ ${fetchedContent}
       const fmLines = ["---", ...Object.entries(fmFields).map(([k2, v3]) => `${k2}: ${v3}`), "---"];
       updated = fmLines.join("\n") + "\n" + content;
     }
-    (0, import_fs7.writeFileSync)(absPath, updated, "utf-8");
+    (0, import_fs9.writeFileSync)(absPath, updated, "utf-8");
     let manifestEntryAdded = false;
     if (torus_status === "shelved" && targetRoom && targetShelf) {
       const manifestPath2 = this.absPath(`${this.settings.torusRoot}/torus-manifest.md`);
       const basename2 = absPath.split("/").pop()?.replace(/\.md$/, "") || "";
-      let manifest2 = (0, import_fs7.readFileSync)(manifestPath2, "utf-8");
+      let manifest2 = (0, import_fs9.readFileSync)(manifestPath2, "utf-8");
       const linkRe = new RegExp(`\\[\\[${basename2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\|[^\\]]*)?\\]\\]`);
       if (!linkRe.test(manifest2)) {
         manifest2 = insertIntoTorus(manifest2, targetRoom, targetShelf, basename2);
-        (0, import_fs7.writeFileSync)(manifestPath2, manifest2, "utf-8");
+        (0, import_fs9.writeFileSync)(manifestPath2, manifest2, "utf-8");
         manifestEntryAdded = true;
       }
     }
@@ -194985,27 +196967,27 @@ ${fetchedContent}
     const resolved = this.resolveVaultPath(folderPath);
     if (resolved.error) return JSON.stringify(resolved.error);
     const absDir = resolved.absPath;
-    if (!(0, import_fs7.existsSync)(absDir)) return JSON.stringify({ error: "not_found", path: folderPath });
+    if (!(0, import_fs9.existsSync)(absDir)) return JSON.stringify({ error: "not_found", path: folderPath });
     let st;
     try {
-      st = (0, import_fs7.statSync)(absDir);
+      st = (0, import_fs9.statSync)(absDir);
     } catch {
       return JSON.stringify({ error: "stat_failed", path: folderPath });
     }
     if (!st.isDirectory()) return JSON.stringify({ error: "not_a_directory", path: folderPath });
     let entries;
     try {
-      entries = (0, import_fs7.readdirSync)(absDir);
+      entries = (0, import_fs9.readdirSync)(absDir);
     } catch (e2) {
       return JSON.stringify({ error: "readdir_failed", detail: String(e2) });
     }
     const mdFiles = [];
     for (const name of entries) {
       if (!name.endsWith(".md")) continue;
-      const full = (0, import_path5.join)(absDir, name);
+      const full = (0, import_path6.join)(absDir, name);
       let s;
       try {
-        s = (0, import_fs7.statSync)(full);
+        s = (0, import_fs9.statSync)(full);
       } catch {
         continue;
       }
@@ -195055,11 +197037,11 @@ ${fetchedContent}
     const resolved = this.resolveVaultPath(notePath);
     if (resolved.error) return JSON.stringify(resolved.error);
     const absPath = resolved.absPath;
-    if (!(0, import_fs7.existsSync)(absPath)) return JSON.stringify({ error: "not_found", path: notePath });
+    if (!(0, import_fs9.existsSync)(absPath)) return JSON.stringify({ error: "not_found", path: notePath });
     if (!absPath.endsWith(".md")) return JSON.stringify({ error: "not_markdown", path: notePath });
     let content;
     try {
-      content = (0, import_fs7.readFileSync)(absPath, "utf-8");
+      content = (0, import_fs9.readFileSync)(absPath, "utf-8");
     } catch (e2) {
       return JSON.stringify({ error: "read_failed", path: notePath, detail: String(e2) });
     }
@@ -195090,16 +197072,16 @@ ${remainingLines.join("\n")}
     } else {
       updated = body.startsWith("\n") ? body.slice(1) : body;
     }
-    (0, import_fs7.writeFileSync)(absPath, updated, "utf-8");
+    (0, import_fs9.writeFileSync)(absPath, updated, "utf-8");
     let manifestEntryRemoved = false;
     const basename2 = absPath.split("/").pop()?.replace(/\.md$/, "") || "";
     const manifestPath2 = this.absPath(`${this.settings.torusRoot}/torus-manifest.md`);
-    if ((0, import_fs7.existsSync)(manifestPath2)) {
-      const manifest2 = (0, import_fs7.readFileSync)(manifestPath2, "utf-8");
+    if ((0, import_fs9.existsSync)(manifestPath2)) {
+      const manifest2 = (0, import_fs9.readFileSync)(manifestPath2, "utf-8");
       const linkRe = new RegExp(`\\[\\[${basename2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\|[^\\]]*)?\\]\\]`);
       if (linkRe.test(manifest2)) {
         const stripped = removeFromTorus(manifest2, basename2);
-        (0, import_fs7.writeFileSync)(manifestPath2, stripped, "utf-8");
+        (0, import_fs9.writeFileSync)(manifestPath2, stripped, "utf-8");
         manifestEntryRemoved = true;
       }
     }
@@ -195128,12 +197110,12 @@ ${remainingLines.join("\n")}
     const resolved = this.resolveVaultPath(notePath);
     if (resolved.error) return JSON.stringify(resolved.error);
     const absPath = resolved.absPath;
-    if (!(0, import_fs7.existsSync)(absPath)) return JSON.stringify({ error: "not_found", path: notePath });
+    if (!(0, import_fs9.existsSync)(absPath)) return JSON.stringify({ error: "not_found", path: notePath });
     const vaultBase = this.app.vault.adapter.basePath;
     const vaultRel = absPath.startsWith(vaultBase + "/") ? absPath.slice(vaultBase.length + 1) : absPath;
     let content;
     try {
-      content = (0, import_fs7.readFileSync)(absPath, "utf-8");
+      content = (0, import_fs9.readFileSync)(absPath, "utf-8");
     } catch (e2) {
       return JSON.stringify({ error: "read_failed", detail: String(e2) });
     }
@@ -195144,7 +197126,7 @@ ${remainingLines.join("\n")}
     if (/^>\s*\[!auto-summary\]/m.test(content)) {
       return JSON.stringify({ status: "skipped", reason: "already_has_summary", path: vaultRel });
     }
-    const taskId = `add-summary-${(0, import_crypto3.createHash)("md5").update(vaultRel).digest("hex").slice(0, 8)}`;
+    const taskId = `add-summary-${(0, import_crypto4.createHash)("md5").update(vaultRel).digest("hex").slice(0, 8)}`;
     const payload = JSON.stringify({
       id: taskId,
       type: "once",
@@ -195170,10 +197152,10 @@ ${remainingLines.join("\n")}
    *  Errors: manifest_not_found, read_failed. */
   torusManifestRooms() {
     const manifestPath2 = this.absPath(`${this.settings.torusRoot}/torus-manifest.md`);
-    if (!(0, import_fs7.existsSync)(manifestPath2)) return JSON.stringify({ error: "manifest_not_found" });
+    if (!(0, import_fs9.existsSync)(manifestPath2)) return JSON.stringify({ error: "manifest_not_found" });
     let content;
     try {
-      content = (0, import_fs7.readFileSync)(manifestPath2, "utf-8");
+      content = (0, import_fs9.readFileSync)(manifestPath2, "utf-8");
     } catch (e2) {
       return JSON.stringify({ error: "read_failed", detail: String(e2) });
     }
@@ -195208,8 +197190,10 @@ ${remainingLines.join("\n")}
       { method: "torusAddSummary(notePath)", description: 'Queue an auto-summary callout for a Torus member note. Returns immediately {status:"queued", path, task_id} after appending a one-shot taskrunner row that runs `/torus-run add-summary <path>`. Idempotent: task_id is a deterministic hash of the path, so re-queueing while a prior task is pending is a no-op. Skips outright if the note already has a `> [!auto-summary]` callout (returns {status:"skipped", reason:"already_has_summary"}). Used by the Add to Torus modal\'s "Add AI auto-summary" checkbox path; the actual Sonnet call happens in the taskrunner spawn cycle (~60s tick). Errors: not_found, not_a_torus_member, task_add_failed.' },
       { method: "torusManifestRooms()", description: `Return the manifest's room/shelf structure for UI pickers. Reuses parseTorusMd so the result matches the 3D view exactly. Returns {status:"ok", rooms:[{name, shelves:[name,...]}, ...]} in N\u2192E\u2192S\u2192W wing order. Errors: manifest_not_found, read_failed.` },
       { method: "torusImessageProbeAccess()", description: "Probe whether Obsidian has Full Disk Access (FDA) needed to read ~/Library/Messages/chat.db for iMessage capture. Mac-only. Returns {ok:true} or {ok:false, error, instructions}. Use to surface a clear prompt before enabling iMessage capture." },
-      { method: "torusImessageListChats()", description: "List recent 1:1 self-chat candidates from chat.db so the user can identify their own iMessage handle (phone or email). Mac-only; requires FDA. Returns {ok:true, candidates:[{handle, chat_id, last_message}]} sorted by recency. Used to populate the imessageSelfHandle setting." },
-      { method: "torusImessageStatus()", description: "Snapshot of the plugin-spawned iMessage capture runner. Parity with torusBridgeStatus for Services-panel rendering. Returns {ok, running, selfHandle, startedAt, uptime_ms, lastPollAt, lastInboundAt, cursorRowId, messagesCapturedSession, lastError} or {ok, running:false, disabled:true} when no runner is instantiated (non-Mac platform or disabled in settings). Times are ISO UTC." },
+      { method: "torusImessageListChats()", description: "List recent 1:1 chats from chat.db so the user can identify which handles are their own (for self-chat capture). Mac-only; requires FDA. Returns {ok:true, candidates:[{handle, chat_id, last_message}]} sorted by recency. NOTE: returns ALL 1:1 chats, not only self-chats (chat.db has no reliable self-chat marker \u2014 self-chat messages from other devices sync as is_from_me=0). The user picks their own handle(s) from the list. Used to populate the imessageSelfHandles setting." },
+      { method: "torusImessageStatus()", description: "Snapshot of the plugin-spawned iMessage capture runner. Parity with torusBridgeStatus for Services-panel rendering. Returns {ok, running, selfHandles:string[], startedAt, uptime_ms, lastPollAt, lastInboundAt, cursorRowId, messagesCapturedSession, lastError} or {ok, running:false, disabled:true, selfHandles} when no runner is instantiated (non-Mac platform or disabled in settings). Times are ISO UTC." },
+      { method: "torusImessageReconfigure()", description: "Hot-restart the in-plugin iMessage runner from current settings: stop the poller and start a fresh one with the latest imessageSelfHandles list, or stop it if disabled / no handles. Returns the post-restart torusImessageStatus() shape. Called by Settings on toggle/Detect-confirm/handle-edit so config changes apply without a full plugin reload." },
+      { method: "torusTelegramStatus()", description: 'Snapshot of the in-plugin Telegram capture runner (destination bridge \u2014 long-polls the Bot API). Returns {ok, running, state, botUsername, authorizedUserCount, startedAt, uptime_ms, lastPollAt, lastInboundAt, offset, messagesCapturedSession, lastError} or {ok, running:false, disabled:true, state:"idle"} when no runner is instantiated (disabled in settings or no token). `state` is idle|starting|ready|failed (failed = bad token; lastError holds the user-facing message). Times are ISO UTC.' },
       { method: "torusTwinModel()", description: `Returns the user's configured Twin model as a short alias ("opus" | "sonnet" | "haiku") for Claude Code Agent tool model parameter.` },
       { method: "torusRead(nameOrPath, opts?)", description: "Read a note by title search or exact path. Returns {path, content, total_length, returned_length, offset, has_more, next_offset}. Default: full file. Pagination: pass {offset, maxChars} to read a slice; use `next_offset` from the response on subsequent calls until has_more is false. total_length on call 1 tells you the file size \u2014 no wc-style workaround needed." },
       { method: "torusReadBatch(paths)", description: "Read multiple notes at once. Accepts JS array or JSON string of paths." },
@@ -195218,10 +197202,12 @@ ${remainingLines.join("\n")}
       { method: "torusListSkills()", description: 'List all skill notes (`type: skill` frontmatter) grouped by their `shelf:` field. Shelf "Skills / X" groups under "X"; notes without a shelf go under "(unshelved)". Returns {shelves: [{shelf, skills:[{title, path, description}]}, ...]}. Description from frontmatter `description:` only \u2014 empty string if missing. Used by /torus-run no-args.' },
       { method: "torusInsertFromChat({contains, targetPath, anchor, position, title?})", description: `Splice a prior assistant turn's text into a target note \u2014 no regeneration. contains = distinctive substring from the target turn. targetPath accepts $torusRoot/-prefixed, vault-relative, or fuzzy title. Optional title prepends "## {title}" when the turn content lacks its own heading. Returns {ok:true, path, inserted_bytes} on success, {ok:false, error, ...} on failure. Note: CC's Bash tool sometimes swallows stdout on this call; always verify via torusRead/grep rather than relying on visible output.` },
       { method: "torusInsertFromFile({contentPath, targetPath, anchor, position, title?, deleteAfter?})", description: `Insert content from a draft file into a target note at an anchor. Use when producing content in the *current* turn \u2014 torusInsertFromChat can't reach the live turn's text (only prior turns are in the JSONL). Workflow: Write the draft to $torusRoot/.twin/tmp/<slug>.md via the Write tool, then call with deleteAfter:true to clean up on success. Drafts are content-only \u2014 frontmatter splices verbatim if it leaks in (caller's bug). Anchor: an exact substring of the target file, must be unique (anchor_ambiguous if it appears more than once \u2014 pick a distinctive line, not a common word). Position is character-index based, not section-aware: before "## Foo" inserts immediately above that line; after "## Foo" inserts between the heading and its body. To land below a section's body, anchor on the *next* heading with position="before". Optional title becomes "## {title}" at the anchor's heading level (defaults to H2 when the anchor isn't a heading); auto-suppressed if the draft already opens with a heading at that level \u2014 pick one, not both. deleteAfter only fires on a successful write; failures preserve the draft for inspection. contentPath accepts $torusRoot/-prefixed or vault-relative; filesystem-absolute is rejected. Errors: content_file_not_found / _read_failed / _empty, anchor_not_found, anchor_ambiguous, target_ambiguous, target_write_failed, absolute_path_rejected, missing_params, invalid_position. Returns {ok:true, path, inserted_bytes} or {ok:false, error, ...}. Note: CC's Bash tool sometimes swallows stdout on this call; verify via torusRead rather than relying on visible output.` },
-      { method: "torusBridgeStatus()", description: "Snapshot of the plugin-spawned WhatsApp/email bridge. Returns {ok, running, pid, uptime_ms, restart_attempt, bridge_path, next_restart_in_ms, last_error, health, health_fetched_ago_ms, health_probe_error, persistently_degraded} or {ok, running:false, disabled:true} when no BridgeRunner is instantiated. `health` is the bridge's self-reported BridgeHealth ({state, ready, last_inbound_at, last_internal_check_at, uptime_ms, detail?, bridge_name}) from a /health probe \u2014 null if unreachable; check `health_probe_error` for cause. `persistently_degraded` is true after the restart-cycle gate gives up; cleared on torusBridgeRestart()." },
+      { method: "torusBridgeStatus()", description: 'Snapshot of the plugin-spawned WhatsApp/email bridge. Returns {ok, state, running, pid, uptime_ms, restart_attempt, bridge_path, next_restart_in_ms, last_error, health, health_fetched_ago_ms, health_probe_error, persistently_degraded} or {ok, state:"idle", running:false, disabled:true} when no BridgeRunner is instantiated. `state` is the supervisor-derived UI state: idle|spawning|awaiting_qr|ready|restarting|failed (failed = circuit breaker or restart-ceiling tripped, manual reset required). `health` is the bridge\'s self-reported BridgeHealth ({state, ready, last_inbound_at, last_internal_check_at, uptime_ms, detail?, bridge_name}) from a /health probe \u2014 null if unreachable; check `health_probe_error` for cause. `persistently_degraded` is true after the restart-cycle gate gives up; cleared on torusBridgeRestart()/torusBridgeReset().' },
       { method: "torusBridgeStart()", description: 'Spawn the bridge if not already running. Recomputes config from current settings. Returns current status on success, {ok:false, error:"bridge_path_not_configured"} if bridgePath is empty.' },
       { method: "torusBridgeStop()", description: "SIGTERM the bridge and wait up to 15s for graceful exit. Cancels any pending restart timer. Returns {ok:true} with post-stop status." },
       { method: "torusBridgeRestart()", description: "Stop then start. Clears backoff counter on successful respawn after 5min healthy uptime (that's BridgeRunner's built-in rule)." },
+      { method: 'torusBridgeReset(bridgeName?="whatsapp")', description: 'One-shot recovery. For "whatsapp": stop \u2192 kill our own orphan holding the port (refuses to kill a foreign process \u2014 names it instead) \u2192 wipe .wwebjs_auth/session to force a fresh QR \u2192 clear the circuit breaker \u2192 respawn. For "email"/"imessage"/"telegram": clean stop+start of the in-plugin runner (no port/session; telegram re-runs getMe and resumes from the saved update offset). Returns {ok, state, message} (telegram returns the full status snapshot). Use after a phone change, WA logout, a new bot token, or when state="failed". Watch torusBridgeQr() for the new QR after a whatsapp reset.' },
+      { method: 'torusBridgeQr(bridgeName?="whatsapp")', description: 'Fetch the current WhatsApp pairing QR from the bridge GET /qr endpoint (CORS-safe via requestUrl). Returns {ok, state, qr, ts?} where state is awaiting_qr (qr is the raw string to render) | paired (qr null) | no_qr_yet. Poll this while showing a pairing modal; QR rotates ~every 20-60s. Errors return {ok:false, state:"no_qr_yet", qr:null, error}.' },
       { method: "torusBridgeLog(limit?=40)", description: "Last N lines of bridge activity from torus.log (capture:whatsapp labels \u2014 lifecycle + child stdout/stderr). Returns {ok:true, lines: []}." },
       { method: "torusWrite(path, content, mode?)", description: 'Write/append/overwrite a note. mode: "new"|"append"|"overwrite". Paths starting with $torusRoot/ are resolved.' },
       { method: "torusSearch(query, collection?, mode?)", description: 'Search via QMD. Collection short names: vault (sources+research+ideas, default), sources (sources+research), ideas, sessions, research, digests. No "all". Mode (default "hybrid"): "lex" = BM25, fast (<1s), keyword-aware; "vec" = vector similarity, fast (~1-2s), semantic-aware; "hybrid" = BM25+vec+rerank, slow (~10-15s), best recall. Use lex when you know the keywords, vec when wording diverges (find-dupes, neighbor lookups), hybrid when both matter. Result URIs (qmd://torus-<collection>/...) preserve provenance.' },
@@ -195344,12 +197330,12 @@ ${remainingLines.join("\n")}
     const reqId = Date.now() + "-" + Math.random().toString(36).slice(2, 6);
     const resultFile = `${this.settings.torusRoot}/.twin/tmp/async-${reqId}.json`;
     const resultPath = this.absPath(resultFile);
-    (0, import_fs7.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
+    (0, import_fs9.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
     const encoded = encodeURIComponent(query2);
     const url = `https://export.arxiv.org/api/query?search_query=all:${encoded}&max_results=${maxResults}&sortBy=relevance`;
     const doWork = async () => {
       try {
-        const response = await (0, import_obsidian29.requestUrl)({ url });
+        const response = await (0, import_obsidian30.requestUrl)({ url });
         const xml = typeof response === "string" ? response : response.text;
         const entries = [];
         const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
@@ -195381,13 +197367,13 @@ ${remainingLines.join("\n")}
           entries.push({ id: arxivId, title, authors, abstract, published, pdfUrl, categories });
         }
         const result = JSON.stringify({ status: "ok", query: query2, results: entries });
-        (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-        (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+        (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+        (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
         this.torusTrace(`plugin:torusArxivSearch`, `COMPLETE ${Math.round(performance.now() - t02)}ms query="${query2}" results=${entries.length}`);
       } catch (e2) {
         const result = JSON.stringify({ status: "error", error: e2 instanceof Error ? e2.message : String(e2) });
-        (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-        (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+        (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+        (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
       }
     };
     doWork();
@@ -195399,19 +197385,19 @@ ${remainingLines.join("\n")}
     const reqId = Date.now() + "-" + Math.random().toString(36).slice(2, 6);
     const resultFile = `${this.settings.torusRoot}/.twin/tmp/async-${reqId}.json`;
     const resultPath = this.absPath(resultFile);
-    (0, import_fs7.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
+    (0, import_fs9.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
     const cleanId = arxivId.replace(/https?:\/\/arxiv\.org\/(abs|pdf|html)\//, "").replace(/[*#?]+$/, "").trim();
     const pdfUrl = `https://arxiv.org/pdf/${cleanId}`;
     const filename = `arxiv-${cleanId.replace(/\//g, "-")}.pdf`;
     const imagesDir = this.absPath(this.settings.imagesDir);
-    const pdfPath = (0, import_path5.join)(imagesDir, filename);
+    const pdfPath = (0, import_path6.join)(imagesDir, filename);
     const vaultRelative = `${this.settings.imagesDir}/${filename}`;
     const doWork = async () => {
       try {
-        if (!(0, import_fs7.existsSync)(imagesDir)) (0, import_fs7.mkdirSync)(imagesDir, { recursive: true });
-        const response = await (0, import_obsidian29.requestUrl)({ url: pdfUrl });
+        if (!(0, import_fs9.existsSync)(imagesDir)) (0, import_fs9.mkdirSync)(imagesDir, { recursive: true });
+        const response = await (0, import_obsidian30.requestUrl)({ url: pdfUrl });
         const buffer = Buffer.from(response.arrayBuffer);
-        (0, import_fs7.writeFileSync)(pdfPath, buffer);
+        (0, import_fs9.writeFileSync)(pdfPath, buffer);
         const result = JSON.stringify({
           status: "ok",
           arxivId: cleanId,
@@ -195420,13 +197406,13 @@ ${remainingLines.join("\n")}
           sizeKB: Math.round(buffer.length / 1024),
           readHint: `Use Read tool with pages parameter: Read("${pdfPath}", pages: "1-5")`
         });
-        (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-        (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+        (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+        (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
         this.torusTrace(`plugin:torusArxivFetch`, `COMPLETE ${Math.round(performance.now() - t02)}ms id=${cleanId} size=${Math.round(buffer.length / 1024)}KB`);
       } catch (e2) {
         const result = JSON.stringify({ status: "error", error: e2 instanceof Error ? e2.message : String(e2), arxivId: cleanId });
-        (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-        (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+        (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+        (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
       }
     };
     doWork();
@@ -195461,14 +197447,14 @@ ${remainingLines.join("\n")}
     let absSource;
     let isExternal;
     if (pdfPath.startsWith("/")) {
-      if (!(0, import_fs7.existsSync)(pdfPath)) return JSON.stringify({ status: "error", error: "pdf_not_found", path: pdfPath });
+      if (!(0, import_fs9.existsSync)(pdfPath)) return JSON.stringify({ status: "error", error: "pdf_not_found", path: pdfPath });
       absSource = pdfPath;
       isExternal = true;
     } else {
       const resolved = this.resolveVaultPath(pdfPath);
       if (resolved.error) return JSON.stringify(resolved.error);
       absSource = resolved.absPath;
-      if (!(0, import_fs7.existsSync)(absSource)) return JSON.stringify({ status: "error", error: "pdf_not_found", path: pdfPath });
+      if (!(0, import_fs9.existsSync)(absSource)) return JSON.stringify({ status: "error", error: "pdf_not_found", path: pdfPath });
       isExternal = false;
     }
     const lastSlash = absSource.lastIndexOf("/");
@@ -195489,10 +197475,10 @@ ${remainingLines.join("\n")}
     const imagesDirRoot = this.settings.imagesDir;
     const absMdPath = this.absPath(`${sourcesDir}/${finalBasename}.md`);
     const absImagesDir = this.absPath(`${imagesDirRoot}/${finalBasename}-images`);
-    if (!opts.force && (0, import_fs7.existsSync)(absMdPath)) {
+    if (!opts.force && (0, import_fs9.existsSync)(absMdPath)) {
       try {
-        const srcStat = (0, import_fs7.statSync)(absSource);
-        const mdStat = (0, import_fs7.statSync)(absMdPath);
+        const srcStat = (0, import_fs9.statSync)(absSource);
+        const mdStat = (0, import_fs9.statSync)(absMdPath);
         if (mdStat.mtimeMs >= srcStat.mtimeMs) {
           const elapsed = Math.round(performance.now() - t02);
           this.torusTrace("plugin:torusExtractPDF", `CACHED ${elapsed}ms md=${absMdPath}`);
@@ -195508,20 +197494,20 @@ ${remainingLines.join("\n")}
       }
     }
     const tmpDir = this.absPath(`${this.settings.torusRoot}/.twin/tmp`);
-    if (!(0, import_fs7.existsSync)(tmpDir)) (0, import_fs7.mkdirSync)(tmpDir, { recursive: true });
-    (0, import_fs7.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
+    if (!(0, import_fs9.existsSync)(tmpDir)) (0, import_fs9.mkdirSync)(tmpDir, { recursive: true });
+    (0, import_fs9.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
     const scriptPath = this.absPath(`${this.settings.torusRoot}/.claude/scripts/extract-pdf.py`);
-    if (!(0, import_fs7.existsSync)(scriptPath)) {
+    if (!(0, import_fs9.existsSync)(scriptPath)) {
       const err = JSON.stringify({ status: "error", error: "script_missing", detail: `Bundled script not deployed at ${scriptPath}. Run the plugin deploy routine.` });
-      (0, import_fs7.writeFileSync)(resultPath + ".tmp", err, "utf-8");
-      (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+      (0, import_fs9.writeFileSync)(resultPath + ".tmp", err, "utf-8");
+      (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
       return JSON.stringify({ status: "pending", resultFile });
     }
     this.torusTrace("plugin:torusExtractPDF", `DISPATCH source=${pdfPath} pages=${opts.pages ?? "all"}`);
     const doWork = async () => {
       let result;
       const scratchDir = this.absPath(`${this.settings.torusRoot}/.twin/tmp/extract-pdf-work-${resultId}`);
-      if (!(0, import_fs7.existsSync)(scratchDir)) (0, import_fs7.mkdirSync)(scratchDir, { recursive: true });
+      if (!(0, import_fs9.existsSync)(scratchDir)) (0, import_fs9.mkdirSync)(scratchDir, { recursive: true });
       try {
         const extract = await extractPdf({
           inputPath: absSource,
@@ -195534,20 +197520,20 @@ ${remainingLines.join("\n")}
         if (!extract.ok) {
           result = JSON.stringify({ status: "error", error: extract.error, detail: extract.detail });
         } else {
-          if ((0, import_fs7.existsSync)(absMdPath)) {
+          if ((0, import_fs9.existsSync)(absMdPath)) {
             try {
-              (0, import_fs7.unlinkSync)(absMdPath);
+              (0, import_fs9.unlinkSync)(absMdPath);
             } catch {
             }
           }
-          if ((0, import_fs7.existsSync)(absImagesDir)) {
+          if ((0, import_fs9.existsSync)(absImagesDir)) {
             try {
-              (0, import_fs7.rmSync)(absImagesDir, { recursive: true, force: true });
+              (0, import_fs9.rmSync)(absImagesDir, { recursive: true, force: true });
             } catch {
             }
           }
           const imagesRelToMd = `../${imagesDirRoot.split("/").pop() ?? "_images"}/${finalBasename}-images`;
-          const body = (0, import_fs7.readFileSync)(extract.mdPath, "utf-8");
+          const body = (0, import_fs9.readFileSync)(extract.mdPath, "utf-8");
           const fixedBody = body.replace(/^[\s\n]+/, "").replace(/[\s\n]+$/, "\n").replace(/!\[([^\]]*)\]\(<?images\//g, `![$1](<${imagesRelToMd}/`).replace(/(<?[^<>\s]*\/imageFile\d+\.(?:png|jpg|jpeg))>?\)/g, "$1>)");
           const extractedFrom = isExternal ? absSource : this.resolvePath(pdfPath);
           const fm = [
@@ -195563,10 +197549,10 @@ ${remainingLines.join("\n")}
             "---",
             ""
           ].join("\n");
-          (0, import_fs7.writeFileSync)(absMdPath, fm + fixedBody, "utf-8");
-          if (extract.imagesDir && (0, import_fs7.existsSync)(extract.imagesDir)) {
+          (0, import_fs9.writeFileSync)(absMdPath, fm + fixedBody, "utf-8");
+          if (extract.imagesDir && (0, import_fs9.existsSync)(extract.imagesDir)) {
             try {
-              (0, import_fs7.renameSync)(extract.imagesDir, absImagesDir);
+              (0, import_fs9.renameSync)(extract.imagesDir, absImagesDir);
             } catch (e2) {
               this.torusTrace("plugin:torusExtractPDF", `images move failed: ${e2.message}`);
             }
@@ -195581,7 +197567,7 @@ ${remainingLines.join("\n")}
           result = JSON.stringify({
             status: "ok",
             mdPath: absMdPath,
-            imagesDir: (0, import_fs7.existsSync)(absImagesDir) ? absImagesDir : "",
+            imagesDir: (0, import_fs9.existsSync)(absImagesDir) ? absImagesDir : "",
             pageCount: extract.pageCount,
             figureCount: extract.figureCount,
             durationMs: extract.durationMs,
@@ -195593,12 +197579,12 @@ ${remainingLines.join("\n")}
         result = JSON.stringify({ status: "error", error: "unexpected", detail: e2 instanceof Error ? e2.message : String(e2) });
       } finally {
         try {
-          (0, import_fs7.rmSync)(scratchDir, { recursive: true, force: true });
+          (0, import_fs9.rmSync)(scratchDir, { recursive: true, force: true });
         } catch {
         }
       }
-      (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-      (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+      (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+      (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
     };
     doWork();
     return JSON.stringify({ status: "pending", resultFile });
@@ -195624,29 +197610,29 @@ ${remainingLines.join("\n")}
     }
     let absSource;
     if (pdfPath.startsWith("/")) {
-      if (!(0, import_fs7.existsSync)(pdfPath)) return JSON.stringify({ status: "error", error: "pdf_not_found", path: pdfPath });
+      if (!(0, import_fs9.existsSync)(pdfPath)) return JSON.stringify({ status: "error", error: "pdf_not_found", path: pdfPath });
       absSource = pdfPath;
     } else {
       const resolved = this.resolveVaultPath(pdfPath);
       if (resolved.error) return JSON.stringify(resolved.error);
       absSource = resolved.absPath;
-      if (!(0, import_fs7.existsSync)(absSource)) return JSON.stringify({ status: "error", error: "pdf_not_found", path: pdfPath });
+      if (!(0, import_fs9.existsSync)(absSource)) return JSON.stringify({ status: "error", error: "pdf_not_found", path: pdfPath });
     }
     const tmpDir = this.absPath(`${this.settings.torusRoot}/.twin/tmp`);
-    if (!(0, import_fs7.existsSync)(tmpDir)) (0, import_fs7.mkdirSync)(tmpDir, { recursive: true });
-    (0, import_fs7.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
+    if (!(0, import_fs9.existsSync)(tmpDir)) (0, import_fs9.mkdirSync)(tmpDir, { recursive: true });
+    (0, import_fs9.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
     const scriptPath = this.absPath(`${this.settings.torusRoot}/.claude/scripts/extract-pdf.py`);
-    if (!(0, import_fs7.existsSync)(scriptPath)) {
+    if (!(0, import_fs9.existsSync)(scriptPath)) {
       const err = JSON.stringify({ status: "error", error: "script_missing", detail: `Bundled script not deployed at ${scriptPath}. Run the plugin deploy routine.` });
-      (0, import_fs7.writeFileSync)(resultPath + ".tmp", err, "utf-8");
-      (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+      (0, import_fs9.writeFileSync)(resultPath + ".tmp", err, "utf-8");
+      (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
       return JSON.stringify({ status: "pending", resultFile });
     }
     this.torusTrace("plugin:torusPdfReadText", `DISPATCH source=${pdfPath} pages=${opts.pages ?? "all"}`);
     const doWork = async () => {
       let result;
       const scratchDir = this.absPath(`${this.settings.torusRoot}/.twin/tmp/pdf-read-text-work-${resultId}`);
-      if (!(0, import_fs7.existsSync)(scratchDir)) (0, import_fs7.mkdirSync)(scratchDir, { recursive: true });
+      if (!(0, import_fs9.existsSync)(scratchDir)) (0, import_fs9.mkdirSync)(scratchDir, { recursive: true });
       try {
         const extract = await extractPdf({
           inputPath: absSource,
@@ -195659,7 +197645,7 @@ ${remainingLines.join("\n")}
         if (!extract.ok) {
           result = JSON.stringify({ status: "error", error: extract.error, detail: extract.detail });
         } else {
-          const body = (0, import_fs7.readFileSync)(extract.mdPath, "utf-8");
+          const body = (0, import_fs9.readFileSync)(extract.mdPath, "utf-8");
           const text = body.replace(/!\[[^\]]*\]\(<[^>]+>\)/g, "").replace(/!\[[^\]]*\]\([^)]+\)/g, "").replace(/\n{3,}/g, "\n\n").replace(/^[\s\n]+/, "").replace(/[\s\n]+$/, "\n");
           result = JSON.stringify({
             status: "ok",
@@ -195675,12 +197661,12 @@ ${remainingLines.join("\n")}
         result = JSON.stringify({ status: "error", error: "unexpected", detail: e2 instanceof Error ? e2.message : String(e2) });
       } finally {
         try {
-          (0, import_fs7.rmSync)(scratchDir, { recursive: true, force: true });
+          (0, import_fs9.rmSync)(scratchDir, { recursive: true, force: true });
         } catch {
         }
       }
-      (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-      (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+      (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+      (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
     };
     doWork();
     return JSON.stringify({ status: "pending", resultFile });
@@ -195699,14 +197685,14 @@ ${remainingLines.join("\n")}
   torusXWatchlist(action, arg1, arg2, arg3) {
     const t02 = performance.now();
     const watchlistPath = this.controlsPath("x-digest-config.json");
-    if (!(0, import_fs7.existsSync)(watchlistPath)) {
-      (0, import_fs7.writeFileSync)(watchlistPath, JSON.stringify({ accounts: [], updated: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10) }), "utf-8");
+    if (!(0, import_fs9.existsSync)(watchlistPath)) {
+      (0, import_fs9.writeFileSync)(watchlistPath, JSON.stringify({ accounts: [], updated: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10) }), "utf-8");
     }
-    const data = JSON.parse((0, import_fs7.readFileSync)(watchlistPath, "utf-8"));
+    const data = JSON.parse((0, import_fs9.readFileSync)(watchlistPath, "utf-8"));
     const accounts = data.accounts ?? [];
     const save13 = () => {
       data.updated = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
-      (0, import_fs7.writeFileSync)(watchlistPath, JSON.stringify(data, null, 2), "utf-8");
+      (0, import_fs9.writeFileSync)(watchlistPath, JSON.stringify(data, null, 2), "utf-8");
     };
     const buildQuery = (accts) => accts.map((a2) => `from:${a2.username}`).join(" OR ");
     const PAGE_SIZE = 20;
@@ -195812,15 +197798,15 @@ ${remainingLines.join("\n")}
   torusXKeywords(action, term) {
     const t02 = performance.now();
     const kwPath = this.controlsPath("x-digest-config.json");
-    if (!(0, import_fs7.existsSync)(kwPath)) {
+    if (!(0, import_fs9.existsSync)(kwPath)) {
       return JSON.stringify({ error: "no_keywords_file", message: "No .twin/controls/x-digest-config.json found. Seed it from vault state." });
     }
-    const data = JSON.parse((0, import_fs7.readFileSync)(kwPath, "utf-8"));
+    const data = JSON.parse((0, import_fs9.readFileSync)(kwPath, "utf-8"));
     const keywords = data.keywords ?? [];
     const blacklist = data.blacklist ?? [];
     const save13 = () => {
       data.updated = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
-      (0, import_fs7.writeFileSync)(kwPath, JSON.stringify(data, null, 2), "utf-8");
+      (0, import_fs9.writeFileSync)(kwPath, JSON.stringify(data, null, 2), "utf-8");
     };
     if (!action) {
       this.torusTrace(`plugin:torusXKeywords`, `${Math.round(performance.now() - t02)}ms keywords=${keywords.length} blacklisted=${blacklist.length}`);
@@ -195865,16 +197851,16 @@ ${remainingLines.join("\n")}
     const resolved = this.resolveVaultPath(file);
     if (resolved.error) return JSON.stringify(resolved.error);
     const absPath = resolved.absPath;
-    if (!(0, import_fs7.existsSync)(absPath)) return JSON.stringify({ error: "file_not_found", path: file, hint: "Run torusXPoll() first" });
-    const pollData = JSON.parse((0, import_fs7.readFileSync)(absPath, "utf-8"));
+    if (!(0, import_fs9.existsSync)(absPath)) return JSON.stringify({ error: "file_not_found", path: file, hint: "Run torusXPoll() first" });
+    const pollData = JSON.parse((0, import_fs9.readFileSync)(absPath, "utf-8"));
     if (pollData.status !== "ok") return JSON.stringify({ error: "poll_not_ok", pollStatus: pollData.status });
     const kwData = JSON.parse(this.torusXKeywords());
     const keywordList = kwData.keywords ?? [];
     const watchlistPath = this.controlsPath("x-digest-config.json");
     let accountList = [];
-    if ((0, import_fs7.existsSync)(watchlistPath)) {
+    if ((0, import_fs9.existsSync)(watchlistPath)) {
       try {
-        const wl = JSON.parse((0, import_fs7.readFileSync)(watchlistPath, "utf-8"));
+        const wl = JSON.parse((0, import_fs9.readFileSync)(watchlistPath, "utf-8"));
         accountList = (wl.accounts ?? []).filter((a2) => a2.autopoll).map((a2) => a2.username.toLowerCase());
       } catch {
       }
@@ -195942,8 +197928,8 @@ ${remainingLines.join("\n")}
     const volumeBreakdown = Object.entries(volumeMap).map(([username, v3]) => ({ username, ...v3 })).sort((a2, b2) => b2.total - a2.total);
     const filterPath = this.tmpPath("x-filter-latest.json");
     const fullResult = JSON.stringify({ status: "ok", rawCount: pollData.tweets?.length ?? 0, scoredCount: scored.length, stripped, volumeBreakdown, posts }, null, 2);
-    (0, import_fs7.writeFileSync)(filterPath + ".tmp", fullResult, "utf-8");
-    (0, import_fs7.renameSync)(filterPath + ".tmp", filterPath);
+    (0, import_fs9.writeFileSync)(filterPath + ".tmp", fullResult, "utf-8");
+    (0, import_fs9.renameSync)(filterPath + ".tmp", filterPath);
     const lines = [
       `Scanned ${pollData.tweets?.length ?? 0} posts | ${scored.length} scored | stripped: ${stripped.short} short, ${stripped.dupes} dupes`,
       `Full data: .twin/tmp/x-filter-latest.json`,
@@ -195966,9 +197952,9 @@ ${remainingLines.join("\n")}
     const t02 = performance.now();
     const pollPath = this.tmpPath("x-poll-latest.json");
     let sinceMs = Date.now() - 864e5;
-    if ((0, import_fs7.existsSync)(pollPath)) {
+    if ((0, import_fs9.existsSync)(pollPath)) {
       try {
-        const poll = JSON.parse((0, import_fs7.readFileSync)(pollPath, "utf-8"));
+        const poll = JSON.parse((0, import_fs9.readFileSync)(pollPath, "utf-8"));
         if (poll.since) sinceMs = new Date(poll.since).getTime();
       } catch {
       }
@@ -195978,7 +197964,7 @@ ${remainingLines.join("\n")}
     for (const f of sourceFiles) {
       const cache3 = this.app.metadataCache.getFileCache(f);
       if (cache3?.frontmatter?.torus_source !== "whatsapp") continue;
-      const content = (0, import_fs7.readFileSync)(this.absPath(f.path), "utf-8");
+      const content = (0, import_fs9.readFileSync)(this.absPath(f.path), "utf-8");
       const xUrlMatch = content.match(/https?:\/\/(?:x\.com|twitter\.com)\/\w+\/status\/(\d+)/g);
       if (xUrlMatch) {
         for (const url of xUrlMatch) {
@@ -195988,10 +197974,10 @@ ${remainingLines.join("\n")}
     }
     const reflectDir = this.contextPath("reflections");
     let digestUrls = /* @__PURE__ */ new Set();
-    if ((0, import_fs7.existsSync)(reflectDir)) {
-      const digestFiles = (0, import_fs7.readdirSync)(reflectDir).filter((f) => f.includes("x-digest")).sort().reverse();
+    if ((0, import_fs9.existsSync)(reflectDir)) {
+      const digestFiles = (0, import_fs9.readdirSync)(reflectDir).filter((f) => f.includes("x-digest")).sort().reverse();
       if (digestFiles.length > 0) {
-        const digest = (0, import_fs7.readFileSync)((0, import_path5.join)(reflectDir, digestFiles[0]), "utf-8");
+        const digest = (0, import_fs9.readFileSync)((0, import_path6.join)(reflectDir, digestFiles[0]), "utf-8");
         const urlMatches = digest.matchAll(/https?:\/\/(?:x\.com|twitter\.com)\/\w+\/status\/\d+/g);
         for (const m2 of urlMatches) digestUrls.add(m2[0]);
       }
@@ -196029,12 +198015,12 @@ ${remainingLines.join("\n")}
   torusXDigestBegin() {
     const runPath = this.controlsPath("x-digest-run.json");
     const runDir = runPath.substring(0, runPath.lastIndexOf("/"));
-    if (!(0, import_fs7.existsSync)(runDir)) (0, import_fs7.mkdirSync)(runDir, { recursive: true });
+    if (!(0, import_fs9.existsSync)(runDir)) (0, import_fs9.mkdirSync)(runDir, { recursive: true });
     const TIMEOUT_MS = 10 * 60 * 1e3;
     let existing = {};
-    if ((0, import_fs7.existsSync)(runPath)) {
+    if ((0, import_fs9.existsSync)(runPath)) {
       try {
-        existing = JSON.parse((0, import_fs7.readFileSync)(runPath, "utf-8"));
+        existing = JSON.parse((0, import_fs9.readFileSync)(runPath, "utf-8"));
       } catch {
       }
     }
@@ -196060,8 +198046,8 @@ ${remainingLines.join("\n")}
       currentRunId,
       currentStart
     };
-    (0, import_fs7.writeFileSync)(runPath + ".tmp", JSON.stringify(next), "utf-8");
-    (0, import_fs7.renameSync)(runPath + ".tmp", runPath);
+    (0, import_fs9.writeFileSync)(runPath + ".tmp", JSON.stringify(next), "utf-8");
+    (0, import_fs9.renameSync)(runPath + ".tmp", runPath);
     this.torusTrace("plugin:torusXDigest-Start", `runId=${currentRunId} currentStart=${currentStart} marker=${existing.start ?? "none"}`);
     return JSON.stringify({ status: "ok", runId: currentRunId, startedAt: currentStart });
   }
@@ -196071,8 +198057,8 @@ ${remainingLines.join("\n")}
       const resolved = this.resolveVaultPath(contentPath);
       if (resolved.error) return JSON.stringify(resolved.error);
       const absContent = resolved.absPath;
-      if (!(0, import_fs7.existsSync)(absContent)) return JSON.stringify({ status: "error", error: `Digest content file not found: ${contentPath}` });
-      const content = (0, import_fs7.readFileSync)(absContent, "utf-8").trim();
+      if (!(0, import_fs9.existsSync)(absContent)) return JSON.stringify({ status: "error", error: `Digest content file not found: ${contentPath}` });
+      const content = (0, import_fs9.readFileSync)(absContent, "utf-8").trim();
       if (content.length < 200) return JSON.stringify({ status: "error", error: `Digest content too short (${content.length} chars) \u2014 likely not a real digest` });
       if (!/Scanned\s+\d+\s+posts/i.test(content)) return JSON.stringify({ status: "error", error: `Digest content missing expected "Scanned N posts" header` });
       const now3 = /* @__PURE__ */ new Date();
@@ -196084,9 +198070,9 @@ ${remainingLines.join("\n")}
       const sourcesRel = `${sourcesDir}/${date} X Digest ${time}.md`;
       const twinAbs = this.absPath(twinRel);
       const twinDir = twinAbs.substring(0, twinAbs.lastIndexOf("/"));
-      if (!(0, import_fs7.existsSync)(twinDir)) (0, import_fs7.mkdirSync)(twinDir, { recursive: true });
-      (0, import_fs7.writeFileSync)(twinAbs + ".tmp", content + "\n", "utf-8");
-      (0, import_fs7.renameSync)(twinAbs + ".tmp", twinAbs);
+      if (!(0, import_fs9.existsSync)(twinDir)) (0, import_fs9.mkdirSync)(twinDir, { recursive: true });
+      (0, import_fs9.writeFileSync)(twinAbs + ".tmp", content + "\n", "utf-8");
+      (0, import_fs9.renameSync)(twinAbs + ".tmp", twinAbs);
       const fm = [
         "---",
         "torus_status: inbox",
@@ -196101,16 +198087,16 @@ ${remainingLines.join("\n")}
       ].join("\n");
       const sourcesAbs = this.absPath(sourcesRel);
       const sourcesPar = sourcesAbs.substring(0, sourcesAbs.lastIndexOf("/"));
-      if (!(0, import_fs7.existsSync)(sourcesPar)) (0, import_fs7.mkdirSync)(sourcesPar, { recursive: true });
-      (0, import_fs7.writeFileSync)(sourcesAbs + ".tmp", fm + content + "\n", "utf-8");
-      (0, import_fs7.renameSync)(sourcesAbs + ".tmp", sourcesAbs);
+      if (!(0, import_fs9.existsSync)(sourcesPar)) (0, import_fs9.mkdirSync)(sourcesPar, { recursive: true });
+      (0, import_fs9.writeFileSync)(sourcesAbs + ".tmp", fm + content + "\n", "utf-8");
+      (0, import_fs9.renameSync)(sourcesAbs + ".tmp", sourcesAbs);
       const runPath = this.controlsPath("x-digest-run.json");
       let runId;
       let start;
       let markerSource = "commit_time_fallback";
-      if ((0, import_fs7.existsSync)(runPath)) {
+      if ((0, import_fs9.existsSync)(runPath)) {
         try {
-          const r2 = JSON.parse((0, import_fs7.readFileSync)(runPath, "utf-8"));
+          const r2 = JSON.parse((0, import_fs9.readFileSync)(runPath, "utf-8"));
           if (r2.currentStart) {
             start = r2.currentStart;
             runId = r2.currentRunId;
@@ -196127,8 +198113,8 @@ ${remainingLines.join("\n")}
         start = (/* @__PURE__ */ new Date()).toISOString();
       }
       const stop = (/* @__PURE__ */ new Date()).toISOString();
-      (0, import_fs7.writeFileSync)(runPath + ".tmp", JSON.stringify({ runId, start, stop }), "utf-8");
-      (0, import_fs7.renameSync)(runPath + ".tmp", runPath);
+      (0, import_fs9.writeFileSync)(runPath + ".tmp", JSON.stringify({ runId, start, stop }), "utf-8");
+      (0, import_fs9.renameSync)(runPath + ".tmp", runPath);
       const logDetail = { twin: twinRel, source: sourcesRel, start, stop, markerSource };
       if (stats) {
         try {
@@ -196138,15 +198124,15 @@ ${remainingLines.join("\n")}
       }
       this.torusLog("x_digest", JSON.stringify(logDetail));
       try {
-        (0, import_fs7.unlinkSync)(absContent);
+        (0, import_fs9.unlinkSync)(absContent);
       } catch {
       }
       try {
-        (0, import_fs7.unlinkSync)(this.tmpPath("x-poll-latest.json"));
+        (0, import_fs9.unlinkSync)(this.tmpPath("x-poll-latest.json"));
       } catch {
       }
       try {
-        (0, import_fs7.unlinkSync)(this.tmpPath("x-filter-latest.json"));
+        (0, import_fs9.unlinkSync)(this.tmpPath("x-filter-latest.json"));
       } catch {
       }
       this.torusTrace("plugin:torusXDigest-Commit", `${Math.round(performance.now() - t02)}ms twin=${twinRel} source=${sourcesRel} start=${start} stop=${stop} markerSource=${markerSource}`);
@@ -196183,8 +198169,8 @@ ${remainingLines.join("\n")}
       if (resolved.error) return JSON.stringify(resolved.error);
       const absPath = resolved.absPath;
       const vaultRel = this.resolvePath(notePath);
-      if (!(0, import_fs7.existsSync)(absPath)) return JSON.stringify({ status: "error", error: `Note not found: ${notePath}` });
-      const content = (0, import_fs7.readFileSync)(absPath, "utf-8");
+      if (!(0, import_fs9.existsSync)(absPath)) return JSON.stringify({ status: "error", error: `Note not found: ${notePath}` });
+      const content = (0, import_fs9.readFileSync)(absPath, "utf-8");
       const lines = content.split("\n");
       const X_URL = /https?:\/\/(?:x|twitter)\.com\/[^\s)<>"]+/gi;
       const stripTrailingPunct = (u2) => u2.replace(/[.,;!?]+$/, "");
@@ -196211,7 +198197,7 @@ ${remainingLines.join("\n")}
       const unique = Array.from(new Set(checkedUrls));
       const inputDir = this.settings.inputDir;
       const inputAbs = this.absPath(inputDir);
-      if (!(0, import_fs7.existsSync)(inputAbs)) (0, import_fs7.mkdirSync)(inputAbs, { recursive: true });
+      if (!(0, import_fs9.existsSync)(inputAbs)) (0, import_fs9.mkdirSync)(inputAbs, { recursive: true });
       const now3 = /* @__PURE__ */ new Date();
       const pad = (n) => String(n).padStart(2, "0");
       const date = `${now3.getFullYear()}-${pad(now3.getMonth() + 1)}-${pad(now3.getDate())}`;
@@ -196223,7 +198209,7 @@ ${remainingLines.join("\n")}
         for (let tries = 0; tries < 4; tries++) {
           rel = `${inputDir}/${date}-${randHex()}.md`;
           abs = this.absPath(rel);
-          if (!(0, import_fs7.existsSync)(abs)) break;
+          if (!(0, import_fs9.existsSync)(abs)) break;
         }
         const fm = [
           "---",
@@ -196235,21 +198221,21 @@ ${remainingLines.join("\n")}
           url,
           ""
         ].join("\n");
-        (0, import_fs7.writeFileSync)(abs + ".tmp", fm, "utf-8");
-        (0, import_fs7.renameSync)(abs + ".tmp", abs);
+        (0, import_fs9.writeFileSync)(abs + ".tmp", fm, "utf-8");
+        (0, import_fs9.renameSync)(abs + ".tmp", abs);
         created.push(rel);
       }
       let deleted = false;
       try {
         const file = this.app.vault.getAbstractFileByPath(vaultRel);
-        if (file instanceof import_obsidian29.TFile) {
+        if (file instanceof import_obsidian30.TFile) {
           await this.app.vault.trash(file, false);
           deleted = true;
         }
       } catch (e2) {
         console.warn("[torusXDigestProcess] failed to trash digest, falling back to unlink:", e2);
         try {
-          (0, import_fs7.unlinkSync)(absPath);
+          (0, import_fs9.unlinkSync)(absPath);
           deleted = true;
         } catch {
         }
@@ -196286,8 +198272,8 @@ ${remainingLines.join("\n")}
       const resolvedSource = this.resolveVaultPath(sourceNote);
       if (resolvedSource.error) return JSON.stringify(resolvedSource.error);
       const absContent = resolvedContent.absPath;
-      if (!(0, import_fs7.existsSync)(absContent)) return JSON.stringify({ status: "error", error: `Content file not found: ${contentPath}` });
-      const content = (0, import_fs7.readFileSync)(absContent, "utf-8");
+      if (!(0, import_fs9.existsSync)(absContent)) return JSON.stringify({ status: "error", error: `Content file not found: ${contentPath}` });
+      const content = (0, import_fs9.readFileSync)(absContent, "utf-8");
       if (!/^---\n[\s\S]*?\n---/.test(content)) return JSON.stringify({ status: "error", error: "Content missing frontmatter" });
       const titleMatch = content.match(/^#\s+(.+)$/m);
       if (!titleMatch) return JSON.stringify({ status: "error", error: "Content missing # Title heading" });
@@ -196298,19 +198284,19 @@ ${remainingLines.join("\n")}
       const ideasDir = this.settings.ideasDir;
       const ideaRelPath = `${ideasDir}/${slug}.md`;
       const ideaAbsPath = this.absPath(ideaRelPath);
-      if ((0, import_fs7.existsSync)(ideaAbsPath)) {
+      if ((0, import_fs9.existsSync)(ideaAbsPath)) {
         return JSON.stringify({ status: "error", error: `Idea already exists: ${ideaRelPath}`, suggestion: "use torusIdeaLink instead" });
       }
       const sourceFile = this.app.vault.getAbstractFileByPath(this.resolvePath(sourceNote));
-      if (!(sourceFile instanceof import_obsidian29.TFile)) return JSON.stringify({ status: "error", error: `Source not found: ${sourceNote}` });
+      if (!(sourceFile instanceof import_obsidian30.TFile)) return JSON.stringify({ status: "error", error: `Source not found: ${sourceNote}` });
       const ideaDir = ideaAbsPath.substring(0, ideaAbsPath.lastIndexOf("/"));
-      if (!(0, import_fs7.existsSync)(ideaDir)) (0, import_fs7.mkdirSync)(ideaDir, { recursive: true });
-      (0, import_fs7.writeFileSync)(ideaAbsPath + ".tmp", content, "utf-8");
-      (0, import_fs7.renameSync)(ideaAbsPath + ".tmp", ideaAbsPath);
-      const sourceContent = (0, import_fs7.readFileSync)(this.absPath(sourceFile.path), "utf-8");
+      if (!(0, import_fs9.existsSync)(ideaDir)) (0, import_fs9.mkdirSync)(ideaDir, { recursive: true });
+      (0, import_fs9.writeFileSync)(ideaAbsPath + ".tmp", content, "utf-8");
+      (0, import_fs9.renameSync)(ideaAbsPath + ".tmp", ideaAbsPath);
+      const sourceContent = (0, import_fs9.readFileSync)(this.absPath(sourceFile.path), "utf-8");
       const updatedSource = this._addExtractedIdeaBacklink(sourceContent, slug);
-      (0, import_fs7.writeFileSync)(this.absPath(sourceFile.path) + ".tmp", updatedSource, "utf-8");
-      (0, import_fs7.renameSync)(this.absPath(sourceFile.path) + ".tmp", this.absPath(sourceFile.path));
+      (0, import_fs9.writeFileSync)(this.absPath(sourceFile.path) + ".tmp", updatedSource, "utf-8");
+      (0, import_fs9.renameSync)(this.absPath(sourceFile.path) + ".tmp", this.absPath(sourceFile.path));
       const meta = { idea: title, slug, action: "new", source: sourceFile.basename };
       if (metaJson) {
         try {
@@ -196320,7 +198306,7 @@ ${remainingLines.join("\n")}
       }
       this.torusLog("idea_approved", JSON.stringify(meta));
       try {
-        (0, import_fs7.unlinkSync)(absContent);
+        (0, import_fs9.unlinkSync)(absContent);
       } catch {
       }
       this.torusTrace(`plugin:torusIdeaCreate`, `${Math.round(performance.now() - t02)}ms idea=${slug}`);
@@ -196343,14 +198329,14 @@ ${remainingLines.join("\n")}
       const resolvedSource = this.resolveVaultPath(sourceNote);
       if (resolvedSource.error) return JSON.stringify(resolvedSource.error);
       const absChunk = resolvedChunk.absPath;
-      if (!(0, import_fs7.existsSync)(absChunk)) return JSON.stringify({ status: "error", error: `Chunk file not found: ${chunkPath}` });
-      const chunk = (0, import_fs7.readFileSync)(absChunk, "utf-8").trim();
+      if (!(0, import_fs9.existsSync)(absChunk)) return JSON.stringify({ status: "error", error: `Chunk file not found: ${chunkPath}` });
+      const chunk = (0, import_fs9.readFileSync)(absChunk, "utf-8").trim();
       if (chunk.length < 20) return JSON.stringify({ status: "error", error: "Chunk too short \u2014 expected a synthesis paragraph plus attribution" });
       if (!/\*—\s+\[\[/.test(chunk)) return JSON.stringify({ status: "error", error: "Chunk missing source attribution line (*\u2014 [[note]]...*)" });
       let ideaPath;
       const directPath = this.resolvePath(targetIdea);
       const directFile = this.app.vault.getAbstractFileByPath(directPath);
-      if (directFile instanceof import_obsidian29.TFile) {
+      if (directFile instanceof import_obsidian30.TFile) {
         ideaPath = directFile.path;
       } else {
         const matches = this.resolveQuery(targetIdea);
@@ -196363,8 +198349,8 @@ ${remainingLines.join("\n")}
       const ideaAbsPath = this.absPath(ideaPath);
       const ideaStem = ideaPath.split("/").pop().replace(/\.md$/, "");
       const sourceFile = this.app.vault.getAbstractFileByPath(this.resolvePath(sourceNote));
-      if (!(sourceFile instanceof import_obsidian29.TFile)) return JSON.stringify({ status: "error", error: `Source not found: ${sourceNote}` });
-      const ideaContent = (0, import_fs7.readFileSync)(ideaAbsPath, "utf-8");
+      if (!(sourceFile instanceof import_obsidian30.TFile)) return JSON.stringify({ status: "error", error: `Source not found: ${sourceNote}` });
+      const ideaContent = (0, import_fs9.readFileSync)(ideaAbsPath, "utf-8");
       const trimmed = ideaContent.replace(/\n+$/, "");
       let updated = trimmed + "\n\n" + chunk + "\n";
       const countMatch = updated.match(/^torus_refs:\s*(\d+)/m);
@@ -196372,13 +198358,13 @@ ${remainingLines.join("\n")}
         const newCount = parseInt(countMatch[1], 10) + 1;
         updated = editFrontmatter(updated, { torus_refs: String(newCount) });
       }
-      (0, import_fs7.writeFileSync)(ideaAbsPath + ".tmp", updated, "utf-8");
-      (0, import_fs7.renameSync)(ideaAbsPath + ".tmp", ideaAbsPath);
-      const sourceContent = (0, import_fs7.readFileSync)(this.absPath(sourceFile.path), "utf-8");
+      (0, import_fs9.writeFileSync)(ideaAbsPath + ".tmp", updated, "utf-8");
+      (0, import_fs9.renameSync)(ideaAbsPath + ".tmp", ideaAbsPath);
+      const sourceContent = (0, import_fs9.readFileSync)(this.absPath(sourceFile.path), "utf-8");
       const updatedSource = this._addExtractedIdeaBacklink(sourceContent, ideaStem);
       if (updatedSource !== sourceContent) {
-        (0, import_fs7.writeFileSync)(this.absPath(sourceFile.path) + ".tmp", updatedSource, "utf-8");
-        (0, import_fs7.renameSync)(this.absPath(sourceFile.path) + ".tmp", this.absPath(sourceFile.path));
+        (0, import_fs9.writeFileSync)(this.absPath(sourceFile.path) + ".tmp", updatedSource, "utf-8");
+        (0, import_fs9.renameSync)(this.absPath(sourceFile.path) + ".tmp", this.absPath(sourceFile.path));
       }
       const meta = { idea: ideaStem, action: "link", source: sourceFile.basename };
       if (metaJson) {
@@ -196389,7 +198375,7 @@ ${remainingLines.join("\n")}
       }
       this.torusLog("idea_approved", JSON.stringify(meta));
       try {
-        (0, import_fs7.unlinkSync)(absChunk);
+        (0, import_fs9.unlinkSync)(absChunk);
       } catch {
       }
       const newSourceCount = countMatch ? parseInt(countMatch[1], 10) + 1 : void 0;
@@ -196429,7 +198415,7 @@ ${remainingLines.join("\n")}
     if (!this.settings.twitterBearerToken) {
       return JSON.stringify({ error: "no_bearer_token", message: "Set Twitter bearer token in Torus settings" });
     }
-    (0, import_fs7.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
+    (0, import_fs9.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
     const doWork = async () => {
       try {
         const params = new URLSearchParams({
@@ -196439,14 +198425,14 @@ ${remainingLines.join("\n")}
           expansions: "author_id",
           "user.fields": "name,username"
         });
-        const response = await (0, import_obsidian29.requestUrl)({
+        const response = await (0, import_obsidian30.requestUrl)({
           url: `https://api.x.com/2/tweets/search/recent?${params}`,
           headers: { Authorization: `Bearer ${this.settings.twitterBearerToken}` }
         });
         if (response.status >= 400) {
           const result2 = JSON.stringify({ status: "error", error: `X API ${response.status}`, body: JSON.stringify(response.json).slice(0, 500) });
-          (0, import_fs7.writeFileSync)(resultPath + ".tmp", result2, "utf-8");
-          (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+          (0, import_fs9.writeFileSync)(resultPath + ".tmp", result2, "utf-8");
+          (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
           return;
         }
         const data = response.json;
@@ -196471,13 +198457,13 @@ ${remainingLines.join("\n")}
           };
         });
         const result = JSON.stringify({ status: "ok", query: query2, count: tweets.length, tweets });
-        (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-        (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+        (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+        (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
         this.torusTrace(`plugin:torusXSearch`, `COMPLETE ${Math.round(performance.now() - t02)}ms query="${query2}" results=${tweets.length}`);
       } catch (e2) {
         const result = JSON.stringify({ status: "error", error: e2 instanceof Error ? e2.message : String(e2) });
-        (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-        (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+        (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+        (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
       }
     };
     doWork();
@@ -196493,17 +198479,17 @@ ${remainingLines.join("\n")}
     if (!this.settings.twitterBearerToken) {
       return JSON.stringify({ error: "no_bearer_token", message: "Set Twitter bearer token in Torus settings" });
     }
-    (0, import_fs7.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
+    (0, import_fs9.writeFileSync)(resultPath, JSON.stringify({ status: "pending" }), "utf-8");
     const doWork = async () => {
       try {
         const watchlistPath = this.controlsPath("x-digest-config.json");
-        if (!(0, import_fs7.existsSync)(watchlistPath)) {
+        if (!(0, import_fs9.existsSync)(watchlistPath)) {
           const result2 = JSON.stringify({ status: "error", error: "no_watchlist", message: "No .twin/controls/x-digest-config.json found" });
-          (0, import_fs7.writeFileSync)(resultPath + ".tmp", result2, "utf-8");
-          (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+          (0, import_fs9.writeFileSync)(resultPath + ".tmp", result2, "utf-8");
+          (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
           return;
         }
-        const data = JSON.parse((0, import_fs7.readFileSync)(watchlistPath, "utf-8"));
+        const data = JSON.parse((0, import_fs9.readFileSync)(watchlistPath, "utf-8"));
         let accounts = data.accounts ?? [];
         if (tag === "all") {
         } else if (tag) {
@@ -196514,9 +198500,9 @@ ${remainingLines.join("\n")}
         }
         const runPath = this.controlsPath("x-digest-run.json");
         let sinceTime = new Date(Date.now() - 864e5).toISOString();
-        if ((0, import_fs7.existsSync)(runPath)) {
+        if ((0, import_fs9.existsSync)(runPath)) {
           try {
-            const r2 = JSON.parse((0, import_fs7.readFileSync)(runPath, "utf-8"));
+            const r2 = JSON.parse((0, import_fs9.readFileSync)(runPath, "utf-8"));
             if (r2.start) sinceTime = r2.start;
           } catch {
           }
@@ -196574,7 +198560,7 @@ ${remainingLines.join("\n")}
               });
               params.set("start_time", sinceTime);
               if (nextToken) params.set("next_token", nextToken);
-              const response = await (0, import_obsidian29.requestUrl)({
+              const response = await (0, import_obsidian30.requestUrl)({
                 url: `https://api.x.com/2/tweets/search/recent?${params}`,
                 headers: { Authorization: `Bearer ${this.settings.twitterBearerToken}` },
                 throw: false
@@ -196626,15 +198612,15 @@ ${remainingLines.join("\n")}
           errors: errors3.length > 0 ? errors3 : void 0,
           errorSummary
         });
-        (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-        (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
-        (0, import_fs7.writeFileSync)(persistPath + ".tmp", result, "utf-8");
-        (0, import_fs7.renameSync)(persistPath + ".tmp", persistPath);
+        (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+        (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
+        (0, import_fs9.writeFileSync)(persistPath + ".tmp", result, "utf-8");
+        (0, import_fs9.renameSync)(persistPath + ".tmp", persistPath);
         this.torusTrace("plugin:torusXDigest-Poll", `${Math.round(performance.now() - t02)}ms accounts=${accounts.length} batches=${batches.length} api=${apiCalls} tweets=${allTweets.length}`);
       } catch (e2) {
         const result = JSON.stringify({ status: "error", error: e2 instanceof Error ? e2.message : String(e2) });
-        (0, import_fs7.writeFileSync)(resultPath + ".tmp", result, "utf-8");
-        (0, import_fs7.renameSync)(resultPath + ".tmp", resultPath);
+        (0, import_fs9.writeFileSync)(resultPath + ".tmp", result, "utf-8");
+        (0, import_fs9.renameSync)(resultPath + ".tmp", resultPath);
       }
     };
     doWork();
@@ -196658,10 +198644,10 @@ ${remainingLines.join("\n")}
       } else {
         const resolved = this.resolveVaultPath(trimmed);
         if (resolved.error) return JSON.stringify(resolved.error);
-        if (!(0, import_fs7.existsSync)(resolved.absPath)) return JSON.stringify({ status: "error", error: `Detail file not found: ${trimmed}` });
+        if (!(0, import_fs9.existsSync)(resolved.absPath)) return JSON.stringify({ status: "error", error: `Detail file not found: ${trimmed}` });
         try {
-          detail = JSON.parse((0, import_fs7.readFileSync)(resolved.absPath, "utf-8"));
-          (0, import_fs7.unlinkSync)(resolved.absPath);
+          detail = JSON.parse((0, import_fs9.readFileSync)(resolved.absPath, "utf-8"));
+          (0, import_fs9.unlinkSync)(resolved.absPath);
         } catch (e2) {
           return JSON.stringify({ status: "error", error: `Failed to read detail file: ${e2 instanceof Error ? e2.message : String(e2)}` });
         }
@@ -196673,8 +198659,8 @@ ${remainingLines.join("\n")}
     const logPath = this.contextPath("activity.jsonl");
     const line = JSON.stringify(entry) + "\n";
     const twinDir = this.absPath(`${this.settings.torusRoot}/.twin`);
-    if (!(0, import_fs7.existsSync)(twinDir)) (0, import_fs7.mkdirSync)(twinDir, { recursive: true });
-    (0, import_fs7.appendFileSync)(logPath, line, "utf-8");
+    if (!(0, import_fs9.existsSync)(twinDir)) (0, import_fs9.mkdirSync)(twinDir, { recursive: true });
+    (0, import_fs9.appendFileSync)(logPath, line, "utf-8");
     return JSON.stringify({ status: "ok" });
   }
   /** Query the activity log. Returns filtered entries with local-time
@@ -196682,8 +198668,8 @@ ${remainingLines.join("\n")}
    *  read boundary. `since` filter compares against UTC `ts` (sort-stable). */
   torusLogQuery(type, since, limit = 50) {
     const logPath = this.contextPath("activity.jsonl");
-    if (!(0, import_fs7.existsSync)(logPath)) return JSON.stringify({ entries: [], total: 0 });
-    const raw = (0, import_fs7.readFileSync)(logPath, "utf-8");
+    if (!(0, import_fs9.existsSync)(logPath)) return JSON.stringify({ entries: [], total: 0 });
+    const raw = (0, import_fs9.readFileSync)(logPath, "utf-8");
     let entries = raw.split("\n").filter((l2) => l2.trim()).map((l2) => {
       try {
         return JSON.parse(l2);
@@ -196709,7 +198695,7 @@ ${remainingLines.join("\n")}
     }
     let filePath = this.resolvePath(pathOrQuery);
     const file = this.app.vault.getAbstractFileByPath(filePath);
-    if (!(file instanceof import_obsidian29.TFile)) {
+    if (!(file instanceof import_obsidian30.TFile)) {
       const matches = this.resolveQuery(pathOrQuery);
       if (matches.length === 0) return JSON.stringify({ error: "not_found", query: pathOrQuery });
       filePath = matches[0].path;
@@ -196730,7 +198716,7 @@ ${remainingLines.join("\n")}
     }
     let filePath = this.resolvePath(pathOrQuery);
     const file = this.app.vault.getAbstractFileByPath(filePath);
-    if (!(file instanceof import_obsidian29.TFile)) {
+    if (!(file instanceof import_obsidian30.TFile)) {
       const matches = this.resolveQuery(pathOrQuery);
       if (matches.length === 0) return JSON.stringify({ error: "not_found", query: pathOrQuery });
       filePath = matches[0].path;
@@ -196751,7 +198737,7 @@ ${remainingLines.join("\n")}
     }
     let filePath = this.resolvePath(pathOrQuery);
     const file = this.app.vault.getAbstractFileByPath(filePath);
-    if (!(file instanceof import_obsidian29.TFile)) {
+    if (!(file instanceof import_obsidian30.TFile)) {
       const matches = this.resolveQuery(pathOrQuery);
       if (matches.length === 0) return JSON.stringify({ error: "not_found", query: pathOrQuery });
       if (matches.length > 1 && (!matches[0].score || matches[0].score < 0.8)) {
@@ -196760,7 +198746,7 @@ ${remainingLines.join("\n")}
       filePath = matches[0].path;
     }
     const tfile = this.app.vault.getAbstractFileByPath(filePath);
-    if (!(tfile instanceof import_obsidian29.TFile)) return JSON.stringify({ error: "not_found", path: filePath });
+    if (!(tfile instanceof import_obsidian30.TFile)) return JSON.stringify({ error: "not_found", path: filePath });
     this.app.workspace.getLeaf(newTab).openFile(tfile);
     this.torusLog("open", JSON.stringify({ path: filePath, newTab }));
     return JSON.stringify({ status: "ok", path: filePath });
@@ -196778,7 +198764,7 @@ ${remainingLines.join("\n")}
     const resolveFile = (pathOrQuery) => {
       const resolved = this.resolvePath(pathOrQuery);
       const file = this.app.vault.getAbstractFileByPath(resolved);
-      if (file instanceof import_obsidian29.TFile) return file;
+      if (file instanceof import_obsidian30.TFile) return file;
       if (pathOrQuery.includes("/")) return null;
       const matches = this.resolveQuery(pathOrQuery);
       if (matches.length === 0) return null;
@@ -196786,7 +198772,7 @@ ${remainingLines.join("\n")}
       if ((top.score ?? 0) < 0.8) return null;
       if (matches.length > 1 && (matches[1].score ?? 0) >= 0.8) return null;
       const found = this.app.vault.getAbstractFileByPath(top.path);
-      return found instanceof import_obsidian29.TFile ? found : null;
+      return found instanceof import_obsidian30.TFile ? found : null;
     };
     const survivorFile = resolveFile(survivorPath);
     if (!survivorFile) return JSON.stringify({ error: "survivor_not_found", query: survivorPath });
@@ -196822,7 +198808,7 @@ ${remainingLines.join("\n")}
     }
     const resolved = this.resolvePath(oldPath);
     const file = this.app.vault.getAbstractFileByPath(resolved);
-    if (!(file instanceof import_obsidian29.TFile)) return JSON.stringify({ error: "not_found", path: resolved });
+    if (!(file instanceof import_obsidian30.TFile)) return JSON.stringify({ error: "not_found", path: resolved });
     const newResolved = this.resolvePath(newPath);
     await this.app.fileManager.renameFile(file, newResolved);
     this.torusTrace(`plugin:torusRename`, `${Math.round(performance.now() - t02)}ms ${resolved} \u2192 ${newResolved}`);
@@ -196845,7 +198831,7 @@ ${remainingLines.join("\n")}
     let filePath = resolved;
     let file = this.app.vault.getAbstractFileByPath(resolved);
     let resolvedVia = "exact";
-    if (!(file instanceof import_obsidian29.TFile)) {
+    if (!(file instanceof import_obsidian30.TFile)) {
       if (nameOrPath.includes("/")) {
         return JSON.stringify({ error: "not_found", path: resolved, input: nameOrPath });
       }
@@ -196860,7 +198846,7 @@ ${remainingLines.join("\n")}
       }
       filePath = top.path;
       file = this.app.vault.getAbstractFileByPath(filePath);
-      if (!(file instanceof import_obsidian29.TFile)) return JSON.stringify({ error: "not_found", path: filePath });
+      if (!(file instanceof import_obsidian30.TFile)) return JSON.stringify({ error: "not_found", path: filePath });
       resolvedVia = "fuzzy";
     }
     const allLinks = this.app.metadataCache.resolvedLinks;
@@ -196886,7 +198872,7 @@ ${remainingLines.join("\n")}
     await this.app.vault.trash(file, true);
     for (const assetPath of cascaded) {
       const assetFile = this.app.vault.getAbstractFileByPath(assetPath);
-      if (assetFile instanceof import_obsidian29.TFile) {
+      if (assetFile instanceof import_obsidian30.TFile) {
         await this.app.vault.trash(assetFile, true);
         this.torusLog("asset_cascade_delete", JSON.stringify({ asset: assetPath, trigger_note: filePath }));
       }
@@ -196912,9 +198898,10 @@ ${remainingLines.join("\n")}
   }
   async onload() {
     this.settings = await loadSettings(this);
-    this.addSettingTab(new TorusSettingTab(this.app, this));
+    this.settingTab = new TorusSettingTab(this.app, this);
+    this.addSettingTab(this.settingTab);
     const twinTmp = this.absPath(`${this.settings.torusRoot}/.twin/tmp`);
-    if (!(0, import_fs7.existsSync)(twinTmp)) (0, import_fs7.mkdirSync)(twinTmp, { recursive: true });
+    if (!(0, import_fs9.existsSync)(twinTmp)) (0, import_fs9.mkdirSync)(twinTmp, { recursive: true });
     this.torusLogger = new TorusLogger(this.absPath(`${this.settings.torusRoot}/.twin/logs`));
     setActiveLogger(this.torusLogger);
     this.torusTrace("plugin", "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 PLUGIN ONLOAD \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550");
@@ -196934,12 +198921,12 @@ ${remainingLines.join("\n")}
     try {
       const sweepCutoffMs = Date.now() - 7 * 864e5;
       let swept = 0;
-      for (const name of (0, import_fs7.readdirSync)(twinTmp)) {
-        const p3 = (0, import_path5.join)(twinTmp, name);
+      for (const name of (0, import_fs9.readdirSync)(twinTmp)) {
+        const p3 = (0, import_path6.join)(twinTmp, name);
         try {
-          const st = (0, import_fs7.statSync)(p3);
+          const st = (0, import_fs9.statSync)(p3);
           if (st.isFile() && st.mtimeMs < sweepCutoffMs) {
-            (0, import_fs7.unlinkSync)(p3);
+            (0, import_fs9.unlinkSync)(p3);
             swept++;
           }
         } catch {
@@ -196982,19 +198969,30 @@ ${remainingLines.join("\n")}
           torusRoot: this.settings.torusRoot
         }).catch((e2) => console.error("[Torus] IMAP start failed:", e2));
       }
-      if (this.settings.enablePluginImessage && this.settings.imessageSelfHandle) {
+      if (this.settings.enablePluginImessage && parseHandles(this.settings.imessageSelfHandles).length > 0) {
         const vaultPath = this.app.vault.adapter.basePath;
         this.imessageRunner = new ImessageRunner((m2) => this.torusTrace("capture:imessage", m2));
         this.imessageRunner.start({
           vaultPath,
           torusRoot: this.settings.torusRoot,
-          selfHandle: this.settings.imessageSelfHandle
+          selfHandles: parseHandles(this.settings.imessageSelfHandles)
         }).catch((e2) => console.error("[Torus] iMessage start failed:", e2));
+      }
+      if (this.settings.enableTelegramBridge && this.settings.telegramBotToken) {
+        const vaultPath = this.app.vault.adapter.basePath;
+        this.telegramRunner = new TelegramRunner((m2) => this.torusTrace("capture:telegram", m2));
+        this.telegramRunner.start({
+          botToken: this.settings.telegramBotToken,
+          authorizedUserIds: this.parseTelegramUserIds(),
+          vaultPath,
+          torusRoot: this.settings.torusRoot
+        }).catch((e2) => console.error("[Torus] Telegram start failed:", e2));
       }
       const subsystems = ["taskrunner"];
       if (this.settings.enablePluginSpawnedBridge && this.settings.bridgePath) subsystems.push("bridge");
       if (this.settings.enablePluginImap) subsystems.push("imap");
       if (this.settings.enablePluginImessage) subsystems.push("imessage");
+      if (this.settings.enableTelegramBridge && this.settings.telegramBotToken) subsystems.push("telegram");
       console.log(`[Torus] loaded${subsystems.length ? ` \u2014 ${subsystems.join(", ")}` : ""}`);
     });
     this.addRibbonIcon("torus", "The Torus", () => {
@@ -197052,7 +199050,7 @@ ${remainingLines.join("\n")}
     this.register(() => window.removeEventListener("torus-cc-zero", onLaunchCC));
     const onLaunchPicker = (e2) => {
       const { x: x2, y } = e2.detail ?? {};
-      const menu = new import_obsidian29.Menu();
+      const menu = new import_obsidian30.Menu();
       menu.addItem((item) => item.setTitle("Minimal Context (~30k tokens)").setIcon("battery-low").onClick(() => this.launchCCZero({ tier: "low" })));
       menu.addItem((item) => item.setTitle("Medium Context (~100k tokens)").setIcon("battery-medium").onClick(() => this.launchCCZero({ tier: "med" })));
       menu.addItem((item) => item.setTitle("Maximum Context (~180k tokens)").setIcon("battery-full").onClick(() => this.launchCCZero({ tier: "high" })));
@@ -197069,9 +199067,18 @@ ${remainingLines.join("\n")}
     };
     window.addEventListener("torus-shelve-complete", onShelveComplete);
     this.register(() => window.removeEventListener("torus-shelve-complete", onShelveComplete));
+    const isPluginInternalPath = (p3) => {
+      if (p3.endsWith(".tmp")) return true;
+      const twinPrefix = `${this.settings.torusRoot}/.twin/`;
+      if (p3.startsWith(twinPrefix)) return true;
+      const base = p3.split("/").pop() ?? "";
+      if (base.startsWith(".")) return true;
+      return false;
+    };
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
-        if (!(file instanceof import_obsidian29.TFile) || file.extension !== "md") return;
+        if (!(file instanceof import_obsidian30.TFile) || file.extension !== "md") return;
+        if (isPluginInternalPath(file.path)) return;
         const isSource = this.settings.sourceDirs.some((d) => file.path.startsWith(d + "/"));
         const isIdea = file.path.startsWith(this.settings.ideasDir + "/");
         const isInput = file.path.startsWith(this.settings.inputDir + "/");
@@ -197096,7 +199103,7 @@ ${remainingLines.join("\n")}
             menu.addItem((item) => {
               item.setSection("torus").setTitle("Copy path").setIcon("copy").onClick(() => {
                 navigator.clipboard.writeText(file.path);
-                new import_obsidian29.Notice("Copied: " + file.path);
+                new import_obsidian30.Notice("Copied: " + file.path);
               });
             });
             if (isShelveable && isShelved) {
@@ -197128,17 +199135,15 @@ ${remainingLines.join("\n")}
               });
             });
           }
+        } else {
+          menu.addItem((item) => {
+            item.setSection("torus").setTitle("Torus: Add to Torus\u2026").setIcon("plus-circle").onClick(() => {
+              new AddNoteModal(this.app, this, file.path).open();
+            });
+          });
         }
       })
     );
-    const isPluginInternalPath = (p3) => {
-      if (p3.endsWith(".tmp")) return true;
-      const twinPrefix = `${this.settings.torusRoot}/.twin/`;
-      if (p3.startsWith(twinPrefix)) return true;
-      const base = p3.split("/").pop() ?? "";
-      if (base.startsWith(".")) return true;
-      return false;
-    };
     for (const f of this.app.vault.getMarkdownFiles()) {
       const fm = this.app.metadataCache.getFileCache(f)?.frontmatter;
       const status = fm?.torus_status;
@@ -197152,7 +199157,7 @@ ${remainingLines.join("\n")}
     }
     this.registerEvent(
       this.app.vault.on("delete", (file) => {
-        if (!(file instanceof import_obsidian29.TFile) || file.extension !== "md") {
+        if (!(file instanceof import_obsidian30.TFile) || file.extension !== "md") {
           this.frontmatterShadow.delete(file.path);
           return;
         }
@@ -197182,7 +199187,7 @@ ${remainingLines.join("\n")}
     );
     this.registerEvent(
       this.app.vault.on("rename", (file, oldPath) => {
-        if (!(file instanceof import_obsidian29.TFile) || file.extension !== "md") return;
+        if (!(file instanceof import_obsidian30.TFile) || file.extension !== "md") return;
         const prev = this.frontmatterShadow.get(oldPath);
         this.frontmatterShadow.delete(oldPath);
         if (prev !== void 0) this.frontmatterShadow.set(file.path, prev);
@@ -197190,7 +199195,7 @@ ${remainingLines.join("\n")}
     );
     this.registerEvent(
       this.app.metadataCache.on("changed", (file) => {
-        if (!(file instanceof import_obsidian29.TFile) || file.extension !== "md") return;
+        if (!(file instanceof import_obsidian30.TFile) || file.extension !== "md") return;
         if (isPluginInternalPath(file.path)) return;
         const fm = this.app.metadataCache.getFileCache(file)?.frontmatter;
         const next = fm?.torus_status;
@@ -197222,7 +199227,7 @@ ${remainingLines.join("\n")}
     );
     this.registerEvent(
       this.app.metadataCache.on("changed", (file) => {
-        if (!(file instanceof import_obsidian29.TFile) || file.extension !== "md") return;
+        if (!(file instanceof import_obsidian30.TFile) || file.extension !== "md") return;
         const fm = this.app.metadataCache.getFileCache(file)?.frontmatter;
         if (!this.shouldGuardFrontmatter(file, fm)) return;
         if (!fm) return;
@@ -197230,12 +199235,12 @@ ${remainingLines.join("\n")}
         if (stale.length > 0) {
           try {
             const absPath = this.absPath(file.path);
-            const raw = (0, import_fs7.readFileSync)(absPath, "utf-8");
+            const raw = (0, import_fs9.readFileSync)(absPath, "utf-8");
             const m2 = raw.match(/^(---\n)([\s\S]*?)(\n---\n?)/);
             if (!m2) return;
             const newBlock = this.rewriteFrontmatterLines(m2[2], stale);
             const next = m2[1] + newBlock + m2[3] + raw.slice(m2[0].length);
-            (0, import_fs7.writeFileSync)(absPath, next, "utf-8");
+            (0, import_fs9.writeFileSync)(absPath, next, "utf-8");
             this.torusLog("frontmatter_guard", JSON.stringify({
               path: file.path,
               fields_rewritten: stale.map((s) => s.field)
@@ -197248,7 +199253,7 @@ ${remainingLines.join("\n")}
         }
         const unrecognized = findUnrecognizedTorusFields(fm);
         if (unrecognized.length > 0) {
-          new import_obsidian29.Notice(
+          new import_obsidian30.Notice(
             `Unrecognized torus_* fields in ${file.path}: ${unrecognized.join(", ")}. Plugin doesn't author these \u2014 if intentional, ignore; if hallucinated, remove.`,
             8e3
           );
@@ -197266,18 +199271,18 @@ ${remainingLines.join("\n")}
     this.registerObsidianProtocolHandler("torus-transcript", async (params) => {
       const videoId = params.v;
       if (!videoId) {
-        new import_obsidian29.Notice("Missing video ID");
+        new import_obsidian30.Notice("Missing video ID");
         return;
       }
       const activeFile = this.app.workspace.getActiveFile();
       if (!activeFile) {
-        new import_obsidian29.Notice("Open the note first, then click the link");
+        new import_obsidian30.Notice("Open the note first, then click the link");
         return;
       }
-      new import_obsidian29.Notice("Fetching full transcript...");
+      new import_obsidian30.Notice("Fetching full transcript...");
       const result = await fetchFullYoutubeTranscript(videoId);
       if (!result) {
-        new import_obsidian29.Notice("Failed to fetch transcript");
+        new import_obsidian30.Notice("Failed to fetch transcript");
         return;
       }
       const skip = Math.max(0, parseInt(params.skip || "0", 10) - 200);
@@ -197289,7 +199294,7 @@ ${remainingLines.join("\n")}
         );
         return content.trimEnd() + "\n\n---\n\n## Remaining Transcript\n\n" + remainder + "\n";
       });
-      new import_obsidian29.Notice(`Remaining transcript added (${remainder.length} chars)`);
+      new import_obsidian30.Notice(`Remaining transcript added (${remainder.length} chars)`);
     });
     this.registerObsidianProtocolHandler("torus-find", async () => {
       const file = this.app.workspace.getActiveFile();
@@ -197305,15 +199310,15 @@ ${remainingLines.join("\n")}
       const url = params.url ? decodeURIComponent(params.url) : "";
       const notePath = params.note ? decodeURIComponent(params.note) : "";
       if (!url || !notePath) {
-        new import_obsidian29.Notice("Invalid link parameters");
+        new import_obsidian30.Notice("Invalid link parameters");
         return;
       }
       const tfile = this.app.vault.getAbstractFileByPath(notePath);
-      if (!(tfile instanceof import_obsidian29.TFile)) {
-        new import_obsidian29.Notice(`Note not found: ${notePath}`);
+      if (!(tfile instanceof import_obsidian30.TFile)) {
+        new import_obsidian30.Notice(`Note not found: ${notePath}`);
         return;
       }
-      new import_obsidian29.Notice("Fetching referenced content...");
+      new import_obsidian30.Notice("Fetching referenced content...");
       const noteSlug = tfile.basename.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
       const content = await fetchSingleUrl(
         this.app,
@@ -197323,12 +199328,12 @@ ${remainingLines.join("\n")}
         this.settings.twitterBearerToken
       );
       if (!content) {
-        new import_obsidian29.Notice("Failed to fetch referenced content");
+        new import_obsidian30.Notice("Failed to fetch referenced content");
         return;
       }
       const cleaned = cleanJinaContent(content);
       if (!cleaned) {
-        new import_obsidian29.Notice("No content found at referenced URL");
+        new import_obsidian30.Notice("No content found at referenced URL");
         return;
       }
       await this.app.vault.process(tfile, (raw) => {
@@ -197347,25 +199352,25 @@ ${remainingLines.join("\n")}
         hostname = new URL(url).hostname;
       } catch {
       }
-      new import_obsidian29.Notice(`Referenced content included from ${hostname}`);
+      new import_obsidian30.Notice(`Referenced content included from ${hostname}`);
     });
     this.registerObsidianProtocolHandler("torus-fetch-full", async (params) => {
       const url = params.url ? decodeURIComponent(params.url) : "";
       const skip = parseInt(params.skip || "0", 10);
       if (!url) {
-        new import_obsidian29.Notice("Missing URL parameter");
+        new import_obsidian30.Notice("Missing URL parameter");
         return;
       }
       const activeFile = this.app.workspace.getActiveFile();
       if (!activeFile) {
-        new import_obsidian29.Notice("Open the note first, then click the link");
+        new import_obsidian30.Notice("Open the note first, then click the link");
         return;
       }
-      new import_obsidian29.Notice("Fetching remaining content...");
+      new import_obsidian30.Notice("Fetching remaining content...");
       try {
         const result = await fetchFullUrl(url, this.settings.twitterBearerToken);
         if (!result) {
-          new import_obsidian29.Notice("Failed to fetch content");
+          new import_obsidian30.Notice("Failed to fetch content");
           return;
         }
         console.log(`[torus-fetch-full] fetched via ${result.source}: ${url.slice(0, 80)}`);
@@ -197399,16 +199404,16 @@ ${remainingLines.join("\n")}
           raw = raw.replace(truncMatch[0], "");
           return raw.trimEnd() + "\n\n---\n\n## Remaining Content\n\n" + remainder + "\n";
         });
-        new import_obsidian29.Notice("Remaining content added");
+        new import_obsidian30.Notice("Remaining content added");
       } catch (e2) {
         const msg = e2 instanceof Error ? e2.message : String(e2);
-        new import_obsidian29.Notice(`Failed to fetch remaining content: ${msg}`);
+        new import_obsidian30.Notice(`Failed to fetch remaining content: ${msg}`);
       }
     });
     this.registerObsidianProtocolHandler("torus-log", async (params) => {
       const type = params.type;
       if (!type) {
-        new import_obsidian29.Notice("torus-log: missing type");
+        new import_obsidian30.Notice("torus-log: missing type");
         return;
       }
       let detail = {};
@@ -197439,7 +199444,7 @@ ${remainingLines.join("\n")}
       const adapter = this.app.vault.adapter;
       if (!await adapter.exists(logPath)) {
         await adapter.write(outPath, JSON.stringify({ entries: [], total: 0 }));
-        new import_obsidian29.Notice("Activity log is empty");
+        new import_obsidian30.Notice("Activity log is empty");
         return;
       }
       const raw = await adapter.read(logPath);
@@ -197461,7 +199466,7 @@ ${remainingLines.join("\n")}
       const total = entries.length;
       entries = entries.slice(-limit);
       await adapter.write(outPath, JSON.stringify({ entries, total, query: params }, null, 2));
-      new import_obsidian29.Notice(`Log query: ${entries.length} of ${total} entries \u2192 .twin/log-query-result.json`);
+      new import_obsidian30.Notice(`Log query: ${entries.length} of ${total} entries \u2192 .twin/log-query-result.json`);
     });
   }
   async onunload() {
@@ -197481,6 +199486,10 @@ ${remainingLines.join("\n")}
     if (this.imessageRunner) {
       await this.imessageRunner.stop();
       this.imessageRunner = null;
+    }
+    if (this.telegramRunner) {
+      await this.telegramRunner.stop();
+      this.telegramRunner = null;
     }
     setActiveLogger(null);
     this.torusLogger = null;
@@ -197521,7 +199530,7 @@ var PREREQ_HELP = {
   // Adding a copy-pasteable npm command here ambushes the user with the wrong
   // path; the bundle wrapper is the right one.
 };
-var PrereqsModal = class extends import_obsidian29.Modal {
+var PrereqsModal = class extends import_obsidian30.Modal {
   constructor(app, missing, warnings = [], actions = []) {
     super(app);
     this.missing = missing;
@@ -197667,7 +199676,7 @@ var PrereqsModal = class extends import_obsidian29.Modal {
     this.contentEl.empty();
   }
 };
-var InstallErrorModal = class extends import_obsidian29.Modal {
+var InstallErrorModal = class extends import_obsidian30.Modal {
   constructor(app, message) {
     super(app);
     this.message = message;
@@ -197702,7 +199711,7 @@ var InstallErrorModal = class extends import_obsidian29.Modal {
     this.contentEl.empty();
   }
 };
-var QmdDay2Modal = class extends import_obsidian29.Modal {
+var QmdDay2Modal = class extends import_obsidian30.Modal {
   constructor(app, onAdd, onSkip) {
     super(app);
     this.onAdd = onAdd;
@@ -197753,7 +199762,7 @@ var QmdDay2Modal = class extends import_obsidian29.Modal {
     this.contentEl.empty();
   }
 };
-var WelcomeInstallModal = class extends import_obsidian29.Modal {
+var WelcomeInstallModal = class extends import_obsidian30.Modal {
   plugin;
   rows;
   smartSearchChecked = false;
@@ -197859,15 +199868,15 @@ var WelcomeInstallModal = class extends import_obsidian29.Modal {
     install.onclick = () => {
       if (this.smartSearchChecked) {
         this.plugin.ensureQmdBundle().catch((e2) => {
-          new import_obsidian29.Notice(`Smart Search install failed: ${e2?.message ?? e2}`);
+          new import_obsidian30.Notice(`Smart Search install failed: ${e2?.message ?? e2}`);
         });
       }
       if (this.texturesChecked) {
         this.plugin.installTexturePack().then((r2) => {
-          if (r2.ok) new import_obsidian29.Notice(`Texture pack installed (${Math.round((r2.size || 0) / 1024 / 1024)} MB). Reload plugin to apply.`);
-          else new import_obsidian29.Notice(`Texture install failed: ${r2.error}`);
+          if (r2.ok) new import_obsidian30.Notice(`Texture pack installed (${Math.round((r2.size || 0) / 1024 / 1024)} MB). Reload plugin to apply.`);
+          else new import_obsidian30.Notice(`Texture install failed: ${r2.error}`);
         }).catch((e2) => {
-          new import_obsidian29.Notice(`Texture install failed: ${e2?.message ?? e2}`);
+          new import_obsidian30.Notice(`Texture install failed: ${e2?.message ?? e2}`);
         });
       }
       this.close();
