@@ -12724,12 +12724,12 @@ var require_use_sync_external_store_shim_production = __commonJS({
       return x2 === y && (0 !== x2 || 1 / x2 === 1 / y) || x2 !== x2 && y !== y;
     }
     var objectIs = "function" === typeof Object.is ? Object.is : is2;
-    var useState47 = React9.useState;
+    var useState48 = React9.useState;
     var useEffect44 = React9.useEffect;
     var useLayoutEffect9 = React9.useLayoutEffect;
     var useDebugValue = React9.useDebugValue;
     function useSyncExternalStore$2(subscribe, getSnapshot) {
-      var value = getSnapshot(), _useState = useState47({ inst: { value, getSnapshot } }), inst = _useState[0].inst, forceUpdate = _useState[1];
+      var value = getSnapshot(), _useState = useState48({ inst: { value, getSnapshot } }), inst = _useState[0].inst, forceUpdate = _useState[1];
       useLayoutEffect9(
         function() {
           inst.value = value;
@@ -112969,7 +112969,7 @@ var import_crypto4 = require("crypto");
 // src/TorusView.ts
 var import_obsidian20 = require("obsidian");
 var import_client = __toESM(require_client(), 1);
-var import_react63 = __toESM(require_react(), 1);
+var import_react64 = __toESM(require_react(), 1);
 
 // node_modules/@react-three/fiber/dist/events-5a94e5eb.esm.js
 var React2 = __toESM(require_react());
@@ -167446,50 +167446,30 @@ var MAX_DEPTH = 5;
 function isNetworkMode(mode) {
   return mode === "network-map" || mode === "network-tree";
 }
-function isLibraryMode(mode) {
-  return mode === "library-round" || mode === "library-flat";
-}
 var BUTTONS = [
-  [
-    { key: "library-round", label: "Round" },
-    { key: "library-flat", label: "Facade" }
-  ],
   [
     { key: "network-map", label: "Map" },
     { key: "network-tree", label: "Tree" }
   ]
 ];
-function NavHeader({ selectionCount, onEnterNetwork, onExitToLibrary, onSwitchLibraryMode }) {
+function NavHeader({ selectionCount, onEnterNetwork, onExitToLibrary }) {
   const { current, navigate, replace } = useNavigation();
   const inNetwork = isNetworkMode(current.mode);
-  const inLibrary = isLibraryMode(current.mode);
   const canEnterNetwork = inNetwork || selectionCount >= 1;
   const canEnterPath = selectionCount >= 2;
   function handleModeClick(mode) {
     if (mode === current.mode) return;
-    if (isNetworkMode(mode)) {
-      if (!inNetwork) {
-        onEnterNetwork(mode);
-      } else {
-        navigate({ ...current, mode });
-      }
-      return;
+    if (!inNetwork) {
+      onEnterNetwork(mode);
+    } else {
+      navigate({ ...current, mode });
     }
-    if (isLibraryMode(mode) && !inLibrary) {
-      onExitToLibrary(mode);
-      return;
-    }
-    if (isLibraryMode(mode) && inLibrary && !isExteriorRef.current) {
-      onSwitchLibraryMode(mode);
-      return;
-    }
-    navigate({ ...current, mode });
   }
   function isDisabled(key) {
     if (isNetworkMode(key)) return !canEnterNetwork;
     return false;
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { style: { paddingBottom: 8, borderBottom: "1px solid #1e1e28", marginBottom: 4 }, children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { style: { paddingTop: 8, borderTop: "1px solid #1e1e28", marginTop: 4 }, children: [
     /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }, children: BUTTONS.flat().map(({ key, label }) => {
       const isActive = current.mode === key;
       const disabled = isDisabled(key);
@@ -167559,7 +167539,28 @@ function NavHeader({ selectionCount, onEnterNetwork, onExitToLibrary, onSwitchLi
           }
         )
       ] })
-    ] })
+    ] }),
+    inNetwork && /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(
+      "button",
+      {
+        onClick: () => onExitToLibrary(),
+        title: "Back to the library",
+        style: {
+          marginTop: 7,
+          width: "100%",
+          background: "transparent",
+          border: "1px solid #252530",
+          borderRadius: 3,
+          color: "#5588bb",
+          fontSize: 10,
+          padding: "4px 0",
+          cursor: "pointer",
+          textAlign: "center",
+          lineHeight: 1
+        },
+        children: "\u2190 Library"
+      }
+    )
   ] });
 }
 var depthBtnStyle = {
@@ -167680,15 +167681,6 @@ function Legend({ onNavigate, selectionCount, onEnterNetwork, onExitToLibrary, o
     pointerEvents: "auto",
     zIndex: 10
   }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(
-      NavHeader,
-      {
-        selectionCount,
-        onEnterNetwork,
-        onExitToLibrary,
-        onSwitchLibraryMode
-      }
-    ),
     inLibraryView && /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(import_jsx_runtime32.Fragment, { children: [
       /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(
         "button",
@@ -167739,6 +167731,15 @@ function Legend({ onNavigate, selectionCount, onEnterNetwork, onExitToLibrary, o
       })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(
+      NavHeader,
+      {
+        selectionCount,
+        onEnterNetwork,
+        onExitToLibrary,
+        onSwitchLibraryMode
+      }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(
       "button",
       {
         onClick: () => setCollapsed(true),
@@ -167769,12 +167770,47 @@ var btnBase = {
   gap: 6
 };
 
-// src/components/CameraController.tsx
-var import_react41 = __toESM(require_react(), 1);
-
-// src/components/SkyDome.tsx
+// src/components/EnterButton.tsx
 var import_react40 = __toESM(require_react(), 1);
 var import_jsx_runtime33 = __toESM(require_jsx_runtime(), 1);
+function EnterButton({ onNavigate }) {
+  const [hover, setHover] = (0, import_react40.useState)(false);
+  return /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(
+    "button",
+    {
+      onClick: (e2) => onNavigate([0, 0, 0], e2.shiftKey ? "desk-inbox" : "desk"),
+      onMouseEnter: () => setHover(true),
+      onMouseLeave: () => setHover(false),
+      title: "Enter the library \u2014 fly to the Sorting Desk\nShift-click: focus the inbox",
+      style: {
+        position: "absolute",
+        bottom: "7%",
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: hover ? "rgba(28, 28, 36, 0.88)" : "rgba(10, 10, 15, 0.72)",
+        border: `1px solid ${hover ? "#55555f" : "#3a3a44"}`,
+        borderRadius: 6,
+        padding: "11px 30px",
+        color: hover ? "#eceef2" : "#cdd2da",
+        fontSize: 14,
+        fontWeight: 600,
+        letterSpacing: "0.04em",
+        cursor: "pointer",
+        zIndex: 10,
+        backdropFilter: "blur(2px)",
+        transition: "background 0.15s, color 0.15s, border-color 0.15s"
+      },
+      children: "Enter"
+    }
+  );
+}
+
+// src/components/CameraController.tsx
+var import_react42 = __toESM(require_react(), 1);
+
+// src/components/SkyDome.tsx
+var import_react41 = __toESM(require_react(), 1);
+var import_jsx_runtime34 = __toESM(require_jsx_runtime(), 1);
 var SKY_IMAGE_PATH = ".obsidian/plugins/the-torus/noirlab2430b-06.jpeg";
 var vertexShader = `
   varying vec3 vWorldPosition;
@@ -167796,8 +167832,8 @@ var fragmentShader = `
 `;
 function useSkyTexture() {
   const app = useObsidian();
-  const [texture, setTexture] = (0, import_react40.useState)(null);
-  (0, import_react40.useEffect)(() => {
+  const [texture, setTexture] = (0, import_react41.useState)(null);
+  (0, import_react41.useEffect)(() => {
     let cancelled = false;
     let blobUrl = null;
     async function load13() {
@@ -167832,14 +167868,14 @@ function useSkyTexture() {
 var skyDomeRef = { current: null };
 function SkyDome() {
   const skyTex = useSkyTexture();
-  const uniforms = (0, import_react40.useMemo)(() => ({
+  const uniforms = (0, import_react41.useMemo)(() => ({
     colorHorizon: { value: new Color("#0e1020") },
     colorZenith: { value: new Color("#050510") }
   }), []);
-  return /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("group", { ref: skyDomeRef, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("mesh", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("sphereGeometry", { args: [800, 64, 32] }),
-      skyTex ? /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("meshBasicMaterial", { map: skyTex, side: BackSide, fog: false }) : /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("group", { ref: skyDomeRef, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("mesh", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("sphereGeometry", { args: [800, 64, 32] }),
+      skyTex ? /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("meshBasicMaterial", { map: skyTex, side: BackSide, fog: false }) : /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
         "shaderMaterial",
         {
           uniforms,
@@ -167850,7 +167886,7 @@ function SkyDome() {
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
       Stars,
       {
         radius: 400,
@@ -167926,22 +167962,22 @@ function CameraController({
   facingWing = 0
 }) {
   const { camera, controls, invalidate: invalidate2 } = useThree();
-  (0, import_react41.useEffect)(() => {
+  (0, import_react42.useEffect)(() => {
     if (controls) invalidate2();
   }, [controls, invalidate2]);
   const { getPosition, setHighlightedFile } = useNotePositions();
   const library = useLibrary();
   const ideas = useIdeas(library);
   const { roundUseWings } = useLayoutConfig();
-  const radius = (0, import_react41.useMemo)(
+  const radius = (0, import_react42.useMemo)(
     () => computeWingsRadius(library.wingOrder, library.wings),
     [library.wingOrder, library.wings]
   );
-  const flatRoomSlots = (0, import_react41.useMemo)(
+  const flatRoomSlots = (0, import_react42.useMemo)(
     () => buildFlatRoomList(library.wingOrder, library.wings, roundUseWings),
     [library.wingOrder, library.wings, roundUseWings]
   );
-  const maxShelfRows = (0, import_react41.useMemo)(() => {
+  const maxShelfRows = (0, import_react42.useMemo)(() => {
     let max = 2;
     for (const key of library.roomOrder) {
       const room = library.rooms[key];
@@ -167955,55 +167991,55 @@ function CameraController({
   const apseBot = firstFloorTop + SEPARATOR_HEIGHT;
   const roofHeight = useRoofHeight(library.roomOrder, flatRoomSlots, radius, apseBot, ideas);
   const domeBaseY = firstFloorTop + SEPARATOR_HEIGHT + roofHeight;
-  const domeBaseYRef = (0, import_react41.useRef)(domeBaseY);
+  const domeBaseYRef = (0, import_react42.useRef)(domeBaseY);
   domeBaseYRef.current = domeBaseY;
-  const firstFloorTopRef = (0, import_react41.useRef)(firstFloorTop);
+  const firstFloorTopRef = (0, import_react42.useRef)(firstFloorTop);
   firstFloorTopRef.current = firstFloorTop;
-  const radiusRef = (0, import_react41.useRef)(radius);
+  const radiusRef = (0, import_react42.useRef)(radius);
   radiusRef.current = radius;
-  const flyPath = (0, import_react41.useRef)(null);
-  const flyLookStart = (0, import_react41.useRef)(new Vector3());
-  const flyLookEnd = (0, import_react41.useRef)(new Vector3());
-  const flyT = (0, import_react41.useRef)(0);
-  const flyLookMult = (0, import_react41.useRef)(1.4);
-  const animating = (0, import_react41.useRef)(false);
-  const justLandedFrames = (0, import_react41.useRef)(0);
-  const navUseArc = (0, import_react41.useRef)(true);
-  const ideasDisabledControls = (0, import_react41.useRef)(false);
-  const targetVec = (0, import_react41.useRef)(new Vector3());
-  const cameraTarget = (0, import_react41.useRef)(new Vector3());
-  const navStartPos = (0, import_react41.useRef)(new Vector3());
-  const navStartLook = (0, import_react41.useRef)(new Vector3());
-  const navT = (0, import_react41.useRef)(0);
-  const navUsePhasedLook = (0, import_react41.useRef)(false);
-  const navUseFlyDuration = (0, import_react41.useRef)(false);
+  const flyPath = (0, import_react42.useRef)(null);
+  const flyLookStart = (0, import_react42.useRef)(new Vector3());
+  const flyLookEnd = (0, import_react42.useRef)(new Vector3());
+  const flyT = (0, import_react42.useRef)(0);
+  const flyLookMult = (0, import_react42.useRef)(1.4);
+  const animating = (0, import_react42.useRef)(false);
+  const justLandedFrames = (0, import_react42.useRef)(0);
+  const navUseArc = (0, import_react42.useRef)(true);
+  const ideasDisabledControls = (0, import_react42.useRef)(false);
+  const targetVec = (0, import_react42.useRef)(new Vector3());
+  const cameraTarget = (0, import_react42.useRef)(new Vector3());
+  const navStartPos = (0, import_react42.useRef)(new Vector3());
+  const navStartLook = (0, import_react42.useRef)(new Vector3());
+  const navT = (0, import_react42.useRef)(0);
+  const navUsePhasedLook = (0, import_react42.useRef)(false);
+  const navUseFlyDuration = (0, import_react42.useRef)(false);
   const USE_SLERP_LOOK = false;
-  const navUseCurvedPath = (0, import_react41.useRef)(false);
-  const navCurvedPath = (0, import_react41.useRef)(null);
-  const slerpStartDir = (0, import_react41.useRef)(new Vector3());
-  const slerpStartDist = (0, import_react41.useRef)(0);
-  const _slerpDirToTarget = (0, import_react41.useRef)(new Vector3());
-  const _slerpCurrentDir = (0, import_react41.useRef)(new Vector3());
-  const cameraUpStart = (0, import_react41.useRef)(new Vector3(0, 1, 0));
-  const cameraUpEnd = (0, import_react41.useRef)(new Vector3(0, 1, 0));
-  const _cameraUpCurrent = (0, import_react41.useRef)(new Vector3());
-  const navIsDeskRot = (0, import_react41.useRef)(false);
-  const navRotStart = (0, import_react41.useRef)(0);
-  const navRotEnd = (0, import_react41.useRef)(0);
-  const baseDeskCam = (0, import_react41.useRef)(new Vector3());
-  const baseDeskLook = (0, import_react41.useRef)(new Vector3());
-  const peeking = (0, import_react41.useRef)(false);
-  const peekPhase = (0, import_react41.useRef)("rotate_to");
-  const peekT = (0, import_react41.useRef)(0);
-  const peekStartLook = (0, import_react41.useRef)(new Vector3());
-  const peekEndLook = (0, import_react41.useRef)(new Vector3());
-  const peekFile = (0, import_react41.useRef)(null);
+  const navUseCurvedPath = (0, import_react42.useRef)(false);
+  const navCurvedPath = (0, import_react42.useRef)(null);
+  const slerpStartDir = (0, import_react42.useRef)(new Vector3());
+  const slerpStartDist = (0, import_react42.useRef)(0);
+  const _slerpDirToTarget = (0, import_react42.useRef)(new Vector3());
+  const _slerpCurrentDir = (0, import_react42.useRef)(new Vector3());
+  const cameraUpStart = (0, import_react42.useRef)(new Vector3(0, 1, 0));
+  const cameraUpEnd = (0, import_react42.useRef)(new Vector3(0, 1, 0));
+  const _cameraUpCurrent = (0, import_react42.useRef)(new Vector3());
+  const navIsDeskRot = (0, import_react42.useRef)(false);
+  const navRotStart = (0, import_react42.useRef)(0);
+  const navRotEnd = (0, import_react42.useRef)(0);
+  const baseDeskCam = (0, import_react42.useRef)(new Vector3());
+  const baseDeskLook = (0, import_react42.useRef)(new Vector3());
+  const peeking = (0, import_react42.useRef)(false);
+  const peekPhase = (0, import_react42.useRef)("rotate_to");
+  const peekT = (0, import_react42.useRef)(0);
+  const peekStartLook = (0, import_react42.useRef)(new Vector3());
+  const peekEndLook = (0, import_react42.useRef)(new Vector3());
+  const peekFile = (0, import_react42.useRef)(null);
   const PEEK_ROTATE_DURATION = 0.5;
   const PEEK_HOLD_DURATION = 1;
-  const isExteriorRef2 = (0, import_react41.useRef)(isExterior);
+  const isExteriorRef2 = (0, import_react42.useRef)(isExterior);
   isExteriorRef2.current = isExterior;
   const ORBIT_SPEED = 0.5;
-  (0, import_react41.useEffect)(() => {
+  (0, import_react42.useEffect)(() => {
     if (!controls) return;
     const orbitControls = controls;
     const onStart = () => {
@@ -168035,7 +168071,7 @@ function CameraController({
     orbitControls.addEventListener("start", onStart);
     return () => orbitControls.removeEventListener("start", onStart);
   }, [controls, onArrived, onEnteredLibrary, setMaxPolar]);
-  (0, import_react41.useEffect)(() => {
+  (0, import_react42.useEffect)(() => {
     if (!target) return;
     if (!firstNavResetDoneRef.current && revealSpinRef.current) {
       const R = revealSpinRef.current.rotation.y;
@@ -168282,10 +168318,10 @@ function CameraController({
     }
     invalidate2();
   }, [target, controls, setMaxPolar, invalidate2, facingWing]);
-  const isIdeasViewRef = (0, import_react41.useRef)(false);
-  const prevIdeasView = (0, import_react41.useRef)(false);
+  const isIdeasViewRef = (0, import_react42.useRef)(false);
+  const prevIdeasView = (0, import_react42.useRef)(false);
   isIdeasViewRef.current = isIdeasView;
-  (0, import_react41.useEffect)(() => {
+  (0, import_react42.useEffect)(() => {
     if (isIdeasView === prevIdeasView.current) return;
     prevIdeasView.current = isIdeasView;
     if (!controls) return;
@@ -168322,16 +168358,16 @@ function CameraController({
     }
     invalidate2();
   }, [isIdeasView, controls, camera, firstFloorTop, domeBaseY, setMaxPolar, onEnteredLibrary, invalidate2]);
-  const targetRef = (0, import_react41.useRef)(target);
+  const targetRef = (0, import_react42.useRef)(target);
   targetRef.current = target;
-  const networkActiveRef = (0, import_react41.useRef)(networkFiles.length > 0);
+  const networkActiveRef = (0, import_react42.useRef)(networkFiles.length > 0);
   networkActiveRef.current = networkFiles.length > 0;
-  const prevNetworkActiveRef = (0, import_react41.useRef)(networkFiles.length > 0);
-  const prevNetworkKeyRef = (0, import_react41.useRef)(networkFiles.join(","));
-  const pendingNetworkCameraRef = (0, import_react41.useRef)(false);
-  const pendingNetworkIsSwitchRef = (0, import_react41.useRef)(false);
-  const prevIsTreeViewRef = (0, import_react41.useRef)(isTreeView);
-  const networkJustExitedRef = (0, import_react41.useRef)(false);
+  const prevNetworkActiveRef = (0, import_react42.useRef)(networkFiles.length > 0);
+  const prevNetworkKeyRef = (0, import_react42.useRef)(networkFiles.join(","));
+  const pendingNetworkCameraRef = (0, import_react42.useRef)(false);
+  const pendingNetworkIsSwitchRef = (0, import_react42.useRef)(false);
+  const prevIsTreeViewRef = (0, import_react42.useRef)(isTreeView);
+  const networkJustExitedRef = (0, import_react42.useRef)(false);
   const maxR = facadeHeight ? radius + ALCOVE_RADIUS - 0.5 : roundRadius + 2;
   const minY = 0.5;
   const baseR = topEndpointRadius(radius);
@@ -168339,9 +168375,9 @@ function CameraController({
   const maxY = facadeHeight ? Math.max(domeMaxY, facadeHeight + 5) : domeMaxY;
   const DEFAULT_FOV = 67;
   const IDEAS_FOV = 100;
-  const fovT = (0, import_react41.useRef)(0);
+  const fovT = (0, import_react42.useRef)(0);
   const FOV_SPEED = 0.375;
-  const lastFocalMult = (0, import_react41.useRef)(1);
+  const lastFocalMult = (0, import_react42.useRef)(1);
   useFrame((state2, delta) => {
     if (!controls) return;
     const orbitControls = controls;
@@ -168661,12 +168697,12 @@ function CameraController({
 }
 
 // src/components/KeyboardNav.tsx
-var import_react42 = __toESM(require_react(), 1);
+var import_react43 = __toESM(require_react(), 1);
 var MOVE_SPEED = 0.6;
 function KeyboardNav() {
   const { camera, controls, invalidate: invalidate2 } = useThree();
-  const keys = (0, import_react42.useRef)(/* @__PURE__ */ new Set());
-  (0, import_react42.useEffect)(() => {
+  const keys = (0, import_react43.useRef)(/* @__PURE__ */ new Set());
+  (0, import_react43.useEffect)(() => {
     const onDown = (e2) => {
       const el = e2.target;
       if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el.isContentEditable || el.closest?.("[contenteditable]")) return;
@@ -168733,22 +168769,21 @@ function KeyboardNav() {
 }
 
 // src/components/HelpOverlay.tsx
-var import_react43 = __toESM(require_react(), 1);
-var import_jsx_runtime34 = __toESM(require_jsx_runtime(), 1);
+var import_react44 = __toESM(require_react(), 1);
+var import_jsx_runtime35 = __toESM(require_jsx_runtime(), 1);
 function HelpOverlay({ isExterior }) {
-  const [open, setOpen] = (0, import_react43.useState)(false);
+  const [open, setOpen] = (0, import_react44.useState)(false);
   const profileKey = isExterior ? "outdoor" : "indoor";
-  const [brightness, setBrightness] = (0, import_react43.useState)(
+  const [brightness, setBrightness] = (0, import_react44.useState)(
     () => Math.round(lightingProfileRef.current[profileKey].brightness * 100)
   );
-  const [focal, setFocal] = (0, import_react43.useState)(100);
-  (0, import_react43.useEffect)(() => {
+  const [focal, setFocal] = (0, import_react44.useState)(100);
+  (0, import_react44.useEffect)(() => {
     setBrightness(Math.round(lightingProfileRef.current[profileKey].brightness * 100));
   }, [profileKey]);
-  const { roundUseWings, setRoundUseWings } = useLayoutConfig();
-  const panelRef = (0, import_react43.useRef)(null);
-  const buttonRef = (0, import_react43.useRef)(null);
-  (0, import_react43.useEffect)(() => {
+  const panelRef = (0, import_react44.useRef)(null);
+  const buttonRef = (0, import_react44.useRef)(null);
+  (0, import_react44.useEffect)(() => {
     if (!open) return;
     const onDocMouseDown = (e2) => {
       const t2 = e2.target;
@@ -168760,8 +168795,8 @@ function HelpOverlay({ isExterior }) {
     return () => document.removeEventListener("mousedown", onDocMouseDown);
   }, [open]);
   const fire = () => window.dispatchEvent(new Event("torus-invalidate"));
-  return /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)(import_jsx_runtime34.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)(import_jsx_runtime35.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(
       "button",
       {
         ref: buttonRef,
@@ -168788,7 +168823,7 @@ function HelpOverlay({ isExterior }) {
         children: "?"
       }
     ),
-    open && /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("div", { ref: panelRef, style: {
+    open && /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { ref: panelRef, style: {
       position: "absolute",
       top: 48,
       right: 12,
@@ -168802,9 +168837,9 @@ function HelpOverlay({ isExterior }) {
       zIndex: 10,
       minWidth: 240
     }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("span", { style: { color: "#ccc", fontWeight: "bold", fontSize: 12 }, children: "Controls" }),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("span", { style: { color: "#ccc", fontWeight: "bold", fontSize: 12 }, children: "Controls" }),
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(
           "button",
           {
             onClick: () => setOpen(false),
@@ -168820,41 +168855,41 @@ function HelpOverlay({ isExterior }) {
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("table", { style: { borderSpacing: "8px 2px" }, children: /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("tbody", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("tr", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("td", { style: { color: "#666" }, children: "WASD" }),
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("td", { children: "Move around" })
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("table", { style: { borderSpacing: "8px 2px" }, children: /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("tbody", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("tr", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("td", { style: { color: "#666" }, children: "WASD" }),
+          /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("td", { children: "Move around" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("tr", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("td", { style: { color: "#666" }, children: "QE" }),
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("td", { children: "Move up / down" })
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("tr", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("td", { style: { color: "#666" }, children: "QE" }),
+          /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("td", { children: "Move up / down" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("tr", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("td", { style: { color: "#666" }, children: "Left drag" }),
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("td", { children: "Orbit camera" })
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("tr", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("td", { style: { color: "#666" }, children: "Left drag" }),
+          /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("td", { children: "Orbit camera" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("tr", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("td", { style: { color: "#666" }, children: "Right drag" }),
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("td", { children: "Pan camera" })
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("tr", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("td", { style: { color: "#666" }, children: "Right drag" }),
+          /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("td", { children: "Pan camera" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("tr", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("td", { style: { color: "#666" }, children: "Scroll" }),
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("td", { children: "Zoom in / out" })
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("tr", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("td", { style: { color: "#666" }, children: "Scroll" }),
+          /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("td", { children: "Zoom in / out" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("tr", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("td", { style: { color: "#666" }, children: "Legend" }),
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("td", { children: "Click room to fly there" })
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("tr", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("td", { style: { color: "#666" }, children: "Legend" }),
+          /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("td", { children: "Click room to fly there" })
         ] })
       ] }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("div", { style: { height: 1, background: "#222", margin: "10px 0 8px" } }),
-      /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("div", { style: { color: "#888", fontSize: 10, marginTop: 4, marginBottom: 2, fontStyle: "italic" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("div", { style: { height: 1, background: "#222", margin: "10px 0 8px" } }),
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { style: { color: "#888", fontSize: 10, marginTop: 4, marginBottom: 2, fontStyle: "italic" }, children: [
         "Tuning ",
         isExterior ? "outdoor" : "indoor",
         " view"
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("span", { style: { width: 70, color: "#666" }, children: "Brightness" }),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("span", { style: { width: 70, color: "#666" }, children: "Brightness" }),
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(
           "input",
           {
             type: "range",
@@ -168871,14 +168906,14 @@ function HelpOverlay({ isExterior }) {
             }
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("span", { style: { width: 36, textAlign: "right" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("span", { style: { width: 36, textAlign: "right" }, children: [
           brightness,
           "%"
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("span", { style: { width: 70, color: "#666" }, children: "Focal len" }),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("span", { style: { width: 70, color: "#666" }, children: "Focal len" }),
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(
           "input",
           {
             type: "range",
@@ -168894,34 +168929,19 @@ function HelpOverlay({ isExterior }) {
             }
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("span", { style: { width: 36, textAlign: "right" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("span", { style: { width: 36, textAlign: "right" }, children: [
           focal,
           "%"
         ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("label", { style: { display: "flex", alignItems: "center", gap: 8, marginTop: 4, cursor: "pointer" }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
-          "input",
-          {
-            type: "checkbox",
-            checked: roundUseWings,
-            onChange: (e2) => {
-              setRoundUseWings(e2.target.checked);
-              fire();
-            },
-            style: { margin: 0 }
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("span", { style: { color: "#888" }, children: "Cluster rooms by wing in Round view" })
       ] })
     ] })
   ] });
 }
 
 // src/components/HoverLabel.tsx
-var import_react44 = __toESM(require_react(), 1);
+var import_react45 = __toESM(require_react(), 1);
 var import_obsidian8 = require("obsidian");
-var import_jsx_runtime35 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime36 = __toESM(require_jsx_runtime(), 1);
 function formatTitle2(file) {
   const name = file.split("/").pop() || file;
   return name.replace(/\.md$/, "").split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
@@ -168932,9 +168952,9 @@ function HoverLabel() {
   const library = useLibrary();
   const ideas = useIdeas(library);
   const { ideasDir } = useTorusConfig();
-  const ROOM_COLORS = (0, import_react44.useMemo)(() => buildRoomColors(library.roomOrder), [library.roomOrder]);
+  const ROOM_COLORS = (0, import_react45.useMemo)(() => buildRoomColors(library.roomOrder), [library.roomOrder]);
   const isIdea = hoveredFile ? hoveredFile.startsWith(ideasDir + "/") : false;
-  const h1Title = (0, import_react44.useMemo)(() => {
+  const h1Title = (0, import_react45.useMemo)(() => {
     if (!hoveredFile) return null;
     const tfile = app.vault.getAbstractFileByPath(hoveredFile);
     if (!(tfile instanceof import_obsidian8.TFile)) return null;
@@ -168943,7 +168963,7 @@ function HoverLabel() {
     return h1?.heading ?? null;
   }, [hoveredFile, app]);
   if (!hoveredFile && hoveredLabel) {
-    return /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("div", { style: {
+    return /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("div", { style: {
       position: "absolute",
       top: 12,
       left: "50%",
@@ -168951,7 +168971,7 @@ function HoverLabel() {
       zIndex: 10,
       pointerEvents: "none",
       maxWidth: "60%"
-    }, children: /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("div", { style: {
+    }, children: /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("div", { style: {
       display: "inline-flex",
       alignItems: "baseline",
       gap: 8,
@@ -168959,7 +168979,7 @@ function HoverLabel() {
       borderRadius: 6,
       padding: "3px 10px 4px",
       backdropFilter: "blur(4px)"
-    }, children: /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("span", { style: {
+    }, children: /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("span", { style: {
       color: textColor(hoveredLabel.color),
       fontSize: 18,
       whiteSpace: "nowrap",
@@ -168987,7 +169007,7 @@ function HoverLabel() {
   }
   const displayTitle = h1Title || formatTitle2(hoveredFile);
   const refCount = idea ? idea.linkedNotes.length + idea.linkedIdeas.length : 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("div", { style: {
+  return /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("div", { style: {
     position: "absolute",
     top: 12,
     left: "50%",
@@ -168995,7 +169015,7 @@ function HoverLabel() {
     zIndex: 10,
     pointerEvents: "none",
     maxWidth: "60%"
-  }, children: /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { style: {
+  }, children: /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("div", { style: {
     display: "inline-flex",
     alignItems: "baseline",
     gap: 8,
@@ -169004,7 +169024,7 @@ function HoverLabel() {
     padding: "3px 10px 4px",
     backdropFilter: "blur(4px)"
   }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("span", { style: {
+    /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("span", { style: {
       color: textColor(color),
       fontSize: 18,
       whiteSpace: "nowrap",
@@ -169012,7 +169032,7 @@ function HoverLabel() {
       textOverflow: "ellipsis",
       maxWidth: "100%"
     }, children: displayTitle }),
-    idea && /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("span", { style: { fontSize: 12, opacity: 0.6, color: textColor(color), whiteSpace: "nowrap" }, children: [
+    idea && /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("span", { style: { fontSize: 12, opacity: 0.6, color: textColor(color), whiteSpace: "nowrap" }, children: [
       refCount,
       " ref",
       refCount !== 1 ? "s" : ""
@@ -169021,7 +169041,7 @@ function HoverLabel() {
 }
 
 // src/components/LibrarianPanel.tsx
-var import_react45 = __toESM(require_react(), 1);
+var import_react46 = __toESM(require_react(), 1);
 var import_obsidian9 = require("obsidian");
 
 // src/lib/dates.ts
@@ -169260,7 +169280,7 @@ function escapeRe(s) {
 }
 
 // src/components/LibrarianPanel.tsx
-var import_jsx_runtime36 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime37 = __toESM(require_jsx_runtime(), 1);
 var CONFIDENCE_COLORS = {
   high: "#2ecc71",
   medium: "#f39c12",
@@ -169275,7 +169295,7 @@ function LibrarianPanel({ onPeek }) {
   const { current: navState } = useNavigation();
   const { roundUseWings } = useLayoutConfig();
   const isFacade = navState.mode === "library-flat";
-  const info = (0, import_react45.useMemo)(() => {
+  const info = (0, import_react46.useMemo)(() => {
     if (!selectedFile) return null;
     const deskNote = deskNotes.find((n) => n.file === selectedFile);
     if (deskNote) {
@@ -169307,13 +169327,13 @@ function LibrarianPanel({ onPeek }) {
     }
     return null;
   }, [selectedFile, deskNotes, library]);
-  const [room, setRoom] = (0, import_react45.useState)("");
-  const [newRoom, setNewRoom] = (0, import_react45.useState)("");
-  const [shelf, setShelf] = (0, import_react45.useState)("");
-  const [newShelf, setNewShelf] = (0, import_react45.useState)("");
-  const [busy, setBusy] = (0, import_react45.useState)(false);
+  const [room, setRoom] = (0, import_react46.useState)("");
+  const [newRoom, setNewRoom] = (0, import_react46.useState)("");
+  const [shelf, setShelf] = (0, import_react46.useState)("");
+  const [newShelf, setNewShelf] = (0, import_react46.useState)("");
+  const [busy, setBusy] = (0, import_react46.useState)(false);
   const isDigest = info?.type === "digest";
-  (0, import_react45.useEffect)(() => {
+  (0, import_react46.useEffect)(() => {
     if (info) {
       setRoom(info.room);
       setNewRoom("");
@@ -169321,43 +169341,43 @@ function LibrarianPanel({ onPeek }) {
       setNewShelf("");
     }
   }, [info]);
-  const existingRoomNames = (0, import_react45.useMemo)(() => {
+  const existingRoomNames = (0, import_react46.useMemo)(() => {
     return library.roomOrder.map((key) => library.rooms[key]?.name).filter(Boolean);
   }, [library]);
-  const proposedNewRoom = (0, import_react45.useMemo)(() => {
+  const proposedNewRoom = (0, import_react46.useMemo)(() => {
     if (!info || info.isShelved) return null;
     if (!info.room) return null;
     if (existingRoomNames.includes(info.room)) return null;
     return info.room;
   }, [info, existingRoomNames]);
-  const existingShelves = (0, import_react45.useMemo)(() => {
+  const existingShelves = (0, import_react46.useMemo)(() => {
     const entry = Object.values(library.rooms).find((r2) => r2.name === room);
     if (!entry) return [];
     return entry.subgroups.map((sg) => sg.name);
   }, [library, room]);
-  const proposedNewShelf = (0, import_react45.useMemo)(() => {
+  const proposedNewShelf = (0, import_react46.useMemo)(() => {
     if (!info || info.isShelved) return null;
     if (room !== info.room) return null;
     if (!info.shelf) return null;
     if (existingShelves.includes(info.shelf)) return null;
     return info.shelf;
   }, [info, room, existingShelves]);
-  const ROOM_COLORS = (0, import_react45.useMemo)(() => buildRoomColors(library.roomOrder), [library.roomOrder]);
-  const nameToKey = (0, import_react45.useMemo)(() => {
+  const ROOM_COLORS = (0, import_react46.useMemo)(() => buildRoomColors(library.roomOrder), [library.roomOrder]);
+  const nameToKey = (0, import_react46.useMemo)(() => {
     const map = /* @__PURE__ */ new Map();
     for (const [key, r2] of Object.entries(library.rooms)) {
       map.set(r2.name, key);
     }
     return map;
   }, [library.rooms]);
-  const roomColor2 = (0, import_react45.useMemo)(() => {
+  const roomColor2 = (0, import_react46.useMemo)(() => {
     const key = nameToKey.get(room);
     return key ? ROOM_COLORS[key] || "#888" : "#888";
   }, [room, nameToKey, ROOM_COLORS]);
   const effectiveRoom = room === "__new__" ? newRoom.trim() : room;
   const effectiveShelf = shelf === "__new__" || room === "__new__" ? newShelf.trim() : shelf;
   const locationChanged = info ? effectiveRoom !== info.room || effectiveShelf !== info.shelf : false;
-  const shelve = (0, import_react45.useCallback)(async () => {
+  const shelve = (0, import_react46.useCallback)(async () => {
     if (!info || !effectiveRoom || !effectiveShelf || busy) return;
     setBusy(true);
     try {
@@ -169406,7 +169426,7 @@ function LibrarianPanel({ onPeek }) {
       setBusy(false);
     }
   }, [info, effectiveShelf, busy, room, app, selectNote, manifest2, onPeek, nameToKey, isFacade, roundUseWings, library.wingOrder, library.wings, library.rooms]);
-  const processDigest = (0, import_react45.useCallback)(async () => {
+  const processDigest = (0, import_react46.useCallback)(async () => {
     if (!info || busy) return;
     setBusy(true);
     try {
@@ -169437,7 +169457,7 @@ function LibrarianPanel({ onPeek }) {
   if (!info || info.isShelved) return null;
   const actionLabel = busy ? info.isShelved ? "Moving..." : "Shelving..." : info.isShelved ? "Move" : "Shelve";
   const actionEnabled = info.isShelved ? !!effectiveRoom && !!effectiveShelf && locationChanged : !!effectiveRoom && !!effectiveShelf;
-  return /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("div", { style: {
+  return /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("div", { style: {
     position: "absolute",
     top: 12,
     left: 12,
@@ -169452,8 +169472,8 @@ function LibrarianPanel({ onPeek }) {
     flexDirection: "column",
     gap: 10
   }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("div", { style: { display: "flex", alignItems: "flex-start", gap: 8 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("h3", { style: {
+    /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("div", { style: { display: "flex", alignItems: "flex-start", gap: 8 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("h3", { style: {
         flex: 1,
         margin: 0,
         fontSize: 13,
@@ -169461,7 +169481,7 @@ function LibrarianPanel({ onPeek }) {
         color: "#ddd",
         lineHeight: 1.3
       }, children: info.title }),
-      /* @__PURE__ */ (0, import_jsx_runtime36.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(
         "button",
         {
           onClick: () => selectNote(null),
@@ -169478,8 +169498,8 @@ function LibrarianPanel({ onPeek }) {
         }
       )
     ] }),
-    info.confidence && /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("span", { style: {
+    info.confidence && /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("span", { style: {
         fontSize: 10,
         fontWeight: 600,
         textTransform: "uppercase",
@@ -169488,11 +169508,11 @@ function LibrarianPanel({ onPeek }) {
         borderRadius: 3,
         padding: "1px 5px"
       }, children: info.confidence }),
-      info.reason && /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("span", { style: { fontSize: 11, color: "#888", fontStyle: "italic", flex: 1 }, children: info.reason })
+      info.reason && /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("span", { style: { fontSize: 11, color: "#888", fontStyle: "italic", flex: 1 }, children: info.reason })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("label", { style: { fontSize: 11, color: "#999" }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("label", { style: { fontSize: 11, color: "#999" }, children: [
       "Room",
-      /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)(
         "select",
         {
           value: room,
@@ -169504,18 +169524,18 @@ function LibrarianPanel({ onPeek }) {
           },
           style: selectStyle,
           children: [
-            !room && /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("option", { value: "", children: "-- select room --" }),
-            existingRoomNames.map((name) => /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("option", { value: name, children: name }, name)),
-            proposedNewRoom && /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("option", { value: proposedNewRoom, children: [
+            !room && /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("option", { value: "", children: "-- select room --" }),
+            existingRoomNames.map((name) => /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("option", { value: name, children: name }, name)),
+            proposedNewRoom && /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("option", { value: proposedNewRoom, children: [
               proposedNewRoom,
               " (New)"
             ] }, proposedNewRoom),
-            /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("option", { value: "__new__", children: "+ New room..." })
+            /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("option", { value: "__new__", children: "+ New room..." })
           ]
         }
       )
     ] }),
-    room === "__new__" && /* @__PURE__ */ (0, import_jsx_runtime36.jsx)(
+    room === "__new__" && /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(
       "input",
       {
         type: "text",
@@ -169534,27 +169554,27 @@ function LibrarianPanel({ onPeek }) {
         autoFocus: true
       }
     ),
-    room !== "__new__" && /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("label", { style: { fontSize: 11, color: "#999" }, children: [
+    room !== "__new__" && /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("label", { style: { fontSize: 11, color: "#999" }, children: [
       "Shelf",
-      /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)(
         "select",
         {
           value: shelf,
           onChange: (e2) => setShelf(e2.target.value),
           style: selectStyle,
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("option", { value: "", children: "-- select --" }),
-            existingShelves.map((name) => /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("option", { value: name, children: name }, name)),
-            proposedNewShelf && /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("option", { value: proposedNewShelf, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("option", { value: "", children: "-- select --" }),
+            existingShelves.map((name) => /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("option", { value: name, children: name }, name)),
+            proposedNewShelf && /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("option", { value: proposedNewShelf, children: [
               proposedNewShelf,
               " (New)"
             ] }, proposedNewShelf),
-            /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("option", { value: "__new__", children: "+ New shelf..." })
+            /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("option", { value: "__new__", children: "+ New shelf..." })
           ]
         }
       )
     ] }),
-    (shelf === "__new__" || room === "__new__") && /* @__PURE__ */ (0, import_jsx_runtime36.jsx)(
+    (shelf === "__new__" || room === "__new__") && /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(
       "input",
       {
         type: "text",
@@ -169573,8 +169593,8 @@ function LibrarianPanel({ onPeek }) {
         autoFocus: true
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("div", { style: { display: "flex", gap: 8, marginTop: 2 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime36.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("div", { style: { display: "flex", gap: 8, marginTop: 2 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(
         "button",
         {
           onClick: shelve,
@@ -169594,7 +169614,7 @@ function LibrarianPanel({ onPeek }) {
           children: actionLabel
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime36.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(
         "button",
         {
           onClick: isDigest ? processDigest : () => setDiscardOpen(true),
@@ -169615,7 +169635,7 @@ function LibrarianPanel({ onPeek }) {
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("style", { children: panelStyles })
+    /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("style", { children: panelStyles })
   ] });
 }
 var selectStyle = {
@@ -169638,8 +169658,8 @@ var panelStyles = `
 `;
 
 // src/components/InboxFilterPopover.tsx
-var import_react46 = __toESM(require_react(), 1);
-var import_jsx_runtime37 = __toESM(require_jsx_runtime(), 1);
+var import_react47 = __toESM(require_react(), 1);
+var import_jsx_runtime38 = __toESM(require_jsx_runtime(), 1);
 function InboxFilterPopover() {
   const {
     popoverOpen,
@@ -169653,8 +169673,8 @@ function InboxFilterPopover() {
   } = useSortingDeskContext();
   const deskNotes = useSortingDesk();
   const library = useLibrary();
-  const ROOM_COLORS = (0, import_react46.useMemo)(() => buildRoomColors(library.roomOrder), [library.roomOrder]);
-  const buckets = (0, import_react46.useMemo)(() => {
+  const ROOM_COLORS = (0, import_react47.useMemo)(() => buildRoomColors(library.roomOrder), [library.roomOrder]);
+  const buckets = (0, import_react47.useMemo)(() => {
     const out = [];
     const knownNames = /* @__PURE__ */ new Set();
     for (const key of library.roomOrder) {
@@ -169672,14 +169692,14 @@ function InboxFilterPopover() {
     return out;
   }, [deskNotes, library.roomOrder, library.rooms, ROOM_COLORS]);
   const total = deskNotes.length;
-  const visible = (0, import_react46.useMemo)(() => {
+  const visible = (0, import_react47.useMemo)(() => {
     let n = 0;
     for (const b2 of buckets) if (!excludedRooms.has(b2.key)) n += b2.count;
     return n;
   }, [buckets, excludedRooms]);
   const filterActive = excludedRooms.size > 0;
-  const ref = (0, import_react46.useRef)(null);
-  (0, import_react46.useEffect)(() => {
+  const ref = (0, import_react47.useRef)(null);
+  (0, import_react47.useEffect)(() => {
     if (!popoverOpen) return;
     const onDown = (e2) => {
       if (!ref.current) return;
@@ -169694,22 +169714,22 @@ function InboxFilterPopover() {
   }, [popoverOpen, setPopoverOpen]);
   if (!popoverOpen) return null;
   const allKeys = buckets.map((b2) => b2.key);
-  return /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("div", { ref, style: panelStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("div", { style: titleRowStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("span", { children: "Inbox" }),
-      /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("span", { style: { color: filterActive ? "#ddd" : "#888" }, children: filterActive ? `${visible} / ${total}` : total })
+  return /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("div", { ref, style: panelStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("div", { style: titleRowStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { children: "Inbox" }),
+      /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { style: { color: filterActive ? "#ddd" : "#888" }, children: filterActive ? `${visible} / ${total}` : total })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("div", { style: sectionHeaderStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("span", { children: "Filter" }),
-      /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("span", { style: { display: "flex", gap: 6 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("button", { style: chipStyle, onClick: includeAllRooms, title: "Show every room", children: "All" }),
-        /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("button", { style: chipStyle, onClick: () => excludeAllRooms(allKeys), title: "Hide every room", children: "Clear" })
+    /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("div", { style: sectionHeaderStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { children: "Filter" }),
+      /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("span", { style: { display: "flex", gap: 6 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("button", { style: chipStyle, onClick: includeAllRooms, title: "Show every room", children: "All" }),
+        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("button", { style: chipStyle, onClick: () => excludeAllRooms(allKeys), title: "Hide every room", children: "Clear" })
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("div", { style: listStyle, children: buckets.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("div", { style: emptyStyle, children: "No notes in inbox." }) : buckets.map((b2) => {
+    /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("div", { style: listStyle, children: buckets.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("div", { style: emptyStyle, children: "No notes in inbox." }) : buckets.map((b2) => {
       const checked = !excludedRooms.has(b2.key);
-      return /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("label", { style: rowStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(
+      return /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("label", { style: rowStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)(
           "input",
           {
             type: "checkbox",
@@ -169718,25 +169738,25 @@ function InboxFilterPopover() {
             style: { accentColor: b2.color }
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("span", { style: {
+        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { style: {
           width: 8,
           height: 8,
           borderRadius: "50%",
           background: b2.color,
           flexShrink: 0
         } }),
-        /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("span", { style: { color: checked ? "#ddd" : "#666", flex: 1 }, children: b2.label }),
-        /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("span", { style: { color: "#666", fontVariantNumeric: "tabular-nums" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { style: { color: checked ? "#ddd" : "#666", flex: 1 }, children: b2.label }),
+        /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("span", { style: { color: "#666", fontVariantNumeric: "tabular-nums" }, children: [
           "(",
           b2.count,
           ")"
         ] })
       ] }, b2.key);
     }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("div", { style: sectionHeaderStyle, children: "Order" }),
-    /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("div", { style: listStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("label", { style: rowStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("div", { style: sectionHeaderStyle, children: "Order" }),
+    /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("div", { style: listStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("label", { style: rowStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)(
           "input",
           {
             type: "radio",
@@ -169745,10 +169765,10 @@ function InboxFilterPopover() {
             onChange: () => setSortOrder("newest-top")
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("span", { style: { color: "#ddd" }, children: "Newest on top" })
+        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { style: { color: "#ddd" }, children: "Newest on top" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("label", { style: rowStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("label", { style: rowStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)(
           "input",
           {
             type: "radio",
@@ -169757,7 +169777,7 @@ function InboxFilterPopover() {
             onChange: () => setSortOrder("newest-bottom")
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("span", { style: { color: "#ddd" }, children: "Newest on bottom" })
+        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { style: { color: "#ddd" }, children: "Newest on bottom" })
       ] })
     ] })
   ] });
@@ -169831,16 +169851,16 @@ var emptyStyle = {
 };
 
 // src/components/DiscardDialog.tsx
-var import_react47 = __toESM(require_react(), 1);
+var import_react48 = __toESM(require_react(), 1);
 var import_obsidian10 = require("obsidian");
-var import_jsx_runtime38 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime39 = __toESM(require_jsx_runtime(), 1);
 function DiscardDialog() {
   const app = useObsidian();
   const { ideasDir, sourceDirs, manifest: manifest2 } = useTorusConfig();
   const { selectedFile, selectNote, discardOpen, setDiscardOpen } = useSortingDeskContext();
   const deskNotes = useSortingDesk();
   const library = useLibrary();
-  const note = (0, import_react47.useMemo)(() => {
+  const note = (0, import_react48.useMemo)(() => {
     if (!selectedFile) return null;
     const deskNote = deskNotes.find((n) => n.file === selectedFile);
     if (deskNote) {
@@ -169856,12 +169876,12 @@ function DiscardDialog() {
     }
     return null;
   }, [selectedFile, deskNotes, library]);
-  const [mode, setMode] = (0, import_react47.useState)("choose");
-  const [hint, setHint] = (0, import_react47.useState)("");
-  const [orphans, setOrphans] = (0, import_react47.useState)([]);
-  const [partials, setPartials] = (0, import_react47.useState)([]);
-  const [busy, setBusy] = (0, import_react47.useState)(false);
-  (0, import_react47.useEffect)(() => {
+  const [mode, setMode] = (0, import_react48.useState)("choose");
+  const [hint, setHint] = (0, import_react48.useState)("");
+  const [orphans, setOrphans] = (0, import_react48.useState)([]);
+  const [partials, setPartials] = (0, import_react48.useState)([]);
+  const [busy, setBusy] = (0, import_react48.useState)(false);
+  (0, import_react48.useEffect)(() => {
     if (discardOpen) {
       setMode("choose");
       setHint("");
@@ -169869,10 +169889,10 @@ function DiscardDialog() {
       setPartials([]);
     }
   }, [discardOpen]);
-  const close = (0, import_react47.useCallback)(() => {
+  const close = (0, import_react48.useCallback)(() => {
     setDiscardOpen(false);
   }, [setDiscardOpen]);
-  const findLinkedIdeas2 = (0, import_react47.useCallback)(async () => {
+  const findLinkedIdeas2 = (0, import_react48.useCallback)(async () => {
     if (!note) return { orphans: [], partials: [] };
     const folder = app.vault.getAbstractFileByPath(ideasDir);
     if (!(folder instanceof import_obsidian10.TFolder)) return { orphans: [], partials: [] };
@@ -169899,7 +169919,7 @@ function DiscardDialog() {
     }
     return { orphans: orphans2, partials: partials2 };
   }, [note, app, ideasDir]);
-  const repropose = (0, import_react47.useCallback)(async () => {
+  const repropose = (0, import_react48.useCallback)(async () => {
     if (!note || busy) return;
     setBusy(true);
     try {
@@ -169928,7 +169948,7 @@ function DiscardDialog() {
       setBusy(false);
     }
   }, [note, hint, busy, app, selectNote, setDiscardOpen]);
-  const unshelve = (0, import_react47.useCallback)(async () => {
+  const unshelve = (0, import_react48.useCallback)(async () => {
     if (!note || busy) return;
     setBusy(true);
     try {
@@ -169953,7 +169973,7 @@ function DiscardDialog() {
       setBusy(false);
     }
   }, [note, busy, app, selectNote, setDiscardOpen]);
-  const ignore = (0, import_react47.useCallback)(async () => {
+  const ignore = (0, import_react48.useCallback)(async () => {
     if (!note || busy) return;
     setBusy(true);
     try {
@@ -169974,7 +169994,7 @@ function DiscardDialog() {
       setBusy(false);
     }
   }, [note, busy, app, selectNote, setDiscardOpen]);
-  const performDelete = (0, import_react47.useCallback)(async (orphansToProcess, partialsToProcess) => {
+  const performDelete = (0, import_react48.useCallback)(async (orphansToProcess, partialsToProcess) => {
     if (!note) return;
     if (note.isShelved) {
       const torusFile = app.vault.getAbstractFileByPath(manifest2);
@@ -170003,7 +170023,7 @@ function DiscardDialog() {
     selectNote(null);
     setDiscardOpen(false);
   }, [note, app, manifest2, selectNote, setDiscardOpen]);
-  const deleteNote = (0, import_react47.useCallback)(async () => {
+  const deleteNote = (0, import_react48.useCallback)(async () => {
     if (!note || busy) return;
     setBusy(true);
     try {
@@ -170012,7 +170032,7 @@ function DiscardDialog() {
       setBusy(false);
     }
   }, [note, orphans, partials, busy, performDelete]);
-  const startDelete = (0, import_react47.useCallback)(async () => {
+  const startDelete = (0, import_react48.useCallback)(async () => {
     if (!note || busy) return;
     setBusy(true);
     try {
@@ -170029,8 +170049,8 @@ function DiscardDialog() {
     }
   }, [note, busy, findLinkedIdeas2, performDelete]);
   if (!discardOpen || !note) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)(import_jsx_runtime38.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime38.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)(import_jsx_runtime39.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
       "div",
       {
         onClick: close,
@@ -170043,7 +170063,7 @@ function DiscardDialog() {
         }
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("div", { style: {
+    /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: {
       position: "absolute",
       top: "50%",
       left: "50%",
@@ -170059,24 +170079,24 @@ function DiscardDialog() {
       flexDirection: "column",
       gap: 12
     }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("h3", { style: { margin: 0, fontSize: 14, color: "#ddd" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("h3", { style: { margin: 0, fontSize: 14, color: "#ddd" }, children: [
         "Discard: ",
         note.title
       ] }),
-      mode === "choose" && /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)(import_jsx_runtime38.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#999", lineHeight: 1.5 }, children: "What should happen to this note?" }),
-        /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("button", { onClick: () => setMode("repropose"), style: optionBtnStyle, children: [
+      mode === "choose" && /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)(import_jsx_runtime39.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#999", lineHeight: 1.5 }, children: "What should happen to this note?" }),
+        /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("button", { onClick: () => setMode("repropose"), style: optionBtnStyle, children: [
           "Repropose with hint",
-          /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { style: optionDescStyle, children: note.isShelved ? "Unshelve and send back for re-classification" : "Send back for re-classification with a hint" })
+          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: optionDescStyle, children: note.isShelved ? "Unshelve and send back for re-classification" : "Send back for re-classification with a hint" })
         ] }),
-        note.isShelved ? /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("button", { onClick: unshelve, disabled: busy, style: optionBtnStyle, children: [
+        note.isShelved ? /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("button", { onClick: unshelve, disabled: busy, style: optionBtnStyle, children: [
           "Unshelve",
-          /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { style: optionDescStyle, children: "Remove from library, revert to unclassified" })
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("button", { onClick: ignore, disabled: busy, style: optionBtnStyle, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: optionDescStyle, children: "Remove from library, revert to unclassified" })
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("button", { onClick: ignore, disabled: busy, style: optionBtnStyle, children: [
           "Ignore",
-          /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { style: optionDescStyle, children: "Remove proposal, keep note unclassified" })
+          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: optionDescStyle, children: "Remove proposal, keep note unclassified" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)(
           "button",
           {
             onClick: startDelete,
@@ -170084,15 +170104,15 @@ function DiscardDialog() {
             style: { ...optionBtnStyle, color: "#e88" },
             children: [
               busy ? "Scanning..." : "Delete note",
-              /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { style: optionDescStyle, children: "Trash note and any orphaned ideas" })
+              /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: optionDescStyle, children: "Trash note and any orphaned ideas" })
             ]
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("button", { onClick: close, style: cancelBtnStyle, children: "Cancel" })
+        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("button", { onClick: close, style: cancelBtnStyle, children: "Cancel" })
       ] }),
-      mode === "repropose" && /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)(import_jsx_runtime38.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#999", lineHeight: 1.5 }, children: "Provide a hint for the classifier (optional):" }),
-        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)(
+      mode === "repropose" && /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)(import_jsx_runtime39.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#999", lineHeight: 1.5 }, children: "Provide a hint for the classifier (optional):" }),
+        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
           "textarea",
           {
             value: hint,
@@ -170113,34 +170133,34 @@ function DiscardDialog() {
             autoFocus: true
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("div", { style: { display: "flex", gap: 8 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("button", { onClick: repropose, disabled: busy, style: actionBtnStyle, children: busy ? "Saving..." : "Repropose" }),
-          /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("button", { onClick: () => setMode("choose"), style: cancelBtnStyle, children: "Back" })
+        /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: { display: "flex", gap: 8 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("button", { onClick: repropose, disabled: busy, style: actionBtnStyle, children: busy ? "Saving..." : "Repropose" }),
+          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("button", { onClick: () => setMode("choose"), style: cancelBtnStyle, children: "Back" })
         ] })
       ] }),
-      mode === "confirm-delete" && /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)(import_jsx_runtime38.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#e74c3c", lineHeight: 1.5 }, children: "This will move the note to the system trash." }),
-        orphans.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("div", { style: { fontSize: 11, color: "#f39c12", lineHeight: 1.6 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("strong", { children: [
+      mode === "confirm-delete" && /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)(import_jsx_runtime39.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#e74c3c", lineHeight: 1.5 }, children: "This will move the note to the system trash." }),
+        orphans.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: { fontSize: 11, color: "#f39c12", lineHeight: 1.6 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("strong", { children: [
             orphans.length,
             " orphaned idea",
             orphans.length > 1 ? "s" : ""
           ] }),
           " will also be deleted:",
-          /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("ul", { style: { margin: "4px 0 0", paddingLeft: 16 }, children: orphans.map((p3) => /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("li", { style: { color: "#999" }, children: p3.split("/").pop()?.replace(/\.md$/, "") }, p3)) })
+          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("ul", { style: { margin: "4px 0 0", paddingLeft: 16 }, children: orphans.map((p3) => /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("li", { style: { color: "#999" }, children: p3.split("/").pop()?.replace(/\.md$/, "") }, p3)) })
         ] }),
-        partials.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("div", { style: { fontSize: 11, color: "#3498db", lineHeight: 1.6 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("strong", { children: [
+        partials.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: { fontSize: 11, color: "#3498db", lineHeight: 1.6 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("strong", { children: [
             partials.length,
             " shared idea",
             partials.length > 1 ? "s" : ""
           ] }),
           " will have this source's content removed:",
-          /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("ul", { style: { margin: "4px 0 0", paddingLeft: 16 }, children: partials.map((p3) => /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("li", { style: { color: "#999" }, children: p3.split("/").pop()?.replace(/\.md$/, "") }, p3)) })
+          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("ul", { style: { margin: "4px 0 0", paddingLeft: 16 }, children: partials.map((p3) => /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("li", { style: { color: "#999" }, children: p3.split("/").pop()?.replace(/\.md$/, "") }, p3)) })
         ] }),
-        orphans.length === 0 && partials.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("p", { style: { margin: 0, fontSize: 11, color: "#888" }, children: "No linked ideas found." }),
-        /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("div", { style: { display: "flex", gap: 8 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime38.jsx)(
+        orphans.length === 0 && partials.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("p", { style: { margin: 0, fontSize: 11, color: "#888" }, children: "No linked ideas found." }),
+        /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: { display: "flex", gap: 8 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
             "button",
             {
               onClick: deleteNote,
@@ -170149,7 +170169,7 @@ function DiscardDialog() {
               children: busy ? "Deleting..." : "Delete"
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("button", { onClick: () => setMode("choose"), style: cancelBtnStyle, children: "Back" })
+          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("button", { onClick: () => setMode("choose"), style: cancelBtnStyle, children: "Back" })
         ] })
       ] })
     ] })
@@ -170197,11 +170217,11 @@ var cancelBtnStyle = {
 };
 
 // src/components/SearchOverlay.tsx
-var import_react49 = __toESM(require_react(), 1);
+var import_react50 = __toESM(require_react(), 1);
 var import_obsidian12 = require("obsidian");
 
 // src/hooks/useLibrarySearch.ts
-var import_react48 = __toESM(require_react(), 1);
+var import_react49 = __toESM(require_react(), 1);
 var import_obsidian11 = require("obsidian");
 
 // src/lib/queryParser.ts
@@ -170285,11 +170305,11 @@ var MAX_RESULTS = 50;
 function useLibrarySearch(library, ideas) {
   const app = useObsidian();
   const { sourceDirs } = useTorusConfig();
-  const contentCache = (0, import_react48.useRef)(/* @__PURE__ */ new Map());
-  const [contentLoaded, setContentLoaded] = (0, import_react48.useState)(false);
-  const [contentRev, setContentRev] = (0, import_react48.useState)(0);
-  const [vaultRev, setVaultRev] = (0, import_react48.useState)(0);
-  (0, import_react48.useEffect)(() => {
+  const contentCache = (0, import_react49.useRef)(/* @__PURE__ */ new Map());
+  const [contentLoaded, setContentLoaded] = (0, import_react49.useState)(false);
+  const [contentRev, setContentRev] = (0, import_react49.useState)(0);
+  const [vaultRev, setVaultRev] = (0, import_react49.useState)(0);
+  (0, import_react49.useEffect)(() => {
     const shouldReact = (path2) => path2.endsWith(".md") && sourceDirs.some((dir) => path2.startsWith(dir + "/"));
     const onDelete = (file) => {
       if (shouldReact(file.path)) {
@@ -170315,8 +170335,8 @@ function useLibrarySearch(library, ideas) {
       app.vault.offref(rnmRef);
     };
   }, [app, sourceDirs]);
-  const prevItemCount = (0, import_react48.useRef)(0);
-  (0, import_react48.useEffect)(() => {
+  const prevItemCount = (0, import_react49.useRef)(0);
+  (0, import_react49.useEffect)(() => {
     const count5 = Object.values(library.rooms).reduce(
       (sum, r2) => sum + r2.subgroups.reduce((s, sg) => s + sg.notes.length, 0),
       0
@@ -170326,7 +170346,7 @@ function useLibrarySearch(library, ideas) {
       setContentLoaded(false);
     }
   }, [library, ideas]);
-  const items = (0, import_react48.useMemo)(() => {
+  const items = (0, import_react49.useMemo)(() => {
     const result = [];
     const seen = /* @__PURE__ */ new Set();
     for (const [roomKey, room] of Object.entries(library.rooms)) {
@@ -170393,7 +170413,7 @@ function useLibrarySearch(library, ideas) {
     }
     return result;
   }, [library, ideas, sourceDirs, vaultRev]);
-  const loadContent = (0, import_react48.useCallback)(async () => {
+  const loadContent = (0, import_react49.useCallback)(async () => {
     if (contentLoaded) return;
     const promises = items.map(async (item) => {
       if (contentCache.current.has(item.file)) return;
@@ -170410,7 +170430,7 @@ function useLibrarySearch(library, ideas) {
     setContentLoaded(true);
     setContentRev((r2) => r2 + 1);
   }, [items, app, contentLoaded]);
-  const search5 = (0, import_react48.useCallback)(
+  const search5 = (0, import_react49.useCallback)(
     (filters) => {
       void contentRev;
       const { query: query2, roomKeys, types, searchContent, maxAgeDays, minAgeDays } = filters;
@@ -170444,7 +170464,7 @@ function useLibrarySearch(library, ideas) {
     },
     [items, contentRev]
   );
-  const roomOptions = (0, import_react48.useMemo)(() => {
+  const roomOptions = (0, import_react49.useMemo)(() => {
     const colors = buildRoomColors(library.roomOrder);
     return library.roomOrder.map((key) => ({
       key,
@@ -170456,7 +170476,7 @@ function useLibrarySearch(library, ideas) {
 }
 
 // src/components/SearchOverlay.tsx
-var import_jsx_runtime39 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime40 = __toESM(require_jsx_runtime(), 1);
 var RANGE_STEPS = [
   ["All", 0],
   ["1y", 365],
@@ -170479,26 +170499,26 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
   const { search: search5, roomOptions, loadContent, contentLoaded } = useLibrarySearch(library, ideas);
   const app = useObsidian();
   const { criteria, setCriteria, clearFilter, hasFilter, matchingFiles } = useFilter();
-  const [mode, setMode] = (0, import_react49.useState)("search");
-  const [rawQuery, setRawQuery] = (0, import_react49.useState)("");
-  const [debouncedQuery, setDebouncedQuery] = (0, import_react49.useState)("");
-  const [activeRooms, setActiveRooms] = (0, import_react49.useState)(/* @__PURE__ */ new Set());
-  const [activeTypes, setActiveTypes] = (0, import_react49.useState)(/* @__PURE__ */ new Set());
-  const [searchContent, setSearchContent] = (0, import_react49.useState)(false);
-  const [selectedIndex, setSelectedIndex] = (0, import_react49.useState)(0);
-  const [searchFromIndex, setSearchFromIndex] = (0, import_react49.useState)(0);
-  const [searchToIndex, setSearchToIndex] = (0, import_react49.useState)(RANGE_STEPS.length - 1);
-  const [filterFromIndex, setFilterFromIndex] = (0, import_react49.useState)(0);
-  const [filterToIndex, setFilterToIndex] = (0, import_react49.useState)(RANGE_STEPS.length - 1);
-  const [linkCount, setLinkCountLocal] = (0, import_react49.useState)(null);
-  const [localSeed, setLocalSeed] = (0, import_react49.useState)(null);
-  const [localDepth, setLocalDepth] = (0, import_react49.useState)(2);
-  const [seedSearch, setSeedSearch] = (0, import_react49.useState)("");
-  const [seedSearchMode, setSeedSearchMode] = (0, import_react49.useState)(false);
-  const inputRef = (0, import_react49.useRef)(null);
-  const listRef = (0, import_react49.useRef)(null);
+  const [mode, setMode] = (0, import_react50.useState)("search");
+  const [rawQuery, setRawQuery] = (0, import_react50.useState)("");
+  const [debouncedQuery, setDebouncedQuery] = (0, import_react50.useState)("");
+  const [activeRooms, setActiveRooms] = (0, import_react50.useState)(/* @__PURE__ */ new Set());
+  const [activeTypes, setActiveTypes] = (0, import_react50.useState)(/* @__PURE__ */ new Set());
+  const [searchContent, setSearchContent] = (0, import_react50.useState)(false);
+  const [selectedIndex, setSelectedIndex] = (0, import_react50.useState)(0);
+  const [searchFromIndex, setSearchFromIndex] = (0, import_react50.useState)(0);
+  const [searchToIndex, setSearchToIndex] = (0, import_react50.useState)(RANGE_STEPS.length - 1);
+  const [filterFromIndex, setFilterFromIndex] = (0, import_react50.useState)(0);
+  const [filterToIndex, setFilterToIndex] = (0, import_react50.useState)(RANGE_STEPS.length - 1);
+  const [linkCount, setLinkCountLocal] = (0, import_react50.useState)(null);
+  const [localSeed, setLocalSeed] = (0, import_react50.useState)(null);
+  const [localDepth, setLocalDepth] = (0, import_react50.useState)(2);
+  const [seedSearch, setSeedSearch] = (0, import_react50.useState)("");
+  const [seedSearchMode, setSeedSearchMode] = (0, import_react50.useState)(false);
+  const inputRef = (0, import_react50.useRef)(null);
+  const listRef = (0, import_react50.useRef)(null);
   const radius = computeRadius(library.roomOrder.length);
-  (0, import_react49.useEffect)(() => {
+  (0, import_react50.useEffect)(() => {
     if (open) {
       setFilterFromIndex(daysToIndex(criteria.maxAgeDays, true));
       setFilterToIndex(daysToIndex(criteria.minAgeDays, false));
@@ -170507,7 +170527,7 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
       setLocalDepth(criteria.connectionDepth);
     }
   }, [open]);
-  (0, import_react49.useEffect)(() => {
+  (0, import_react50.useEffect)(() => {
     if (open && mode === "search") {
       requestAnimationFrame(() => {
         inputRef.current?.focus();
@@ -170515,14 +170535,14 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
       });
     }
   }, [open, mode]);
-  const handleSearchFrom = (0, import_react49.useCallback)((v3) => setSearchFromIndex(Math.min(v3, searchToIndex)), [searchToIndex]);
-  const handleSearchTo = (0, import_react49.useCallback)((v3) => setSearchToIndex(Math.max(v3, searchFromIndex)), [searchFromIndex]);
-  const handleFilterFrom = (0, import_react49.useCallback)((v3) => setFilterFromIndex(Math.min(v3, filterToIndex)), [filterToIndex]);
-  const handleFilterTo = (0, import_react49.useCallback)((v3) => setFilterToIndex(Math.max(v3, filterFromIndex)), [filterFromIndex]);
-  const toggleLinkCount = (0, import_react49.useCallback)((n) => {
+  const handleSearchFrom = (0, import_react50.useCallback)((v3) => setSearchFromIndex(Math.min(v3, searchToIndex)), [searchToIndex]);
+  const handleSearchTo = (0, import_react50.useCallback)((v3) => setSearchToIndex(Math.max(v3, searchFromIndex)), [searchFromIndex]);
+  const handleFilterFrom = (0, import_react50.useCallback)((v3) => setFilterFromIndex(Math.min(v3, filterToIndex)), [filterToIndex]);
+  const handleFilterTo = (0, import_react50.useCallback)((v3) => setFilterToIndex(Math.max(v3, filterFromIndex)), [filterFromIndex]);
+  const toggleLinkCount = (0, import_react50.useCallback)((n) => {
     setLinkCountLocal((prev) => prev === n ? null : n);
   }, []);
-  const applyToTorus = (0, import_react49.useCallback)(() => {
+  const applyToTorus = (0, import_react50.useCallback)(() => {
     setCriteria({
       maxAgeDays: RANGE_STEPS[filterFromIndex][1],
       minAgeDays: RANGE_STEPS[filterToIndex][1],
@@ -170531,13 +170551,13 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
       connectionDepth: localDepth
     });
   }, [setCriteria, filterFromIndex, filterToIndex, linkCount, localSeed, localDepth]);
-  const localDiffersFromApplied = (0, import_react49.useMemo)(() => {
+  const localDiffersFromApplied = (0, import_react50.useMemo)(() => {
     return RANGE_STEPS[filterFromIndex][1] !== criteria.maxAgeDays || RANGE_STEPS[filterToIndex][1] !== criteria.minAgeDays || linkCount !== criteria.linkCount || localSeed !== criteria.connectionSeed || localDepth !== criteria.connectionDepth;
   }, [filterFromIndex, filterToIndex, linkCount, localSeed, localDepth, criteria]);
-  const localHasFilter = (0, import_react49.useMemo)(() => {
+  const localHasFilter = (0, import_react50.useMemo)(() => {
     return filterFromIndex > 0 || filterToIndex < RANGE_STEPS.length - 1 || linkCount !== null || localSeed !== null;
   }, [filterFromIndex, filterToIndex, linkCount, localSeed]);
-  const localCriteria = (0, import_react49.useMemo)(() => ({
+  const localCriteria = (0, import_react50.useMemo)(() => ({
     maxAgeDays: RANGE_STEPS[filterFromIndex][1],
     minAgeDays: RANGE_STEPS[filterToIndex][1],
     linkCount,
@@ -170545,14 +170565,14 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
     connectionDepth: localDepth
   }), [filterFromIndex, filterToIndex, linkCount, localSeed, localDepth]);
   const previewFiles = useFilterSet(localCriteria, library, ideas, app);
-  (0, import_react49.useEffect)(() => {
+  (0, import_react50.useEffect)(() => {
     const timer2 = setTimeout(() => setDebouncedQuery(rawQuery), 150);
     return () => clearTimeout(timer2);
   }, [rawQuery]);
-  (0, import_react49.useEffect)(() => {
+  (0, import_react50.useEffect)(() => {
     if (searchContent && !contentLoaded) loadContent();
   }, [searchContent, contentLoaded, loadContent]);
-  (0, import_react49.useEffect)(() => {
+  (0, import_react50.useEffect)(() => {
     const onFilterConnection = (e2) => {
       const { filePath, depth } = e2.detail;
       if (!filePath) return;
@@ -170569,7 +170589,7 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
   }, [setCriteria, onOpen]);
   const searchMaxAge = RANGE_STEPS[searchFromIndex][1];
   const searchMinAge = RANGE_STEPS[searchToIndex][1];
-  const results = (0, import_react49.useMemo)(() => {
+  const results = (0, import_react50.useMemo)(() => {
     if (!open || mode !== "search") return [];
     if (!debouncedQuery && activeRooms.size === 0 && activeTypes.size === 0 && searchMaxAge === 0 && searchMinAge === 0) return [];
     return search5({
@@ -170581,13 +170601,13 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
       minAgeDays: searchMinAge
     });
   }, [open, mode, debouncedQuery, activeRooms, activeTypes, searchContent, searchMaxAge, searchMinAge, search5]);
-  (0, import_react49.useEffect)(() => setSelectedIndex(0), [results]);
-  (0, import_react49.useEffect)(() => {
+  (0, import_react50.useEffect)(() => setSelectedIndex(0), [results]);
+  (0, import_react50.useEffect)(() => {
     if (!listRef.current) return;
     const el = listRef.current.children[selectedIndex];
     el?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
-  const openResult = (0, import_react49.useCallback)(
+  const openResult = (0, import_react50.useCallback)(
     (r2, shiftKey = false) => {
       const tfile = app.vault.getAbstractFileByPath(r2.item.file);
       if (!(tfile instanceof import_obsidian12.TFile)) return;
@@ -170602,14 +170622,14 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
     },
     [app, onClose]
   );
-  const navigateToItem = (0, import_react49.useCallback)(
+  const navigateToItem = (0, import_react50.useCallback)(
     (r2) => {
       window.dispatchEvent(new CustomEvent("torus-find", { detail: { filePath: r2.item.file } }));
       onClose();
     },
     [onClose]
   );
-  const toggleRoom = (0, import_react49.useCallback)((key) => {
+  const toggleRoom = (0, import_react50.useCallback)((key) => {
     setActiveRooms((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -170617,7 +170637,7 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
       return next;
     });
   }, []);
-  const toggleType = (0, import_react49.useCallback)((t2) => {
+  const toggleType = (0, import_react50.useCallback)((t2) => {
     setActiveTypes((prev) => {
       const next = new Set(prev);
       if (next.has(t2)) next.delete(t2);
@@ -170625,18 +170645,18 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
       return next;
     });
   }, []);
-  const selectSeed = (0, import_react49.useCallback)((file) => {
+  const selectSeed = (0, import_react50.useCallback)((file) => {
     setLocalSeed(file);
     setSeedSearch("");
     setSeedSearchMode(false);
   }, []);
-  const clearSeed = (0, import_react49.useCallback)(() => setLocalSeed(null), []);
-  const seedTitle = (0, import_react49.useMemo)(() => {
+  const clearSeed = (0, import_react50.useCallback)(() => setLocalSeed(null), []);
+  const seedTitle = (0, import_react50.useMemo)(() => {
     if (!localSeed) return null;
     const name = localSeed.split("/").pop() || localSeed;
     return name.replace(/\.md$/, "");
   }, [localSeed]);
-  const seedResults = (0, import_react49.useMemo)(() => {
+  const seedResults = (0, import_react50.useMemo)(() => {
     if (!seedSearch.trim()) return [];
     return search5({
       query: seedSearch,
@@ -170647,7 +170667,7 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
       minAgeDays: 0
     }).slice(0, 8);
   }, [seedSearch, search5, contentLoaded]);
-  const onKeyDown = (0, import_react49.useCallback)(
+  const onKeyDown = (0, import_react50.useCallback)(
     (e2) => {
       if (e2.key === "ArrowDown") {
         e2.preventDefault();
@@ -170662,7 +170682,7 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
     },
     [results, selectedIndex, openResult]
   );
-  const totalNotes = (0, import_react49.useMemo)(() => {
+  const totalNotes = (0, import_react50.useMemo)(() => {
     let count5 = 0;
     for (const room of Object.values(library.rooms)) {
       for (const sg of room.subgroups) count5 += sg.notes.length;
@@ -170682,15 +170702,15 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
       }
       if (criteria.linkCount !== null) parts.push(`${criteria.linkCount >= 3 ? "3+" : criteria.linkCount} links`);
       if (criteria.connectionSeed) parts.push(`connected`);
-      return /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { onClick: onOpen, style: pillStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { color: "#c8a050" }, children: "Torus Filter" }),
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { color: "#999" }, children: parts.join(" \xB7 ") }),
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("span", { style: { color: "#888" }, children: [
+      return /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { onClick: onOpen, style: pillStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { color: "#c8a050" }, children: "Torus Filter" }),
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { color: "#999" }, children: parts.join(" \xB7 ") }),
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("span", { style: { color: "#888" }, children: [
           matchingFiles.size,
           " / ",
           totalNotes
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
           "button",
           {
             onClick: (e2) => {
@@ -170706,15 +170726,15 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
     return null;
   }
   const roomColorMap = Object.fromEntries(roomOptions.map((r2) => [r2.key, r2.color]));
-  return /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)(import_jsx_runtime39.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("div", { onClick: onClose, style: backdropStyle }),
-    /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: panelStyle2, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("style", { dangerouslySetInnerHTML: { __html: `
+  return /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)(import_jsx_runtime40.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("div", { onClick: onClose, style: backdropStyle }),
+    /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { style: panelStyle2, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("style", { dangerouslySetInnerHTML: { __html: `
           .dual-range-thumb::-webkit-slider-thumb { pointer-events: auto; }
           .dual-range-thumb::-webkit-slider-runnable-track { pointer-events: none; }
         ` } }),
-      /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: modeRowStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { style: modeRowStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
           "button",
           {
             onClick: () => setMode("search"),
@@ -170722,7 +170742,7 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
             children: "Search"
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
           "button",
           {
             onClick: () => setMode("filter"),
@@ -170730,14 +170750,14 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
             children: "Filter"
           }
         ),
-        hasFilter && /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("span", { style: modeStatusStyle, children: [
+        hasFilter && /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("span", { style: modeStatusStyle, children: [
           matchingFiles.size,
           " / ",
           totalNotes
         ] })
       ] }),
-      mode === "search" && /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)(import_jsx_runtime39.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+      mode === "search" && /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)(import_jsx_runtime40.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
           DateRangeRow,
           {
             fromIndex: searchFromIndex,
@@ -170746,12 +170766,12 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
             onTo: handleSearchTo
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: filterRowStyle, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: sectionLabelStyle, children: "NOTE TYPE" }),
-          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(TypeChip, { label: "Sources", type: "shelf", active: activeTypes, onToggle: toggleType }),
-          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(TypeChip, { label: "Ideas", type: "idea", active: activeTypes, onToggle: toggleType }),
-          /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("label", { style: contentToggleStyle, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { style: filterRowStyle, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: sectionLabelStyle, children: "NOTE TYPE" }),
+          /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(TypeChip, { label: "Sources", type: "shelf", active: activeTypes, onToggle: toggleType }),
+          /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(TypeChip, { label: "Ideas", type: "idea", active: activeTypes, onToggle: toggleType }),
+          /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("label", { style: contentToggleStyle, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
               "input",
               {
                 type: "checkbox",
@@ -170761,14 +170781,14 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
               }
             ),
             "Content",
-            searchContent && !contentLoaded && /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { color: "#999", marginLeft: 4 }, children: "loading..." })
+            searchContent && !contentLoaded && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { color: "#999", marginLeft: 4 }, children: "loading..." })
           ] })
         ] }),
-        roomOptions.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: roomChipsRowStyle, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { ...sectionLabelStyle, marginRight: 4 }, children: "CATEGORY" }),
+        roomOptions.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { style: roomChipsRowStyle, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { ...sectionLabelStyle, marginRight: 4 }, children: "CATEGORY" }),
           roomOptions.map((room) => {
             const isActive = activeRooms.has(room.key);
-            return /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+            return /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
               "button",
               {
                 onClick: () => toggleRoom(room.key),
@@ -170789,7 +170809,7 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
             );
           })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
           "input",
           {
             ref: inputRef,
@@ -170800,10 +170820,10 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
             style: inputStyle
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { ref: listRef, style: resultsStyle, children: [
-          results.length === 0 && (debouncedQuery || activeRooms.size > 0 || activeTypes.size > 0 || searchMaxAge > 0 || searchMinAge > 0) && /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("div", { style: { padding: "12px 14px", color: "#999", fontSize: 12 }, children: "No results" }),
-          results.length === 0 && !debouncedQuery && activeRooms.size === 0 && activeTypes.size === 0 && searchMaxAge === 0 && searchMinAge === 0 && /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("div", { style: { padding: "12px 14px", color: "#888", fontSize: 12 }, children: "Type to search, or pick a filter" }),
-          results.map((r2, i3) => /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { ref: listRef, style: resultsStyle, children: [
+          results.length === 0 && (debouncedQuery || activeRooms.size > 0 || activeTypes.size > 0 || searchMaxAge > 0 || searchMinAge > 0) && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("div", { style: { padding: "12px 14px", color: "#999", fontSize: 12 }, children: "No results" }),
+          results.length === 0 && !debouncedQuery && activeRooms.size === 0 && activeTypes.size === 0 && searchMaxAge === 0 && searchMinAge === 0 && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("div", { style: { padding: "12px 14px", color: "#888", fontSize: 12 }, children: "Type to search, or pick a filter" }),
+          results.map((r2, i3) => /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)(
             "div",
             {
               onClick: (e2) => openResult(r2, e2.shiftKey),
@@ -170818,12 +170838,12 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
                 background: i3 === selectedIndex ? "rgba(255,255,255,0.04)" : "transparent"
               },
               children: [
-                r2.item.roomKey ? /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { width: 6, height: 6, borderRadius: "50%", background: roomColorMap[r2.item.roomKey] || "#555", flexShrink: 0 } }) : /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { width: 6, flexShrink: 0 } }),
-                /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { flex: 1, color: "#ccc", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: r2.item.title }),
-                r2.contentMatch && !r2.titleMatch && /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { fontSize: 9, color: "#999", flexShrink: 0 }, children: "body" }),
-                /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { fontSize: 9, color: r2.item.type === "shelf" ? "#aaa" : "#6ca0dc", flexShrink: 0 }, children: r2.item.type === "shelf" ? "source" : "idea" }),
-                r2.item.roomName && /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { fontSize: 9, color: "#888", flexShrink: 0, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: r2.item.roomName }),
-                (r2.item.roomKey || r2.item.type === "idea") && /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+                r2.item.roomKey ? /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { width: 6, height: 6, borderRadius: "50%", background: roomColorMap[r2.item.roomKey] || "#555", flexShrink: 0 } }) : /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { width: 6, flexShrink: 0 } }),
+                /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { flex: 1, color: "#ccc", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: r2.item.title }),
+                r2.contentMatch && !r2.titleMatch && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { fontSize: 9, color: "#999", flexShrink: 0 }, children: "body" }),
+                /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { fontSize: 9, color: r2.item.type === "shelf" ? "#aaa" : "#6ca0dc", flexShrink: 0 }, children: r2.item.type === "shelf" ? "source" : "idea" }),
+                r2.item.roomName && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { fontSize: 9, color: "#888", flexShrink: 0, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: r2.item.roomName }),
+                (r2.item.roomKey || r2.item.type === "idea") && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
                   "button",
                   {
                     onClick: (e2) => {
@@ -170841,8 +170861,8 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
           ))
         ] })
       ] }),
-      mode === "filter" && /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)(import_jsx_runtime39.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+      mode === "filter" && /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)(import_jsx_runtime40.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
           DateRangeRow,
           {
             fromIndex: filterFromIndex,
@@ -170851,9 +170871,9 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
             onTo: handleFilterTo
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: filterRowStyle, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: sectionLabelStyle, children: "LINKS" }),
-          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("div", { style: { display: "flex", gap: 4, alignItems: "center", marginLeft: 4 }, children: [0, 1, 2, 3].map((n) => /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { style: filterRowStyle, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: sectionLabelStyle, children: "LINKS" }),
+          /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("div", { style: { display: "flex", gap: 4, alignItems: "center", marginLeft: 4 }, children: [0, 1, 2, 3].map((n) => /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
             "button",
             {
               onClick: () => toggleLinkCount(n),
@@ -170863,15 +170883,15 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
             n
           )) })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: connectionRowStyle, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: sectionLabelStyle, children: "CONNECTED TO" }),
-          localSeed ? /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)(import_jsx_runtime39.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("span", { style: seedPillStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { style: connectionRowStyle, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: sectionLabelStyle, children: "CONNECTED TO" }),
+          localSeed ? /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)(import_jsx_runtime40.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("span", { style: seedPillStyle, children: [
               seedTitle,
-              /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("button", { onClick: clearSeed, style: seedPillCloseStyle, children: "\xD7" })
+              /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("button", { onClick: clearSeed, style: seedPillCloseStyle, children: "\xD7" })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { ...sectionLabelStyle, marginLeft: 8 }, children: "DEPTH" }),
-            [1, 2, 3].map((d) => /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { ...sectionLabelStyle, marginLeft: 8 }, children: "DEPTH" }),
+            [1, 2, 3].map((d) => /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
               "button",
               {
                 onClick: () => setLocalDepth(d),
@@ -170880,8 +170900,8 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
               },
               d
             ))
-          ] }) : /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: { position: "relative", marginLeft: 4 }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+          ] }) : /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { style: { position: "relative", marginLeft: 4 }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
               "input",
               {
                 type: "text",
@@ -170899,7 +170919,7 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
                 style: seedInputStyle
               }
             ),
-            seedSearchMode && seedResults.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("div", { style: dropdownStyle, children: seedResults.map((r2) => /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)(
+            seedSearchMode && seedResults.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("div", { style: dropdownStyle, children: seedResults.map((r2) => /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)(
               "button",
               {
                 onMouseDown: () => selectSeed(r2.item.file),
@@ -170907,7 +170927,7 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
                 onMouseEnter: (e2) => e2.currentTarget.style.background = "rgba(255,255,255,0.08)",
                 onMouseLeave: (e2) => e2.currentTarget.style.background = "transparent",
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { color: r2.item.type === "idea" ? "#c8a050" : "#aaa" }, children: r2.item.type === "idea" ? "\u25CF" : "\u25A0" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { color: r2.item.type === "idea" ? "#c8a050" : "#aaa" }, children: r2.item.type === "idea" ? "\u25CF" : "\u25A0" }),
                   r2.item.title
                 ]
               },
@@ -170915,15 +170935,15 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
             )) })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: applyRowStyle, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("span", { style: resultCountStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { style: applyRowStyle, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("span", { style: resultCountStyle, children: [
             localHasFilter ? previewFiles.size : "\u2013",
             " of ",
             totalNotes,
             " notes"
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("div", { style: { flex: 1 } }),
-          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("div", { style: { flex: 1 } }),
+          /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
             "button",
             {
               onClick: applyToTorus,
@@ -170935,7 +170955,7 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
               children: localHasFilter && localDiffersFromApplied ? "Apply" : hasFilter && !localDiffersFromApplied ? "Applied" : "Apply"
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
             "button",
             {
               onClick: () => {
@@ -170959,12 +170979,12 @@ function SearchOverlay({ open, onClose, onOpen, onNavigate, onHighlight, onIdeaL
   ] });
 }
 function DateRangeRow({ fromIndex, toIndex, onFrom, onTo }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: recencyRowStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: sectionLabelStyle, children: "DATE" }),
-    /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: labelSmall, children: "From" }),
-    /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { fontSize: 10, color: fromIndex > 0 ? "#ccc" : "#888", flexShrink: 0, minWidth: 24 }, children: RANGE_STEPS[fromIndex][0] }),
-    /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { style: { flex: 1, position: "relative", height: 20 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { style: recencyRowStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: sectionLabelStyle, children: "DATE" }),
+    /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: labelSmall, children: "From" }),
+    /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { fontSize: 10, color: fromIndex > 0 ? "#ccc" : "#888", flexShrink: 0, minWidth: 24 }, children: RANGE_STEPS[fromIndex][0] }),
+    /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { style: { flex: 1, position: "relative", height: 20 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
         "input",
         {
           type: "range",
@@ -170976,7 +170996,7 @@ function DateRangeRow({ fromIndex, toIndex, onFrom, onTo }) {
           style: dualThumbStyle
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
         "input",
         {
           type: "range",
@@ -170989,14 +171009,14 @@ function DateRangeRow({ fromIndex, toIndex, onFrom, onTo }) {
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: labelSmall, children: "To" }),
-    /* @__PURE__ */ (0, import_jsx_runtime39.jsx)("span", { style: { fontSize: 10, color: toIndex < RANGE_STEPS.length - 1 ? "#ccc" : "#888", flexShrink: 0 }, children: RANGE_STEPS[toIndex][0] })
+    /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: labelSmall, children: "To" }),
+    /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { fontSize: 10, color: toIndex < RANGE_STEPS.length - 1 ? "#ccc" : "#888", flexShrink: 0 }, children: RANGE_STEPS[toIndex][0] })
   ] });
 }
 function TypeChip({ label, type, active, onToggle }) {
   const isActive = active.has(type);
   const color = type === "shelf" ? "#ccc" : "#6ca0dc";
-  return /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
     "button",
     {
       onClick: () => onToggle(type),
@@ -171309,11 +171329,11 @@ var pillCloseStyle = {
 };
 
 // src/components/ContextMenu.tsx
-var import_react50 = __toESM(require_react(), 1);
+var import_react51 = __toESM(require_react(), 1);
 var import_react_dom = __toESM(require_react_dom(), 1);
 var import_obsidian13 = require("obsidian");
 var import_obsidian14 = require("obsidian");
-var import_jsx_runtime40 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime41 = __toESM(require_jsx_runtime(), 1);
 function ContextMenu() {
   const app = useObsidian();
   const { ideasDir } = useTorusConfig();
@@ -171326,7 +171346,7 @@ function ContextMenu() {
     startOperation
   } = useContextMenu();
   const { selectNote } = useSortingDeskContext();
-  (0, import_react50.useEffect)(() => {
+  (0, import_react51.useEffect)(() => {
     if (!menuOpen) return;
     const onKeyDown = (e2) => {
       if (e2.key === "Escape") {
@@ -171338,7 +171358,7 @@ function ContextMenu() {
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [menuOpen, closeMenu]);
-  (0, import_react50.useEffect)(() => {
+  (0, import_react51.useEffect)(() => {
     if (!menuOpen) return;
     const suppress = (e2) => {
       e2.preventDefault();
@@ -171347,7 +171367,7 @@ function ContextMenu() {
     window.addEventListener("contextmenu", suppress, true);
     return () => window.removeEventListener("contextmenu", suppress, true);
   }, [menuOpen]);
-  const hasLinks = (0, import_react50.useMemo)(() => {
+  const hasLinks = (0, import_react51.useMemo)(() => {
     if (!targetFile || !menuOpen) return false;
     const tfile = app.vault.getAbstractFileByPath(targetFile);
     if (!(tfile instanceof import_obsidian13.TFile)) return false;
@@ -171364,7 +171384,7 @@ function ContextMenu() {
     });
   }, [targetFile, targetType, menuOpen, app, ideasDir]);
   void hasLinks;
-  const handleNetwork = (0, import_react50.useCallback)(() => {
+  const handleNetwork = (0, import_react51.useCallback)(() => {
     if (!targetFile) return;
     const file = targetFile;
     closeMenu();
@@ -171372,7 +171392,7 @@ function ContextMenu() {
       new CustomEvent("torus-network", { detail: { filePath: file } })
     );
   }, [targetFile, closeMenu]);
-  const handleLibrary = (0, import_react50.useCallback)(() => {
+  const handleLibrary = (0, import_react51.useCallback)(() => {
     if (!targetFile) return;
     const file = targetFile;
     closeMenu();
@@ -171380,13 +171400,13 @@ function ContextMenu() {
       new CustomEvent("torus-library", { detail: { filePath: file } })
     );
   }, [targetFile, closeMenu]);
-  const handleCopyPath = (0, import_react50.useCallback)(() => {
+  const handleCopyPath = (0, import_react51.useCallback)(() => {
     if (!targetFile) return;
     navigator.clipboard.writeText(targetFile);
     new import_obsidian14.Notice("Copied: " + targetFile);
     closeMenu();
   }, [targetFile, closeMenu]);
-  const title = (0, import_react50.useMemo)(() => {
+  const title = (0, import_react51.useMemo)(() => {
     if (!targetFile) return "";
     const name = targetFile.split("/").pop() || targetFile;
     const bare = name.replace(/\.md$/, "");
@@ -171400,24 +171420,24 @@ function ContextMenu() {
   const isShelved = targetType === "source";
   const isDesk = targetType === "desk";
   return (0, import_react_dom.createPortal)(
-    /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)(import_jsx_runtime40.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("div", { onClick: closeMenu, onContextMenu: (e2) => {
+    /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)(import_jsx_runtime41.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("div", { onClick: closeMenu, onContextMenu: (e2) => {
         e2.preventDefault();
         closeMenu();
       }, style: backdropStyle2 }),
-      /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { style: { ...menuStyle, left: x2, top: y }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("div", { style: headerStyle, children: title }),
-        isShelved && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(MenuItem, { icon: "\u{1F4C1}", label: "Move", onClick: () => startOperation({ kind: "move" }) }),
-        isDesk && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(MenuItem, { icon: "\u{1F4E5}", label: "Shelve", onClick: () => {
+      /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("div", { style: { ...menuStyle, left: x2, top: y }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("div", { style: headerStyle, children: title }),
+        isShelved && /* @__PURE__ */ (0, import_jsx_runtime41.jsx)(MenuItem, { icon: "\u{1F4C1}", label: "Move", onClick: () => startOperation({ kind: "move" }) }),
+        isDesk && /* @__PURE__ */ (0, import_jsx_runtime41.jsx)(MenuItem, { icon: "\u{1F4E5}", label: "Shelve", onClick: () => {
           selectNote(targetFile);
           closeMenu();
         } }),
-        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(MenuItem, { icon: "\u{1F4CB}", label: "Copy path", onClick: handleCopyPath }),
-        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("div", { style: separatorStyle }),
-        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(MenuItem, { icon: "\u{1F3DB}", label: "Library", onClick: handleLibrary }),
-        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(MenuItem, { icon: "\u{1F578}", label: "Network", onClick: handleNetwork }),
-        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("div", { style: separatorStyle }),
-        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime41.jsx)(MenuItem, { icon: "\u{1F4CB}", label: "Copy path", onClick: handleCopyPath }),
+        /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("div", { style: separatorStyle }),
+        /* @__PURE__ */ (0, import_jsx_runtime41.jsx)(MenuItem, { icon: "\u{1F3DB}", label: "Library", onClick: handleLibrary }),
+        /* @__PURE__ */ (0, import_jsx_runtime41.jsx)(MenuItem, { icon: "\u{1F578}", label: "Network", onClick: handleNetwork }),
+        /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("div", { style: separatorStyle }),
+        /* @__PURE__ */ (0, import_jsx_runtime41.jsx)(
           MenuItem,
           {
             icon: "\u{1F5D1}",
@@ -171432,7 +171452,7 @@ function ContextMenu() {
   );
 }
 function MenuItem({ icon, label, onClick, danger, disabled }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)(
     "button",
     {
       onClick: disabled ? void 0 : onClick,
@@ -171449,7 +171469,7 @@ function MenuItem({ icon, label, onClick, danger, disabled }) {
         e2.currentTarget.style.background = "transparent";
       },
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { style: { width: 20, fontSize: 13, flexShrink: 0 }, children: icon }),
+        /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("span", { style: { width: 20, fontSize: 13, flexShrink: 0 }, children: icon }),
         label
       ]
     }
@@ -171505,10 +171525,10 @@ var separatorStyle = {
   margin: "2px 8px"
 };
 function MenuOpBridge() {
-  const ctxRef = (0, import_react50.useRef)(useContextMenu());
+  const ctxRef = (0, import_react51.useRef)(useContextMenu());
   ctxRef.current = useContextMenu();
   const { selectNote } = useSortingDeskContext();
-  (0, import_react50.useEffect)(() => {
+  (0, import_react51.useEffect)(() => {
     const handler = (e2) => {
       const { filePath, op } = e2.detail;
       if (!filePath || !op) return;
@@ -171530,7 +171550,7 @@ function MenuOpBridge() {
 }
 
 // src/components/DeleteDialog.tsx
-var import_react51 = __toESM(require_react(), 1);
+var import_react52 = __toESM(require_react(), 1);
 
 // src/lib/contextMenuActions.ts
 var import_obsidian15 = require("obsidian");
@@ -171879,22 +171899,22 @@ function parseIdeaAttributions(content) {
 }
 
 // src/components/DeleteDialog.tsx
-var import_jsx_runtime41 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime42 = __toESM(require_jsx_runtime(), 1);
 function DeleteDialog() {
   const app = useObsidian();
   const { targetFile, targetType, operation, clearOperation, setBusy, busy } = useContextMenu();
   const isOpen = operation?.kind === "delete" && !!targetFile;
   const isIdea = targetType === "idea";
-  const [phase, setPhase] = (0, import_react51.useState)("scanning");
-  const [orphans, setOrphans] = (0, import_react51.useState)([]);
-  const [partials, setPartials] = (0, import_react51.useState)([]);
-  const [referencingSources, setReferencingSources] = (0, import_react51.useState)([]);
-  const title = (0, import_react51.useMemo)(() => {
+  const [phase, setPhase] = (0, import_react52.useState)("scanning");
+  const [orphans, setOrphans] = (0, import_react52.useState)([]);
+  const [partials, setPartials] = (0, import_react52.useState)([]);
+  const [referencingSources, setReferencingSources] = (0, import_react52.useState)([]);
+  const title = (0, import_react52.useMemo)(() => {
     if (!targetFile) return "";
     const name = targetFile.split("/").pop() || targetFile;
     return name.replace(/\.md$/, "");
   }, [targetFile]);
-  (0, import_react51.useEffect)(() => {
+  (0, import_react52.useEffect)(() => {
     if (!isOpen || !targetFile) return;
     setPhase("scanning");
     setOrphans([]);
@@ -171920,7 +171940,7 @@ function DeleteDialog() {
       });
     }
   }, [isOpen, targetFile, isIdea, app, clearOperation]);
-  const handleDelete = (0, import_react51.useCallback)(async () => {
+  const handleDelete = (0, import_react52.useCallback)(async () => {
     if (!targetFile || busy) return;
     setBusy(true, "Deleting...");
     try {
@@ -171935,51 +171955,51 @@ function DeleteDialog() {
     }
   }, [targetFile, isIdea, orphans, partials, referencingSources, busy, app, setBusy, clearOperation]);
   if (!isOpen) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)(import_jsx_runtime41.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("div", { onClick: clearOperation, style: backdropStyle3 }),
-    /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("div", { style: dialogStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("h3", { style: { margin: 0, fontSize: 14, color: "#ddd" }, children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)(import_jsx_runtime42.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("div", { onClick: clearOperation, style: backdropStyle3 }),
+    /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("div", { style: dialogStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("h3", { style: { margin: 0, fontSize: 14, color: "#ddd" }, children: [
         "Delete: ",
         title
       ] }),
-      phase === "scanning" && /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#999" }, children: "Scanning for linked notes..." }),
-      phase === "confirm" && /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)(import_jsx_runtime41.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("p", { style: { margin: 0, fontSize: 12, color: "#e74c3c", lineHeight: 1.5 }, children: [
+      phase === "scanning" && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#999" }, children: "Scanning for linked notes..." }),
+      phase === "confirm" && /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)(import_jsx_runtime42.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("p", { style: { margin: 0, fontSize: 12, color: "#e74c3c", lineHeight: 1.5 }, children: [
           "This will move the ",
           isIdea ? "idea" : "note",
           " to the system trash."
         ] }),
-        !isIdea && orphans.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("div", { style: { fontSize: 11, color: "#f39c12", lineHeight: 1.6 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("strong", { children: [
+        !isIdea && orphans.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("div", { style: { fontSize: 11, color: "#f39c12", lineHeight: 1.6 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("strong", { children: [
             orphans.length,
             " orphaned idea",
             orphans.length > 1 ? "s" : ""
           ] }),
           " will also be deleted:",
-          /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("ul", { style: { margin: "4px 0 0", paddingLeft: 16 }, children: orphans.map((p3) => /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("li", { style: { color: "#999" }, children: p3.split("/").pop()?.replace(/\.md$/, "") }, p3)) })
+          /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("ul", { style: { margin: "4px 0 0", paddingLeft: 16 }, children: orphans.map((p3) => /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("li", { style: { color: "#999" }, children: p3.split("/").pop()?.replace(/\.md$/, "") }, p3)) })
         ] }),
-        !isIdea && partials.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("div", { style: { fontSize: 11, color: "#3498db", lineHeight: 1.6 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("strong", { children: [
+        !isIdea && partials.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("div", { style: { fontSize: 11, color: "#3498db", lineHeight: 1.6 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("strong", { children: [
             partials.length,
             " shared idea",
             partials.length > 1 ? "s" : ""
           ] }),
           " will have this source's content removed:",
-          /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("ul", { style: { margin: "4px 0 0", paddingLeft: 16 }, children: partials.map((p3) => /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("li", { style: { color: "#999" }, children: p3.split("/").pop()?.replace(/\.md$/, "") }, p3)) })
+          /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("ul", { style: { margin: "4px 0 0", paddingLeft: 16 }, children: partials.map((p3) => /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("li", { style: { color: "#999" }, children: p3.split("/").pop()?.replace(/\.md$/, "") }, p3)) })
         ] }),
-        isIdea && referencingSources.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("div", { style: { fontSize: 11, color: "#f39c12", lineHeight: 1.6 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("strong", { children: [
+        isIdea && referencingSources.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("div", { style: { fontSize: 11, color: "#f39c12", lineHeight: 1.6 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("strong", { children: [
             referencingSources.length,
             " source",
             referencingSources.length > 1 ? "s" : ""
           ] }),
           " reference this idea (wiki-links will be removed):",
-          /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("ul", { style: { margin: "4px 0 0", paddingLeft: 16 }, children: referencingSources.map((p3) => /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("li", { style: { color: "#999" }, children: p3.split("/").pop()?.replace(/\.md$/, "") }, p3)) })
+          /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("ul", { style: { margin: "4px 0 0", paddingLeft: 16 }, children: referencingSources.map((p3) => /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("li", { style: { color: "#999" }, children: p3.split("/").pop()?.replace(/\.md$/, "") }, p3)) })
         ] }),
-        !isIdea && orphans.length === 0 && partials.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("p", { style: { margin: 0, fontSize: 11, color: "#888" }, children: "No linked ideas found." }),
-        isIdea && referencingSources.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("p", { style: { margin: 0, fontSize: 11, color: "#888" }, children: "No sources reference this idea." }),
-        /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("div", { style: { display: "flex", gap: 8 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime41.jsx)(
+        !isIdea && orphans.length === 0 && partials.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("p", { style: { margin: 0, fontSize: 11, color: "#888" }, children: "No linked ideas found." }),
+        isIdea && referencingSources.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("p", { style: { margin: 0, fontSize: 11, color: "#888" }, children: "No sources reference this idea." }),
+        /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("div", { style: { display: "flex", gap: 8 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(
             "button",
             {
               onClick: handleDelete,
@@ -171988,7 +172008,7 @@ function DeleteDialog() {
               children: busy ? "Deleting..." : "Delete"
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("button", { onClick: clearOperation, style: cancelBtnStyle2, children: "Cancel" })
+          /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("button", { onClick: clearOperation, style: cancelBtnStyle2, children: "Cancel" })
         ] })
       ] })
     ] })
@@ -172040,22 +172060,22 @@ var cancelBtnStyle2 = {
 };
 
 // src/components/UnlinkDialog.tsx
-var import_react52 = __toESM(require_react(), 1);
+var import_react53 = __toESM(require_react(), 1);
 var import_obsidian16 = require("obsidian");
-var import_jsx_runtime42 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime43 = __toESM(require_jsx_runtime(), 1);
 function UnlinkDialog() {
   const app = useObsidian();
   const { targetFile, targetType, operation, clearOperation, setBusy, busy } = useContextMenu();
   const isOpen = operation?.kind === "unlink" && !!targetFile;
   const isIdea = targetType === "idea";
-  const [links, setLinks] = (0, import_react52.useState)([]);
-  const [scanning, setScanning] = (0, import_react52.useState)(true);
-  const title = (0, import_react52.useMemo)(() => {
+  const [links, setLinks] = (0, import_react53.useState)([]);
+  const [scanning, setScanning] = (0, import_react53.useState)(true);
+  const title = (0, import_react53.useMemo)(() => {
     if (!targetFile) return "";
     const name = targetFile.split("/").pop() || targetFile;
     return name.replace(/\.md$/, "");
   }, [targetFile]);
-  (0, import_react52.useEffect)(() => {
+  (0, import_react53.useEffect)(() => {
     if (!isOpen || !targetFile) return;
     setLinks([]);
     setScanning(true);
@@ -172092,7 +172112,7 @@ function UnlinkDialog() {
       });
     }
   }, [isOpen, targetFile, isIdea, app]);
-  const handleUnlink = (0, import_react52.useCallback)(
+  const handleUnlink = (0, import_react53.useCallback)(
     async (entry) => {
       if (busy) return;
       setBusy(true, "Unlinking...");
@@ -172111,17 +172131,17 @@ function UnlinkDialog() {
     [targetFile, isIdea, busy, app, setBusy, clearOperation]
   );
   if (!isOpen) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)(import_jsx_runtime42.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("div", { onClick: clearOperation, style: backdropStyle4 }),
-    /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("div", { style: dialogStyle2, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("h3", { style: { margin: 0, fontSize: 14, color: "#ddd" }, children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)(import_jsx_runtime43.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("div", { onClick: clearOperation, style: backdropStyle4 }),
+    /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("div", { style: dialogStyle2, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("h3", { style: { margin: 0, fontSize: 14, color: "#ddd" }, children: [
         "Unlink: ",
         title
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#999", lineHeight: 1.5 }, children: isIdea ? "Pick a source to remove from this idea:" : "Pick an idea to remove this source from:" }),
-      scanning && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#777" }, children: "Scanning..." }),
-      !scanning && links.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#777" }, children: "No links found." }),
-      !scanning && links.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("div", { style: { maxHeight: 240, overflowY: "auto" }, children: links.map((entry) => /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#999", lineHeight: 1.5 }, children: isIdea ? "Pick a source to remove from this idea:" : "Pick an idea to remove this source from:" }),
+      scanning && /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#777" }, children: "Scanning..." }),
+      !scanning && links.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("p", { style: { margin: 0, fontSize: 12, color: "#777" }, children: "No links found." }),
+      !scanning && links.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("div", { style: { maxHeight: 240, overflowY: "auto" }, children: links.map((entry) => /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(
         "button",
         {
           onClick: () => handleUnlink(entry),
@@ -172137,7 +172157,7 @@ function UnlinkDialog() {
         },
         entry.file
       )) }),
-      /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("button", { onClick: clearOperation, style: cancelBtnStyle3, children: "Cancel" })
+      /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("button", { onClick: clearOperation, style: cancelBtnStyle3, children: "Cancel" })
     ] })
   ] });
 }
@@ -172190,31 +172210,31 @@ var cancelBtnStyle3 = {
 };
 
 // src/components/MoveDialog.tsx
-var import_react53 = __toESM(require_react(), 1);
-var import_jsx_runtime43 = __toESM(require_jsx_runtime(), 1);
+var import_react54 = __toESM(require_react(), 1);
+var import_jsx_runtime44 = __toESM(require_jsx_runtime(), 1);
 function MoveDialog() {
   const app = useObsidian();
   const { targetFile, operation, clearOperation, setBusy, busy } = useContextMenu();
   const library = useLibrary();
   const isOpen = operation?.kind === "move" && !!targetFile;
-  const title = (0, import_react53.useMemo)(() => {
+  const title = (0, import_react54.useMemo)(() => {
     if (!targetFile) return "";
     const name = targetFile.split("/").pop() || targetFile;
     return name.replace(/\.md$/, "");
   }, [targetFile]);
-  const roomOptions = (0, import_react53.useMemo)(
+  const roomOptions = (0, import_react54.useMemo)(
     () => library.roomOrder.map((key) => ({ key, name: library.rooms[key].name })),
     [library]
   );
-  const [selectedRoom, setSelectedRoom] = (0, import_react53.useState)("");
-  const [newRoom, setNewRoom] = (0, import_react53.useState)("");
-  const [selectedShelf, setSelectedShelf] = (0, import_react53.useState)("");
-  const [newShelf, setNewShelf] = (0, import_react53.useState)("");
-  const shelfOptions = (0, import_react53.useMemo)(() => {
+  const [selectedRoom, setSelectedRoom] = (0, import_react54.useState)("");
+  const [newRoom, setNewRoom] = (0, import_react54.useState)("");
+  const [selectedShelf, setSelectedShelf] = (0, import_react54.useState)("");
+  const [newShelf, setNewShelf] = (0, import_react54.useState)("");
+  const shelfOptions = (0, import_react54.useMemo)(() => {
     if (!selectedRoom || !library.rooms[selectedRoom]) return [];
     return library.rooms[selectedRoom].subgroups.map((sg) => sg.name);
   }, [selectedRoom, library]);
-  (0, import_react53.useEffect)(() => {
+  (0, import_react54.useEffect)(() => {
     if (isOpen) {
       setSelectedRoom("");
       setNewRoom("");
@@ -172222,14 +172242,14 @@ function MoveDialog() {
       setNewShelf("");
     }
   }, [isOpen]);
-  (0, import_react53.useEffect)(() => {
+  (0, import_react54.useEffect)(() => {
     setSelectedShelf("");
     setNewShelf("");
   }, [selectedRoom]);
   const finalRoom = selectedRoom === "__new__" ? newRoom.trim() : library.rooms[selectedRoom]?.name ?? "";
   const finalShelf = newShelf.trim() || selectedShelf;
   const canMove = !!finalRoom && !!finalShelf && finalShelf !== "__new__";
-  const handleMove = (0, import_react53.useCallback)(async () => {
+  const handleMove = (0, import_react54.useCallback)(async () => {
     if (!targetFile || !canMove || busy) return;
     setBusy(true, "Moving...");
     try {
@@ -172240,16 +172260,16 @@ function MoveDialog() {
     }
   }, [targetFile, canMove, finalRoom, finalShelf, busy, app, setBusy, clearOperation]);
   if (!isOpen) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)(import_jsx_runtime43.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("div", { onClick: clearOperation, style: backdropStyle5 }),
-    /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("div", { style: dialogStyle3, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("h3", { style: { margin: 0, fontSize: 14, color: "#ddd" }, children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)(import_jsx_runtime44.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("div", { onClick: clearOperation, style: backdropStyle5 }),
+    /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("div", { style: dialogStyle3, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("h3", { style: { margin: 0, fontSize: 14, color: "#ddd" }, children: [
         "Move: ",
         title
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("label", { style: labelStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("label", { style: labelStyle, children: [
         "Room",
-        /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)(
           "select",
           {
             value: selectedRoom,
@@ -172259,14 +172279,14 @@ function MoveDialog() {
             },
             style: selectStyle2,
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("option", { value: "", children: "Select room..." }),
-              roomOptions.map((r2) => /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("option", { value: r2.key, children: r2.name }, r2.key)),
-              /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("option", { value: "__new__", children: "+ New room..." })
+              /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("option", { value: "", children: "Select room..." }),
+              roomOptions.map((r2) => /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("option", { value: r2.key, children: r2.name }, r2.key)),
+              /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("option", { value: "__new__", children: "+ New room..." })
             ]
           }
         )
       ] }),
-      selectedRoom === "__new__" && /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(
+      selectedRoom === "__new__" && /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(
         "input",
         {
           value: newRoom,
@@ -172276,9 +172296,9 @@ function MoveDialog() {
           autoFocus: true
         }
       ),
-      selectedRoom && selectedRoom !== "__new__" && /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("label", { style: labelStyle, children: [
+      selectedRoom && selectedRoom !== "__new__" && /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("label", { style: labelStyle, children: [
         "Shelf",
-        /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)(
           "select",
           {
             value: selectedShelf,
@@ -172288,14 +172308,14 @@ function MoveDialog() {
             },
             style: selectStyle2,
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("option", { value: "", children: "Select shelf..." }),
-              shelfOptions.map((s) => /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("option", { value: s, children: s }, s)),
-              /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("option", { value: "__new__", children: "+ New shelf..." })
+              /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("option", { value: "", children: "Select shelf..." }),
+              shelfOptions.map((s) => /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("option", { value: s, children: s }, s)),
+              /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("option", { value: "__new__", children: "+ New shelf..." })
             ]
           }
         )
       ] }),
-      (selectedShelf === "__new__" || selectedRoom && selectedRoom !== "__new__" && shelfOptions.length === 0 || selectedRoom === "__new__") && /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(
+      (selectedShelf === "__new__" || selectedRoom && selectedRoom !== "__new__" && shelfOptions.length === 0 || selectedRoom === "__new__") && /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(
         "input",
         {
           value: newShelf,
@@ -172305,8 +172325,8 @@ function MoveDialog() {
           autoFocus: true
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("div", { style: { display: "flex", gap: 8 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("div", { style: { display: "flex", gap: 8 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(
           "button",
           {
             onClick: handleMove,
@@ -172318,7 +172338,7 @@ function MoveDialog() {
             children: busy ? "Moving..." : "Move"
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("button", { onClick: clearOperation, style: cancelBtnStyle4, children: "Cancel" })
+        /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("button", { onClick: clearOperation, style: cancelBtnStyle4, children: "Cancel" })
       ] })
     ] })
   ] });
@@ -172395,8 +172415,8 @@ var cancelBtnStyle4 = {
 };
 
 // src/components/NotePicker.tsx
-var import_react54 = __toESM(require_react(), 1);
-var import_jsx_runtime44 = __toESM(require_jsx_runtime(), 1);
+var import_react55 = __toESM(require_react(), 1);
+var import_jsx_runtime45 = __toESM(require_jsx_runtime(), 1);
 function slugify3(title) {
   return title.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 }
@@ -172410,32 +172430,32 @@ function NotePicker() {
   const isLink = operation?.kind === "link";
   const isConsolidate = operation?.kind === "consolidate";
   const isOpen = (isLink || isConsolidate) && !!targetFile;
-  const [query2, setQuery] = (0, import_react54.useState)("");
-  const [debouncedQuery, setDebouncedQuery] = (0, import_react54.useState)("");
-  const [selectedIndex, setSelectedIndex] = (0, import_react54.useState)(0);
-  const [pickedTarget, setPickedTarget] = (0, import_react54.useState)(null);
-  const [newIdeaTitle, setNewIdeaTitle] = (0, import_react54.useState)("");
-  const [quote, setQuote] = (0, import_react54.useState)("");
-  const inputRef = (0, import_react54.useRef)(null);
-  const quoteRef = (0, import_react54.useRef)(null);
-  const listRef = (0, import_react54.useRef)(null);
+  const [query2, setQuery] = (0, import_react55.useState)("");
+  const [debouncedQuery, setDebouncedQuery] = (0, import_react55.useState)("");
+  const [selectedIndex, setSelectedIndex] = (0, import_react55.useState)(0);
+  const [pickedTarget, setPickedTarget] = (0, import_react55.useState)(null);
+  const [newIdeaTitle, setNewIdeaTitle] = (0, import_react55.useState)("");
+  const [quote, setQuote] = (0, import_react55.useState)("");
+  const inputRef = (0, import_react55.useRef)(null);
+  const quoteRef = (0, import_react55.useRef)(null);
+  const listRef = (0, import_react55.useRef)(null);
   const isIdea = targetType === "idea";
-  const title = (0, import_react54.useMemo)(() => {
+  const title = (0, import_react55.useMemo)(() => {
     if (!targetFile) return "";
     const name = targetFile.split("/").pop() || targetFile;
     return name.replace(/\.md$/, "");
   }, [targetFile]);
-  const typeFilter = (0, import_react54.useMemo)(() => {
+  const typeFilter = (0, import_react55.useMemo)(() => {
     if (isConsolidate) {
       return /* @__PURE__ */ new Set([isIdea ? "idea" : "shelf"]);
     }
     return /* @__PURE__ */ new Set();
   }, [isConsolidate, isIdea]);
-  (0, import_react54.useEffect)(() => {
+  (0, import_react55.useEffect)(() => {
     const timer2 = setTimeout(() => setDebouncedQuery(query2), 150);
     return () => clearTimeout(timer2);
   }, [query2]);
-  (0, import_react54.useEffect)(() => {
+  (0, import_react55.useEffect)(() => {
     if (isOpen) {
       setQuery("");
       setDebouncedQuery("");
@@ -172446,12 +172466,12 @@ function NotePicker() {
       requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [isOpen]);
-  (0, import_react54.useEffect)(() => {
+  (0, import_react55.useEffect)(() => {
     if (pickedTarget !== null) {
       requestAnimationFrame(() => quoteRef.current?.focus());
     }
   }, [pickedTarget]);
-  (0, import_react54.useEffect)(() => {
+  (0, import_react55.useEffect)(() => {
     if (!shiftPickFile || !isOpen) return;
     const shiftTitle = (shiftPickFile.split("/").pop() || "").replace(/\.md$/, "");
     const fakeResult = {
@@ -172485,7 +172505,7 @@ function NotePicker() {
       })();
     }
   }, [shiftPickFile, shiftPickType, isOpen, isLink, isConsolidate, isIdea, targetFile, app, setBusy, clearOperation, clearShiftPick]);
-  const results = (0, import_react54.useMemo)(() => {
+  const results = (0, import_react55.useMemo)(() => {
     if (!isOpen || pickedTarget !== null) return [];
     const all = search5({
       query: debouncedQuery,
@@ -172498,13 +172518,13 @@ function NotePicker() {
     return all.filter((r2) => r2.item.file !== targetFile);
   }, [isOpen, debouncedQuery, typeFilter, targetFile, search5, pickedTarget]);
   const showNewOption = isLink && !isIdea && debouncedQuery.trim().length > 0;
-  (0, import_react54.useEffect)(() => setSelectedIndex(0), [results]);
-  (0, import_react54.useEffect)(() => {
+  (0, import_react55.useEffect)(() => setSelectedIndex(0), [results]);
+  (0, import_react55.useEffect)(() => {
     if (!listRef.current) return;
     const el = listRef.current.children[selectedIndex];
     el?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
-  const handlePick = (0, import_react54.useCallback)(
+  const handlePick = (0, import_react55.useCallback)(
     async (r2) => {
       if (busy || !targetFile) return;
       if (isLink) {
@@ -172535,12 +172555,12 @@ function NotePicker() {
     },
     [targetFile, targetType, isLink, isConsolidate, isIdea, busy, app, setBusy, clearOperation]
   );
-  const handlePickNew = (0, import_react54.useCallback)(() => {
+  const handlePickNew = (0, import_react55.useCallback)(() => {
     if (busy) return;
     setNewIdeaTitle(query2.trim());
     setPickedTarget("new");
   }, [query2, busy]);
-  const handleConfirmLink = (0, import_react54.useCallback)(async () => {
+  const handleConfirmLink = (0, import_react55.useCallback)(async () => {
     if (busy || !targetFile || pickedTarget === null) return;
     setBusy(true, "Generating link...");
     try {
@@ -172575,13 +172595,13 @@ torus_refs: 1
       setBusy(false);
     }
   }, [targetFile, targetType, pickedTarget, newIdeaTitle, quote, busy, app, setBusy, clearOperation, ideasDir]);
-  const handleBack = (0, import_react54.useCallback)(() => {
+  const handleBack = (0, import_react55.useCallback)(() => {
     setPickedTarget(null);
     setQuote("");
     requestAnimationFrame(() => inputRef.current?.focus());
   }, []);
   const totalResults = results.length + (showNewOption ? 1 : 0);
-  const onKeyDown = (0, import_react54.useCallback)(
+  const onKeyDown = (0, import_react55.useCallback)(
     (e2) => {
       if (e2.key === "ArrowDown") {
         e2.preventDefault();
@@ -172603,7 +172623,7 @@ torus_refs: 1
     },
     [results, totalResults, selectedIndex, showNewOption, handlePick, handlePickNew, clearOperation]
   );
-  const onQuoteKeyDown = (0, import_react54.useCallback)(
+  const onQuoteKeyDown = (0, import_react55.useCallback)(
     (e2) => {
       if (e2.key === "Escape") {
         e2.preventDefault();
@@ -172621,11 +172641,11 @@ torus_refs: 1
   const pickedTitle = pickedTarget === "new" ? newIdeaTitle : pickedTarget ? pickedTarget.item.title : null;
   const headerText = pickedTarget !== null ? `Link ${title} \u2192 ${pickedTitle}` : isLink ? `Link from ${title}: pick a note` : `Consolidate with ${title}: pick a ${isIdea ? "idea" : "source"}`;
   if (isLink && pickedTarget !== null) {
-    return /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)(import_jsx_runtime44.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("div", { onClick: clearOperation, style: backdropStyle6 }),
-      /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("div", { style: panelStyle3, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("div", { style: headerStyle2, children: headerText }),
-        /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(import_jsx_runtime45.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("div", { onClick: clearOperation, style: backdropStyle6 }),
+      /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("div", { style: panelStyle3, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("div", { style: headerStyle2, children: headerText }),
+        /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(
           "textarea",
           {
             ref: quoteRef,
@@ -172637,18 +172657,18 @@ torus_refs: 1
             rows: 4
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("div", { style: { display: "flex", gap: 8, padding: "10px 14px" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("button", { onClick: handleBack, style: secondaryBtnStyle, children: "Back" }),
-          /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("button", { onClick: handleConfirmLink, disabled: busy, style: primaryBtnStyle, children: busy ? "Linking..." : "Confirm Link" })
+        /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("div", { style: { display: "flex", gap: 8, padding: "10px 14px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("button", { onClick: handleBack, style: secondaryBtnStyle, children: "Back" }),
+          /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("button", { onClick: handleConfirmLink, disabled: busy, style: primaryBtnStyle, children: busy ? "Linking..." : "Confirm Link" })
         ] })
       ] })
     ] });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)(import_jsx_runtime44.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("div", { onClick: clearOperation, style: backdropStyle6 }),
-    /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("div", { style: panelStyle3, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("div", { style: headerStyle2, children: headerText }),
-      /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(import_jsx_runtime45.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("div", { onClick: clearOperation, style: backdropStyle6 }),
+    /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("div", { style: panelStyle3, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("div", { style: headerStyle2, children: headerText }),
+      /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(
         "input",
         {
           ref: inputRef,
@@ -172659,10 +172679,10 @@ torus_refs: 1
           style: inputStyle3
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("div", { ref: listRef, style: resultsStyle2, children: [
-        results.length === 0 && !showNewOption && debouncedQuery && /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("div", { style: { padding: "12px 14px", color: "#999", fontSize: 12 }, children: "No results" }),
-        results.length === 0 && !showNewOption && !debouncedQuery && /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("div", { style: { padding: "12px 14px", color: "#888", fontSize: 12 }, children: "Type to search" }),
-        results.map((r2, i3) => /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("div", { ref: listRef, style: resultsStyle2, children: [
+        results.length === 0 && !showNewOption && debouncedQuery && /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("div", { style: { padding: "12px 14px", color: "#999", fontSize: 12 }, children: "No results" }),
+        results.length === 0 && !showNewOption && !debouncedQuery && /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("div", { style: { padding: "12px 14px", color: "#888", fontSize: 12 }, children: "Type to search" }),
+        results.map((r2, i3) => /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(
           "div",
           {
             onClick: () => handlePick(r2),
@@ -172677,14 +172697,14 @@ torus_refs: 1
               background: i3 === selectedIndex ? "rgba(255,255,255,0.04)" : "transparent"
             },
             children: [
-              r2.item.roomKey ? /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("span", { style: { width: 6, height: 6, borderRadius: "50%", background: roomColorMap[r2.item.roomKey] || "#555", flexShrink: 0 } }) : /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("span", { style: { width: 6, flexShrink: 0 } }),
-              /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("span", { style: { flex: 1, color: "#ccc", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: r2.item.title }),
-              /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("span", { style: { fontSize: 9, color: r2.item.type === "shelf" ? "#aaa" : "#6ca0dc", flexShrink: 0 }, children: r2.item.type === "shelf" ? "source" : "idea" })
+              r2.item.roomKey ? /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("span", { style: { width: 6, height: 6, borderRadius: "50%", background: roomColorMap[r2.item.roomKey] || "#555", flexShrink: 0 } }) : /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("span", { style: { width: 6, flexShrink: 0 } }),
+              /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("span", { style: { flex: 1, color: "#ccc", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }, children: r2.item.title }),
+              /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("span", { style: { fontSize: 9, color: r2.item.type === "shelf" ? "#aaa" : "#6ca0dc", flexShrink: 0 }, children: r2.item.type === "shelf" ? "source" : "idea" })
             ]
           },
           r2.item.file
         )),
-        showNewOption && /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)(
+        showNewOption && /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(
           "div",
           {
             onClick: handlePickNew,
@@ -172699,13 +172719,13 @@ torus_refs: 1
               background: selectedIndex === results.length ? "rgba(255,255,255,0.04)" : "transparent"
             },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("span", { style: { width: 6, height: 6, borderRadius: "50%", background: "#5b8", flexShrink: 0 } }),
-              /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("span", { style: { flex: 1, color: "#5b8", fontSize: 12 }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("span", { style: { width: 6, height: 6, borderRadius: "50%", background: "#5b8", flexShrink: 0 } }),
+              /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("span", { style: { flex: 1, color: "#5b8", fontSize: 12 }, children: [
                 '+ New Idea: "',
                 query2.trim(),
                 '"'
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("span", { style: { fontSize: 9, color: "#5b8", flexShrink: 0 }, children: "create" })
+              /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("span", { style: { fontSize: 9, color: "#5b8", flexShrink: 0 }, children: "create" })
             ]
           }
         )
@@ -172796,12 +172816,12 @@ var secondaryBtnStyle = {
 
 // src/components/BusyOverlay.tsx
 var import_react_dom2 = __toESM(require_react_dom(), 1);
-var import_jsx_runtime45 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime46 = __toESM(require_jsx_runtime(), 1);
 function BusyOverlay() {
   const { busy, busyLabel } = useContextMenu();
   if (!busy || !busyLabel) return null;
   return (0, import_react_dom2.createPortal)(
-    /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("div", { style: toastStyle, children: busyLabel }),
+    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: toastStyle, children: busyLabel }),
     document.body
   );
 }
@@ -172822,12 +172842,12 @@ var toastStyle = {
 };
 
 // src/components/StatsOverlay.tsx
-var import_react58 = __toESM(require_react(), 1);
+var import_react59 = __toESM(require_react(), 1);
 var import_react_dom3 = __toESM(require_react_dom(), 1);
 var import_obsidian18 = require("obsidian");
 
 // src/hooks/useLibraryAudit.ts
-var import_react55 = __toESM(require_react(), 1);
+var import_react56 = __toESM(require_react(), 1);
 var import_obsidian17 = require("obsidian");
 function titleFromFile2(file) {
   const name = file.split("/").pop() || file;
@@ -173299,9 +173319,9 @@ async function auditHealth(app, library, ideaFiles, deskFiles, ideasDir, sourceD
 function useLibraryAudit(library, ideas) {
   const app = useObsidian();
   const { ideasDir, sourceDirs } = useTorusConfig();
-  const [results, setResults] = (0, import_react55.useState)(null);
-  const [scanning, setScanning] = (0, import_react55.useState)(false);
-  const runScan = (0, import_react55.useCallback)(async () => {
+  const [results, setResults] = (0, import_react56.useState)(null);
+  const [scanning, setScanning] = (0, import_react56.useState)(false);
+  const runScan = (0, import_react56.useCallback)(async () => {
     setScanning(true);
     try {
       const folder = app.vault.getAbstractFileByPath(ideasDir);
@@ -173337,7 +173357,7 @@ function useLibraryAudit(library, ideas) {
 }
 
 // src/hooks/useZeroActivity.ts
-var import_react56 = __toESM(require_react(), 1);
+var import_react57 = __toESM(require_react(), 1);
 var DAY_MS = 24 * 60 * 60 * 1e3;
 var AUTOMATIC_TASK_IDS = /* @__PURE__ */ new Set([
   "x-digest",
@@ -173456,9 +173476,9 @@ function useZeroActivity(app, active, window2) {
     byEventType: {},
     recentRuns: []
   });
-  const [state2, setState] = (0, import_react56.useState)(empty(window2, startOfToday()));
-  const [loading2, setLoading] = (0, import_react56.useState)(false);
-  const reload = (0, import_react56.useCallback)(async () => {
+  const [state2, setState] = (0, import_react57.useState)(empty(window2, startOfToday()));
+  const [loading2, setLoading] = (0, import_react57.useState)(false);
+  const reload = (0, import_react57.useCallback)(async () => {
     setLoading(true);
     try {
       const now3 = Date.now();
@@ -173515,25 +173535,25 @@ function useZeroActivity(app, active, window2) {
       setLoading(false);
     }
   }, [app, torusRoot, window2]);
-  (0, import_react56.useEffect)(() => {
+  (0, import_react57.useEffect)(() => {
     if (active) reload();
   }, [active, reload]);
   return { ...state2, loading: loading2, reload };
 }
 
 // src/hooks/useResummarizeQueue.ts
-var import_react57 = __toESM(require_react(), 1);
+var import_react58 = __toESM(require_react(), 1);
 function getPlugin(app) {
   return app.plugins.plugins["the-torus"];
 }
 function useResummarizeQueue(app, onComplete) {
-  const [queued, setQueued] = (0, import_react57.useState)(/* @__PURE__ */ new Map());
-  const prevQueuedRef = (0, import_react57.useRef)(/* @__PURE__ */ new Map());
-  const onCompleteRef = (0, import_react57.useRef)(onComplete);
-  (0, import_react57.useEffect)(() => {
+  const [queued, setQueued] = (0, import_react58.useState)(/* @__PURE__ */ new Map());
+  const prevQueuedRef = (0, import_react58.useRef)(/* @__PURE__ */ new Map());
+  const onCompleteRef = (0, import_react58.useRef)(onComplete);
+  (0, import_react58.useEffect)(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
-  const refresh = (0, import_react57.useCallback)(async () => {
+  const refresh = (0, import_react58.useCallback)(async () => {
     try {
       const plugin = getPlugin(app);
       if (!plugin) return;
@@ -173553,7 +173573,7 @@ function useResummarizeQueue(app, onComplete) {
     } catch {
     }
   }, [app]);
-  const queue2 = (0, import_react57.useCallback)(async (path2) => {
+  const queue2 = (0, import_react58.useCallback)(async (path2) => {
     try {
       const plugin = getPlugin(app);
       if (!plugin) return;
@@ -173572,26 +173592,26 @@ function useResummarizeQueue(app, onComplete) {
       });
     }
   }, [app, refresh]);
-  (0, import_react57.useEffect)(() => {
+  (0, import_react58.useEffect)(() => {
     refresh();
   }, [refresh]);
   return { queued, queue: queue2, refresh };
 }
 
 // src/components/StatsOverlay.tsx
-var import_jsx_runtime46 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime47 = __toESM(require_jsx_runtime(), 1);
 function StatsOverlay({ open, onClose, onNavigate }) {
   const library = useLibrary();
   const ideas = useIdeas(library);
   const app = useObsidian();
   const { manifest: manifest2 } = useTorusConfig();
   const { results, scanning, runScan } = useLibraryAudit(library, ideas);
-  const [activityWindow, setActivityWindow] = (0, import_react58.useState)("today");
+  const [activityWindow, setActivityWindow] = (0, import_react59.useState)("today");
   const activity = useZeroActivity(app, open, activityWindow);
-  (0, import_react58.useEffect)(() => {
+  (0, import_react59.useEffect)(() => {
     if (open && !results && !scanning) runScan();
   }, [open, results, scanning, runScan]);
-  (0, import_react58.useEffect)(() => {
+  (0, import_react59.useEffect)(() => {
     if (!open) return;
     const onKeyDown = (e2) => {
       if (e2.key === "Escape") {
@@ -173603,42 +173623,42 @@ function StatsOverlay({ open, onClose, onNavigate }) {
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [open, onClose]);
-  return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)(import_jsx_runtime46.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { onClick: onClose, style: { ...backdropStyle7, opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.3s ease" } }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: {
+  return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)(import_jsx_runtime47.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { onClick: onClose, style: { ...backdropStyle7, opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.3s ease" } }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: {
       ...panelStyle4,
       transform: open ? "translate(-50%, 0)" : "translate(-50%, calc(100vh + 100%))",
       transition: open ? "transform 0.35s ease" : "transform 0.35s ease, visibility 0s 0.35s",
       pointerEvents: open ? "auto" : "none",
       visibility: open ? "visible" : "hidden"
     }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: headerStyle3, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { fontSize: 14, fontWeight: 600, color: "#ddd" }, children: "Library Stats" }),
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("button", { onClick: () => runScan(), disabled: scanning, style: rescanBtnStyle, children: scanning ? "Scanning..." : "Rescan" })
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: headerStyle3, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { fontSize: 14, fontWeight: 600, color: "#ddd" }, children: "Library Stats" }),
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("button", { onClick: () => runScan(), disabled: scanning, style: rescanBtnStyle, children: scanning ? "Scanning..." : "Rescan" })
       ] }),
-      scanning && !results && /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: { padding: "40px 0", textAlign: "center", color: "#888", fontSize: 12 }, children: "Scanning library..." }),
-      results && /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: scrollAreaStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(NetworkSection, { graph: results.graph, app }),
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: dividerStyle }),
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(ZeroActivitySection, { activity, onWindowChange: setActivityWindow }),
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: dividerStyle }),
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(HealthSection, { results, app, manifest: manifest2, onClose, onRescan: runScan })
+      scanning && !results && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { padding: "40px 0", textAlign: "center", color: "#888", fontSize: 12 }, children: "Scanning library..." }),
+      results && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: scrollAreaStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(NetworkSection, { graph: results.graph, app }),
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: dividerStyle }),
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(ZeroActivitySection, { activity, onWindowChange: setActivityWindow }),
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: dividerStyle }),
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(HealthSection, { results, app, manifest: manifest2, onClose, onRescan: runScan })
       ] })
     ] })
   ] });
 }
 function NetworkSection({ graph, app }) {
-  const [hubsOpen, setHubsOpen] = (0, import_react58.useState)(true);
-  const [bridgesOpen, setBridgesOpen] = (0, import_react58.useState)(false);
+  const [hubsOpen, setHubsOpen] = (0, import_react59.useState)(true);
+  const [bridgesOpen, setBridgesOpen] = (0, import_react59.useState)(false);
   const maxDegree = Math.max(
     graph.degreeDistribution.d0,
     graph.degreeDistribution.d1,
     graph.degreeDistribution.d2,
     graph.degreeDistribution.d3plus
   ) || 1;
-  return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { padding: "12px 16px" }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: sectionLabelStyle2, children: "NETWORK" }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { color: "#aaa", fontSize: 12, marginBottom: 10 }, children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { padding: "12px 16px" }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: sectionLabelStyle2, children: "NETWORK" }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { color: "#aaa", fontSize: 12, marginBottom: 10 }, children: [
       graph.totalIdeas,
       " ideas \xB7 ",
       graph.totalSources,
@@ -173646,47 +173666,47 @@ function NetworkSection({ graph, app }) {
       graph.totalLinks,
       " links"
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { color: "#999", fontSize: 11, marginBottom: 4 }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { color: "#999", fontSize: 11, marginBottom: 4 }, children: [
       "Components: ",
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: { color: "#ccc" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: { color: "#ccc" }, children: [
         graph.components.length,
         " island",
         graph.components.length !== 1 ? "s" : ""
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { color: "#999", fontSize: 11, marginBottom: 10 }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { color: "#999", fontSize: 11, marginBottom: 10 }, children: [
       "Largest: ",
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: { color: "#ccc" }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: { color: "#ccc" }, children: [
         graph.largestSize,
         " ideas (",
         graph.largestPercent,
         "%)"
       ] }),
-      graph.avgPathLength > 0 && /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)(import_jsx_runtime46.Fragment, { children: [
+      graph.avgPathLength > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)(import_jsx_runtime47.Fragment, { children: [
         " \xB7 Avg path: ",
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: { color: "#ccc" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: { color: "#ccc" }, children: [
           graph.avgPathLength,
           " hops"
         ] })
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { fontSize: 11, color: "#888", marginBottom: 12 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: { marginBottom: 4 }, children: "Sources per idea:" }),
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(HistBar, { label: "0", count: graph.degreeDistribution.d0, max: maxDegree, color: "#e74c3c" }),
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(HistBar, { label: "1", count: graph.degreeDistribution.d1, max: maxDegree, color: "#f39c12" }),
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(HistBar, { label: "2", count: graph.degreeDistribution.d2, max: maxDegree, color: "#2ecc71" }),
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(HistBar, { label: "3+", count: graph.degreeDistribution.d3plus, max: maxDegree, color: "#3498db" })
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { fontSize: 11, color: "#888", marginBottom: 12 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { marginBottom: 4 }, children: "Sources per idea:" }),
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(HistBar, { label: "0", count: graph.degreeDistribution.d0, max: maxDegree, color: "#e74c3c" }),
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(HistBar, { label: "1", count: graph.degreeDistribution.d1, max: maxDegree, color: "#f39c12" }),
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(HistBar, { label: "2", count: graph.degreeDistribution.d2, max: maxDegree, color: "#2ecc71" }),
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(HistBar, { label: "3+", count: graph.degreeDistribution.d3plus, max: maxDegree, color: "#3498db" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(SinglySourcedWarning, { graph }),
-    graph.hubIdeas.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(SinglySourcedWarning, { graph }),
+    graph.hubIdeas.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       CollapsibleList,
       {
         label: `Hub Ideas (${graph.hubIdeas.length})`,
         open: hubsOpen,
         onToggle: () => setHubsOpen(!hubsOpen),
-        children: graph.hubIdeas.map((h2) => /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: itemRowStyle, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(NoteLink, { file: h2.file, app, style: itemTitleStyle, children: h2.title }),
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: itemMetaStyle, children: [
+        children: graph.hubIdeas.map((h2) => /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: itemRowStyle, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(NoteLink, { file: h2.file, app, style: itemTitleStyle, children: h2.title }),
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: itemMetaStyle, children: [
             h2.sourceCount,
             " src \xB7 ",
             h2.connections,
@@ -173695,32 +173715,32 @@ function NetworkSection({ graph, app }) {
         ] }, h2.file))
       }
     ),
-    graph.bridgeSources.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+    graph.bridgeSources.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       CollapsibleList,
       {
         label: `Bridge Sources (${graph.bridgeSources.length})`,
         open: bridgesOpen,
         onToggle: () => setBridgesOpen(!bridgesOpen),
-        children: graph.bridgeSources.slice(0, 10).map((b2) => /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: itemRowStyle, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(NoteLink, { file: b2.file, app, style: itemTitleStyle, children: b2.title }),
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { ...itemMetaStyle, maxWidth: 200 }, children: b2.rooms.join(" \u2194 ") })
+        children: graph.bridgeSources.slice(0, 10).map((b2) => /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: itemRowStyle, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(NoteLink, { file: b2.file, app, style: itemTitleStyle, children: b2.title }),
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { ...itemMetaStyle, maxWidth: 200 }, children: b2.rooms.join(" \u2194 ") })
         ] }, b2.file))
       }
     )
   ] });
 }
 function HealthSection({ results, app, manifest: manifest2, onClose, onRescan }) {
-  const [orphans, setOrphans] = (0, import_react58.useState)(results.orphanedIdeas);
-  const [broken, setBroken] = (0, import_react58.useState)(results.brokenShelfLinks);
-  const [unshelved, setUnshelved] = (0, import_react58.useState)(results.unshelvedSources);
-  const [drift, setDrift] = (0, import_react58.useState)(results.countDrift);
-  const [stale, setStale] = (0, import_react58.useState)(results.staleSummaries);
-  const [dead, setDead] = (0, import_react58.useState)(results.deadLinks);
-  const [similar, setSimilar] = (0, import_react58.useState)(results.similarIdeas);
-  const [strays, setStrays] = (0, import_react58.useState)(results.strayWikiLinks);
-  const [missingFwd, setMissingFwd] = (0, import_react58.useState)(results.missingForwardLinks);
-  const [staleSingle, setStaleSingle] = (0, import_react58.useState)(results.staleSingleSource);
-  (0, import_react58.useEffect)(() => {
+  const [orphans, setOrphans] = (0, import_react59.useState)(results.orphanedIdeas);
+  const [broken, setBroken] = (0, import_react59.useState)(results.brokenShelfLinks);
+  const [unshelved, setUnshelved] = (0, import_react59.useState)(results.unshelvedSources);
+  const [drift, setDrift] = (0, import_react59.useState)(results.countDrift);
+  const [stale, setStale] = (0, import_react59.useState)(results.staleSummaries);
+  const [dead, setDead] = (0, import_react59.useState)(results.deadLinks);
+  const [similar, setSimilar] = (0, import_react59.useState)(results.similarIdeas);
+  const [strays, setStrays] = (0, import_react59.useState)(results.strayWikiLinks);
+  const [missingFwd, setMissingFwd] = (0, import_react59.useState)(results.missingForwardLinks);
+  const [staleSingle, setStaleSingle] = (0, import_react59.useState)(results.staleSingleSource);
+  (0, import_react59.useEffect)(() => {
     setOrphans(results.orphanedIdeas);
     setBroken(results.brokenShelfLinks);
     setUnshelved(results.unshelvedSources);
@@ -173732,26 +173752,26 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
     setMissingFwd(results.missingForwardLinks);
     setStaleSingle(results.staleSingleSource);
   }, [results]);
-  const deleteOrphan = (0, import_react58.useCallback)(async (file) => {
+  const deleteOrphan = (0, import_react59.useCallback)(async (file) => {
     const tfile = app.vault.getAbstractFileByPath(file);
     if (tfile instanceof import_obsidian18.TFile) await app.vault.trash(tfile, false);
     setOrphans((prev) => prev.filter((o3) => o3.file !== file));
   }, [app]);
-  const deleteAllOrphans = (0, import_react58.useCallback)(async () => {
+  const deleteAllOrphans = (0, import_react59.useCallback)(async () => {
     for (const o3 of orphans) {
       const tfile = app.vault.getAbstractFileByPath(o3.file);
       if (tfile instanceof import_obsidian18.TFile) await app.vault.trash(tfile, false);
     }
     setOrphans([]);
   }, [app, orphans]);
-  const removeBrokenLink = (0, import_react58.useCallback)(async (linkText) => {
+  const removeBrokenLink = (0, import_react59.useCallback)(async (linkText) => {
     const torusFile = app.vault.getAbstractFileByPath(manifest2);
     if (torusFile instanceof import_obsidian18.TFile) {
       await app.vault.process(torusFile, (content) => removeFromTorus(content, linkText));
     }
     setBroken((prev) => prev.filter((b2) => b2.linkText !== linkText));
   }, [app]);
-  const removeAllBroken = (0, import_react58.useCallback)(async () => {
+  const removeAllBroken = (0, import_react59.useCallback)(async () => {
     const torusFile = app.vault.getAbstractFileByPath(manifest2);
     if (torusFile instanceof import_obsidian18.TFile) {
       await app.vault.process(torusFile, (content) => {
@@ -173762,7 +173782,7 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
     }
     setBroken([]);
   }, [app, broken]);
-  const fixStranded = (0, import_react58.useCallback)(async (file, room, shelf) => {
+  const fixStranded = (0, import_react59.useCallback)(async (file, room, shelf) => {
     if (room && shelf) {
       const basename2 = file.split("/").pop()?.replace(/\.md$/, "") || "";
       const torusFile = app.vault.getAbstractFileByPath(manifest2);
@@ -173777,7 +173797,7 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
     }
     setUnshelved((prev) => prev.filter((u2) => u2.file !== file));
   }, [app, manifest2]);
-  const fixAllStranded = (0, import_react58.useCallback)(async () => {
+  const fixAllStranded = (0, import_react59.useCallback)(async () => {
     const torusFile = app.vault.getAbstractFileByPath(manifest2);
     const withPlacement = unshelved.filter((u2) => u2.room && u2.shelf);
     const withoutPlacement = unshelved.filter((u2) => !u2.room || !u2.shelf);
@@ -173802,7 +173822,7 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
       window.dispatchEvent(new CustomEvent("torus-shelve-complete", { detail: { count: withPlacement.length } }));
     }
   }, [app, manifest2, unshelved]);
-  const fixCount = (0, import_react58.useCallback)(async (file, actual) => {
+  const fixCount = (0, import_react59.useCallback)(async (file, actual) => {
     const tfile = app.vault.getAbstractFileByPath(file);
     if (tfile instanceof import_obsidian18.TFile) {
       await app.vault.process(
@@ -173812,7 +173832,7 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
     }
     setDrift((prev) => prev.filter((d) => d.file !== file));
   }, [app]);
-  const fixAllCounts = (0, import_react58.useCallback)(async () => {
+  const fixAllCounts = (0, import_react59.useCallback)(async () => {
     for (const d of drift) {
       const tfile = app.vault.getAbstractFileByPath(d.file);
       if (tfile instanceof import_obsidian18.TFile) {
@@ -173825,17 +173845,17 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
     setDrift([]);
   }, [app, drift]);
   const { queued, queue: queue2, refresh: refreshQueue } = useResummarizeQueue(app, () => onRescan());
-  (0, import_react58.useEffect)(() => {
+  (0, import_react59.useEffect)(() => {
     const interval = setInterval(() => refreshQueue(), 5e3);
     return () => clearInterval(interval);
   }, [refreshQueue]);
-  const resummarize = (0, import_react58.useCallback)((file) => {
+  const resummarize = (0, import_react59.useCallback)((file) => {
     queue2(file);
   }, [queue2]);
-  const resummarizeAll = (0, import_react58.useCallback)(async () => {
+  const resummarizeAll = (0, import_react59.useCallback)(async () => {
     for (const s of stale) await queue2(s.file);
   }, [queue2, stale]);
-  const cleanDeadLink = (0, import_react58.useCallback)(async (file, deadTarget, direction) => {
+  const cleanDeadLink = (0, import_react59.useCallback)(async (file, deadTarget, direction) => {
     const tfile = app.vault.getAbstractFileByPath(file);
     if (tfile instanceof import_obsidian18.TFile) {
       if (direction === "idea\u2192source") {
@@ -173846,7 +173866,7 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
     }
     setDead((prev) => prev.filter((d) => !(d.file === file && d.deadTarget === deadTarget)));
   }, [app]);
-  const cleanAllDeadLinks = (0, import_react58.useCallback)(async () => {
+  const cleanAllDeadLinks = (0, import_react59.useCallback)(async () => {
     for (const d of dead) {
       const tfile = app.vault.getAbstractFileByPath(d.file);
       if (tfile instanceof import_obsidian18.TFile) {
@@ -173859,7 +173879,7 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
     }
     setDead([]);
   }, [app, dead]);
-  const fixStraysInHost = (0, import_react58.useCallback)(async (file) => {
+  const fixStraysInHost = (0, import_react59.useCallback)(async (file) => {
     const row = strays.find((s) => s.file === file);
     if (!row || row.fixable.length === 0) return;
     const plugin = app.plugins.plugins["the-torus"];
@@ -173873,17 +173893,17 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
       return [{ ...s, fixable: [] }];
     }));
   }, [app, strays]);
-  const openHostNote = (0, import_react58.useCallback)((file) => {
+  const openHostNote = (0, import_react59.useCallback)((file) => {
     const tfile = app.vault.getAbstractFileByPath(file);
     if (tfile instanceof import_obsidian18.TFile) app.workspace.getLeaf(false).openFile(tfile);
     onClose();
   }, [app, onClose]);
-  const fixAllStrays = (0, import_react58.useCallback)(async () => {
+  const fixAllStrays = (0, import_react59.useCallback)(async () => {
     for (const s of strays) {
       if (s.fixable.length > 0) await fixStraysInHost(s.file);
     }
   }, [strays, fixStraysInHost]);
-  const fixForwardLink = (0, import_react58.useCallback)(async (sourceFile, ideaFile) => {
+  const fixForwardLink = (0, import_react59.useCallback)(async (sourceFile, ideaFile) => {
     const tfile = app.vault.getAbstractFileByPath(sourceFile);
     if (!(tfile instanceof import_obsidian18.TFile)) return;
     const ideaBasename = ideaFile.split("/").pop()?.replace(/\.md$/, "") || "";
@@ -173902,7 +173922,7 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
     });
     setMissingFwd((prev) => prev.filter((m2) => !(m2.sourceFile === sourceFile && m2.ideaFile === ideaFile)));
   }, [app]);
-  const fixAllForwardLinks = (0, import_react58.useCallback)(async () => {
+  const fixAllForwardLinks = (0, import_react59.useCallback)(async () => {
     const bySource = /* @__PURE__ */ new Map();
     for (const m2 of missingFwd) {
       if (!bySource.has(m2.sourceFile)) bySource.set(m2.sourceFile, []);
@@ -173927,21 +173947,21 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
     }
     setMissingFwd([]);
   }, [app, missingFwd]);
-  const deleteStaleSingle = (0, import_react58.useCallback)(async (file) => {
+  const deleteStaleSingle = (0, import_react59.useCallback)(async (file) => {
     const tfile = app.vault.getAbstractFileByPath(file);
     if (tfile instanceof import_obsidian18.TFile) await app.vault.trash(tfile, false);
     setStaleSingle((prev) => prev.filter((s) => s.file !== file));
   }, [app]);
-  const deleteAllStaleSingle = (0, import_react58.useCallback)(async () => {
+  const deleteAllStaleSingle = (0, import_react59.useCallback)(async () => {
     for (const s of staleSingle) {
       const tfile = app.vault.getAbstractFileByPath(s.file);
       if (tfile instanceof import_obsidian18.TFile) await app.vault.trash(tfile, false);
     }
     setStaleSingle([]);
   }, [app, staleSingle]);
-  return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { padding: "12px 16px" }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: sectionLabelStyle2, children: "HEALTH" }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { padding: "12px 16px" }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: sectionLabelStyle2, children: "HEALTH" }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       AuditCategory,
       {
         label: "Orphaned Ideas",
@@ -173951,13 +173971,13 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
         batchDangerous: true,
         onBatch: deleteAllOrphans,
         defaultOpen: true,
-        children: orphans.map((o3) => /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: itemRowStyle, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(NoteLink, { file: o3.file, app, style: itemTitleStyle, children: o3.title }),
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(ActionBtn, { label: "Del", danger: true, onClick: () => deleteOrphan(o3.file) })
+        children: orphans.map((o3) => /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: itemRowStyle, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(NoteLink, { file: o3.file, app, style: itemTitleStyle, children: o3.title }),
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(ActionBtn, { label: "Del", danger: true, onClick: () => deleteOrphan(o3.file) })
         ] }, o3.file))
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       AuditCategory,
       {
         label: "Stale Single-Source Ideas",
@@ -173967,20 +173987,20 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
         batchDangerous: true,
         onBatch: deleteAllStaleSingle,
         defaultOpen: true,
-        children: staleSingle.map((s) => /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { ...itemRowStyle, flexDirection: "column", alignItems: "flex-start", gap: 2 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8, width: "100%" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(NoteLink, { file: s.file, app, style: itemTitleStyle, children: s.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(ActionBtn, { label: "Del", danger: true, onClick: () => deleteStaleSingle(s.file) })
+        children: staleSingle.map((s) => /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { ...itemRowStyle, flexDirection: "column", alignItems: "flex-start", gap: 2 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8, width: "100%" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(NoteLink, { file: s.file, app, style: itemTitleStyle, children: s.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(ActionBtn, { label: "Del", danger: true, onClick: () => deleteStaleSingle(s.file) })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { fontSize: 10, color: "#888" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { fontSize: 10, color: "#888" }, children: [
             "sole source: ",
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(NoteLink, { file: s.sourceFile, app, style: { color: "#888" }, children: s.sourceTitle }),
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(NoteLink, { file: s.sourceFile, app, style: { color: "#888" }, children: s.sourceTitle }),
             " (enriched)"
           ] })
         ] }, s.file))
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       AuditCategory,
       {
         label: "Broken Shelf Links",
@@ -173990,18 +174010,18 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
         batchDangerous: true,
         onBatch: removeAllBroken,
         defaultOpen: true,
-        children: broken.map((b2, i3) => /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: itemRowStyle, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: itemTitleStyle, children: b2.linkText }),
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: itemMetaStyle, children: [
+        children: broken.map((b2, i3) => /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: itemRowStyle, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: itemTitleStyle, children: b2.linkText }),
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: itemMetaStyle, children: [
             b2.room,
             " / ",
             b2.shelf
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(ActionBtn, { label: "Rem", onClick: () => removeBrokenLink(b2.linkText) })
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(ActionBtn, { label: "Rem", onClick: () => removeBrokenLink(b2.linkText) })
         ] }, i3))
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       AuditCategory,
       {
         label: "Stranded Sources",
@@ -174012,18 +174032,18 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
         defaultOpen: true,
         children: unshelved.map((u2) => {
           const toShelf = !!(u2.room && u2.shelf);
-          return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: itemRowStyle, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(NoteLink, { file: u2.file, app, style: itemTitleStyle, children: u2.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: itemMetaStyle, children: [
+          return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: itemRowStyle, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(NoteLink, { file: u2.file, app, style: itemTitleStyle, children: u2.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: itemMetaStyle, children: [
               "\u2192 ",
               toShelf ? "Shelf" : "Inbox"
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(ActionBtn, { label: "Fix", onClick: () => fixStranded(u2.file, u2.room, u2.shelf) })
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(ActionBtn, { label: "Fix", onClick: () => fixStranded(u2.file, u2.room, u2.shelf) })
           ] }, u2.file);
         })
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       AuditCategory,
       {
         label: "Count Drift",
@@ -174031,18 +174051,18 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
         count: drift.length,
         batchLabel: "Fix All",
         onBatch: fixAllCounts,
-        children: drift.map((d) => /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: itemRowStyle, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(NoteLink, { file: d.file, app, style: itemTitleStyle, children: d.title }),
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: itemMetaStyle, children: [
+        children: drift.map((d) => /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: itemRowStyle, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(NoteLink, { file: d.file, app, style: itemTitleStyle, children: d.title }),
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: itemMetaStyle, children: [
             d.frontmatter,
             " \u2192 ",
             d.actual
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(ActionBtn, { label: "Fix", onClick: () => fixCount(d.file, d.actual) })
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(ActionBtn, { label: "Fix", onClick: () => fixCount(d.file, d.actual) })
         ] }, d.file))
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       AuditCategory,
       {
         label: "Stale Summaries",
@@ -174052,20 +174072,20 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
         onBatch: resummarizeAll,
         children: stale.map((s) => {
           const state2 = queued.get(s.file);
-          return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: itemRowStyle, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(NoteLink, { file: s.file, app, style: itemTitleStyle, children: s.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: itemMetaStyle, children: [
+          return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: itemRowStyle, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(NoteLink, { file: s.file, app, style: itemTitleStyle, children: s.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: itemMetaStyle, children: [
               s.summaryAt,
               " \u2192 ",
               s.sourceCount,
               " sources"
             ] }),
-            state2 === "running" ? /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { ...actionBtnStyle4, color: "#888", borderColor: "#555", cursor: "default" }, children: "Running" }) : state2 === "pending" ? /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { ...actionBtnStyle4, color: "#888", borderColor: "#555", cursor: "default" }, children: "Queued" }) : /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(ActionBtn, { label: "Sum", onClick: () => resummarize(s.file) })
+            state2 === "running" ? /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { ...actionBtnStyle4, color: "#888", borderColor: "#555", cursor: "default" }, children: "Running" }) : state2 === "pending" ? /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { ...actionBtnStyle4, color: "#888", borderColor: "#555", cursor: "default" }, children: "Queued" }) : /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(ActionBtn, { label: "Sum", onClick: () => resummarize(s.file) })
           ] }, s.file);
         })
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       AuditCategory,
       {
         label: "Dead Forward Links",
@@ -174073,17 +174093,17 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
         count: dead.length,
         batchLabel: "Clean All",
         onBatch: cleanAllDeadLinks,
-        children: dead.map((d, i3) => /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: itemRowStyle, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(NoteLink, { file: d.file, app, style: itemTitleStyle, children: d.title }),
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: itemMetaStyle, children: [
+        children: dead.map((d, i3) => /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: itemRowStyle, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(NoteLink, { file: d.file, app, style: itemTitleStyle, children: d.title }),
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: itemMetaStyle, children: [
             "\u2192 ",
             d.deadTarget
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(ActionBtn, { label: "Cln", onClick: () => cleanDeadLink(d.file, d.deadTarget, d.direction) })
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(ActionBtn, { label: "Cln", onClick: () => cleanDeadLink(d.file, d.deadTarget, d.direction) })
         ] }, i3))
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       AuditCategory,
       {
         label: "Missing Forward Links",
@@ -174092,19 +174112,19 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
         batchLabel: "Fix All",
         onBatch: fixAllForwardLinks,
         defaultOpen: true,
-        children: missingFwd.map((m2, i3) => /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { ...itemRowStyle, flexDirection: "column", alignItems: "flex-start", gap: 2 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8, width: "100%" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(NoteLink, { file: m2.ideaFile, app, style: itemTitleStyle, children: m2.ideaTitle }),
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(ActionBtn, { label: "Fix", onClick: () => fixForwardLink(m2.sourceFile, m2.ideaFile) })
+        children: missingFwd.map((m2, i3) => /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { ...itemRowStyle, flexDirection: "column", alignItems: "flex-start", gap: 2 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8, width: "100%" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(NoteLink, { file: m2.ideaFile, app, style: itemTitleStyle, children: m2.ideaTitle }),
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(ActionBtn, { label: "Fix", onClick: () => fixForwardLink(m2.sourceFile, m2.ideaFile) })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { fontSize: 10, color: "#888" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { fontSize: 10, color: "#888" }, children: [
             "missing from: ",
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(NoteLink, { file: m2.sourceFile, app, style: { color: "#888" }, children: m2.sourceTitle })
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(NoteLink, { file: m2.sourceFile, app, style: { color: "#888" }, children: m2.sourceTitle })
           ] })
         ] }, i3))
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       AuditCategory,
       {
         label: "Stray Wiki-Links",
@@ -174118,34 +174138,34 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
           const metaParts = [];
           if (nFix > 0) metaParts.push(`${nFix} fixable`);
           if (nOpen > 0) metaParts.push(`${nOpen} to review`);
-          return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: itemRowStyle, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(NoteLink, { file: s.file, app, style: itemTitleStyle, children: s.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: itemMetaStyle, children: metaParts.join(" \xB7 ") }),
-            nFix > 0 && /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(ActionBtn, { label: "Fix", onClick: () => fixStraysInHost(s.file) }),
-            nOpen > 0 && /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(ActionBtn, { label: "Open", onClick: () => openHostNote(s.file) })
+          return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: itemRowStyle, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(NoteLink, { file: s.file, app, style: itemTitleStyle, children: s.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: itemMetaStyle, children: metaParts.join(" \xB7 ") }),
+            nFix > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(ActionBtn, { label: "Fix", onClick: () => fixStraysInHost(s.file) }),
+            nOpen > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(ActionBtn, { label: "Open", onClick: () => openHostNote(s.file) })
           ] }, s.file);
         })
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       AuditCategory,
       {
         label: "Similar Ideas",
         info: "Pairs of ideas whose titles share 50%+ non-stopword overlap. Possible duplicates worth looking at. View-only \u2014 no automatic action; use Zero or the 3D view to link or consolidate.",
         count: similar.length,
         defaultOpen: false,
-        children: similar.map((s, i3) => /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { ...itemRowStyle, flexDirection: "column", alignItems: "flex-start", gap: 2 }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: { fontSize: 11, color: "#ccc" }, children: /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)(NoteLink, { file: s.fileA, app, style: { color: "#ccc" }, children: [
+        children: similar.map((s, i3) => /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { ...itemRowStyle, flexDirection: "column", alignItems: "flex-start", gap: 2 }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { fontSize: 11, color: "#ccc" }, children: /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)(NoteLink, { file: s.fileA, app, style: { color: "#ccc" }, children: [
             "\u201C",
             s.titleA,
             "\u201D"
           ] }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: { fontSize: 11, color: "#ccc" }, children: /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)(NoteLink, { file: s.fileB, app, style: { color: "#ccc" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { fontSize: 11, color: "#ccc" }, children: /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)(NoteLink, { file: s.fileB, app, style: { color: "#ccc" }, children: [
             "\u201C",
             s.titleB,
             "\u201D"
           ] }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { fontSize: 10, color: "#888" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { fontSize: 10, color: "#888" }, children: [
             Math.round(s.similarity * 100),
             "% word overlap"
           ] })
@@ -174156,16 +174176,16 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
 }
 var TWIN_ACTIVITY_INFO = "Twin activity from the logs. Interactive = triggered by you (chat, UI clicks, one-shot dispatches). Automatic = fired by the taskrunner on a recurring schedule (context updates, digests, session pipeline, etc.). Defaults to today (since local midnight); use the button to scan the last 7 days of rotated logs.";
 function ZeroActivitySection({ activity, onWindowChange }) {
-  const [openSections, setOpenSections] = (0, import_react58.useState)({});
+  const [openSections, setOpenSections] = (0, import_react59.useState)({});
   const toggle = (key) => setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
   const nextWindow = activity.window === "today" ? "7days" : "today";
   const buttonLabel = activity.window === "today" ? "Last 7 days" : "Today only";
   const windowLabel = activity.window === "today" ? "Today's activity" : "Last 7 days";
-  const header = /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: { ...sectionLabelStyle2, marginBottom: 0 }, children: "TWIN ACTIVITY" }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(InfoHover, { text: TWIN_ACTIVITY_INFO }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: { flex: 1 } }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+  const header = /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { ...sectionLabelStyle2, marginBottom: 0 }, children: "TWIN ACTIVITY" }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(InfoHover, { text: TWIN_ACTIVITY_INFO }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { flex: 1 } }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       "button",
       {
         onClick: () => onWindowChange(nextWindow),
@@ -174176,15 +174196,15 @@ function ZeroActivitySection({ activity, onWindowChange }) {
     )
   ] });
   if (activity.loading && activity.totalRuns === 0) {
-    return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { padding: "12px 16px" }, children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { padding: "12px 16px" }, children: [
       header,
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: { color: "#888", fontSize: 11 }, children: "Loading..." })
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { color: "#888", fontSize: 11 }, children: "Loading..." })
     ] });
   }
   if (activity.totalRuns === 0 && Object.keys(activity.byEventType).length === 0) {
-    return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { padding: "12px 16px" }, children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { padding: "12px 16px" }, children: [
       header,
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { color: "#888", fontSize: 11 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { color: "#888", fontSize: 11 }, children: [
         "No subagent runs or activity events ",
         activity.window === "today" ? "today yet" : "in the last 7 days",
         "."
@@ -174195,11 +174215,11 @@ function ZeroActivitySection({ activity, onWindowChange }) {
   const eventEntries = Object.entries(activity.byEventType).sort(
     (a2, b2) => b2[1].interactive + b2[1].automatic - (a2[1].interactive + a2[1].automatic)
   );
-  return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { padding: "12px 16px" }, children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { padding: "12px 16px" }, children: [
     header,
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: { fontSize: 10, color: "#666", marginBottom: 4 }, children: windowLabel }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { fontSize: 11, color: "#ccc", marginBottom: 4 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { color: "#7aafff" }, children: "Interactive" }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { fontSize: 10, color: "#666", marginBottom: 4 }, children: windowLabel }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { fontSize: 11, color: "#ccc", marginBottom: 4 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { color: "#7aafff" }, children: "Interactive" }),
       ": ",
       activity.interactiveRuns,
       " run",
@@ -174209,8 +174229,8 @@ function ZeroActivitySection({ activity, onWindowChange }) {
       " event",
       activity.interactiveEvents !== 1 ? "s" : ""
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { fontSize: 11, color: "#ccc", marginBottom: 8 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { color: "#b07aff" }, children: "Automatic" }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { fontSize: 11, color: "#ccc", marginBottom: 8 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { color: "#b07aff" }, children: "Automatic" }),
       ": ",
       activity.automaticRuns,
       " run",
@@ -174219,51 +174239,51 @@ function ZeroActivitySection({ activity, onWindowChange }) {
       activity.automaticEvents,
       " event",
       activity.automaticEvents !== 1 ? "s" : "",
-      activity.failRuns > 0 && /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)(import_jsx_runtime46.Fragment, { children: [
+      activity.failRuns > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)(import_jsx_runtime47.Fragment, { children: [
         " \xB7 ",
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: { color: "#e74c3c" }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: { color: "#e74c3c" }, children: [
           activity.failRuns,
           " failed"
         ] })
       ] })
     ] }),
-    skillEntries.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(CollapsibleList, { label: "By Skill", open: !!openSections["skill"], onToggle: () => toggle("skill"), children: skillEntries.map(([skill, b2]) => /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: itemRowStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: itemTitleStyle, children: skill }),
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: itemMetaStyle, children: [
-        b2.interactive > 0 && /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: { color: "#7aafff" }, children: [
+    skillEntries.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(CollapsibleList, { label: "By Skill", open: !!openSections["skill"], onToggle: () => toggle("skill"), children: skillEntries.map(([skill, b2]) => /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: itemRowStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: itemTitleStyle, children: skill }),
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: itemMetaStyle, children: [
+        b2.interactive > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: { color: "#7aafff" }, children: [
           b2.interactive,
           "i"
         ] }),
         b2.interactive > 0 && b2.automatic > 0 && " \xB7 ",
-        b2.automatic > 0 && /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: { color: "#b07aff" }, children: [
+        b2.automatic > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: { color: "#b07aff" }, children: [
           b2.automatic,
           "a"
         ] }),
-        b2.fail > 0 && /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { style: { color: "#e74c3c" }, children: [
+        b2.fail > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: { color: "#e74c3c" }, children: [
           " \xB7 ",
           b2.fail,
           " fail"
         ] }),
-        b2.total > 0 && /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)(import_jsx_runtime46.Fragment, { children: [
+        b2.total > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)(import_jsx_runtime47.Fragment, { children: [
           " \xB7 avg ",
           Math.round(b2.totalMs / b2.total / 1e3),
           "s"
         ] })
       ] })
     ] }, skill)) }),
-    eventEntries.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)(CollapsibleList, { label: "Activity Log (by type)", open: !!openSections["event"], onToggle: () => toggle("event"), children: [
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { ...itemRowStyle, fontSize: 10, color: "#555", borderBottom: "1px solid #2a2a2a", paddingBottom: 4, marginBottom: 2 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: itemTitleStyle, children: "type" }),
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { color: "#7aafff", width: 48, textAlign: "right", fontSize: 10, flexShrink: 0 }, children: "interact" }),
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { color: "#b07aff", width: 36, textAlign: "right", fontSize: 10, flexShrink: 0 }, children: "auto" })
+    eventEntries.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)(CollapsibleList, { label: "Activity Log (by type)", open: !!openSections["event"], onToggle: () => toggle("event"), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { ...itemRowStyle, fontSize: 10, color: "#555", borderBottom: "1px solid #2a2a2a", paddingBottom: 4, marginBottom: 2 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: itemTitleStyle, children: "type" }),
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { color: "#7aafff", width: 48, textAlign: "right", fontSize: 10, flexShrink: 0 }, children: "interact" }),
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { color: "#b07aff", width: 36, textAlign: "right", fontSize: 10, flexShrink: 0 }, children: "auto" })
       ] }),
-      eventEntries.map(([type, b2]) => /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: itemRowStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: itemTitleStyle, children: type }),
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { color: b2.interactive > 0 ? "#7aafff" : "#444", width: 48, textAlign: "right", fontSize: 10, flexShrink: 0 }, children: b2.interactive || "\u2014" }),
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { color: b2.automatic > 0 ? "#b07aff" : "#444", width: 36, textAlign: "right", fontSize: 10, flexShrink: 0 }, children: b2.automatic || "\u2014" })
+      eventEntries.map(([type, b2]) => /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: itemRowStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: itemTitleStyle, children: type }),
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { color: b2.interactive > 0 ? "#7aafff" : "#444", width: 48, textAlign: "right", fontSize: 10, flexShrink: 0 }, children: b2.interactive || "\u2014" }),
+        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { color: b2.automatic > 0 ? "#b07aff" : "#444", width: 36, textAlign: "right", fontSize: 10, flexShrink: 0 }, children: b2.automatic || "\u2014" })
       ] }, type))
     ] }),
-    activity.recentRuns.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(CollapsibleList, { label: "Recent Subagent Runs", open: !!openSections["recent"], onToggle: () => toggle("recent"), children: activity.recentRuns.map((r2, i3) => /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(SubagentRunRow, { run: r2 }, i3)) })
+    activity.recentRuns.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(CollapsibleList, { label: "Recent Subagent Runs", open: !!openSections["recent"], onToggle: () => toggle("recent"), children: activity.recentRuns.map((r2, i3) => /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(SubagentRunRow, { run: r2 }, i3)) })
   ] });
 }
 function SubagentRunRow({ run: run2 }) {
@@ -174271,17 +174291,17 @@ function SubagentRunRow({ run: run2 }) {
   const when = date.toLocaleString(void 0, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   const dur = run2.durationMs >= 1e3 ? `${Math.round(run2.durationMs / 1e3)}s` : `${run2.durationMs}ms`;
   const skillColor = run2.status === "ok" ? run2.category === "interactive" ? "#7aafff" : "#b07aff" : "#e74c3c";
-  return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { ...itemRowStyle, fontSize: 10 }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { color: "#888", flexShrink: 0, width: 90 }, children: when }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { ...itemTitleStyle, color: skillColor, fontSize: 10 }, children: run2.skill }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: itemMetaStyle, children: dur })
+  return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { ...itemRowStyle, fontSize: 10 }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { color: "#888", flexShrink: 0, width: 90 }, children: when }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { ...itemTitleStyle, color: skillColor, fontSize: 10 }, children: run2.skill }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: itemMetaStyle, children: dur })
   ] });
 }
 function SinglySourcedWarning({ graph }) {
   if (graph.totalIdeas < 20) return null;
   const pct = graph.degreeDistribution.d1 / graph.totalIdeas * 100;
   if (pct < 25) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: {
+  return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: {
     fontSize: 11,
     lineHeight: 1.4,
     padding: "8px 10px",
@@ -174291,47 +174311,47 @@ function SinglySourcedWarning({ graph }) {
     borderRadius: 4,
     color: "#e8b464"
   }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("strong", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("strong", { children: [
       Math.round(pct),
       "%"
     ] }),
     " of ideas are singly-sourced. Consider running",
     " ",
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("code", { style: { fontSize: 10, padding: "1px 4px", background: "rgba(0,0,0,0.3)", borderRadius: 2 }, children: "/torus-find-dupes" }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("code", { style: { fontSize: 10, padding: "1px 4px", background: "rgba(0,0,0,0.3)", borderRadius: 2 }, children: "/torus-find-dupes" }),
     " ",
     "in a Twin window \u2014 some may be re-extractions of the same claim across different sources."
   ] });
 }
 function HistBar({ label, count: count5, max, color }) {
   const pct = max > 0 ? count5 / max * 100 : 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { width: 20, textAlign: "right", color: "#888", fontSize: 10 }, children: label }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: { flex: 1, height: 10, background: "#1a1a2a", borderRadius: 2, overflow: "hidden" }, children: /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: { width: `${pct}%`, height: "100%", background: color, borderRadius: 2, transition: "width 0.3s" } }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { width: 32, textAlign: "right", color: "#aaa", fontSize: 10 }, children: count5 })
+  return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { width: 20, textAlign: "right", color: "#888", fontSize: 10 }, children: label }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { flex: 1, height: 10, background: "#1a1a2a", borderRadius: 2, overflow: "hidden" }, children: /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { width: `${pct}%`, height: "100%", background: color, borderRadius: 2, transition: "width 0.3s" } }) }),
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { width: 32, textAlign: "right", color: "#aaa", fontSize: 10 }, children: count5 })
   ] });
 }
 function CollapsibleList({ label, info, open, onToggle, children }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { marginBottom: 6 }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 4 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("button", { onClick: onToggle, style: { ...collapsibleHeaderStyle, flex: 1 }, children: /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { marginBottom: 6 }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 4 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("button", { onClick: onToggle, style: { ...collapsibleHeaderStyle, flex: 1 }, children: /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { children: [
         open ? "\u25BC" : "\u25B6",
         " ",
         label
       ] }) }),
-      info && /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(InfoHover, { text: info })
+      info && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(InfoHover, { text: info })
     ] }),
-    open && /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: { paddingLeft: 8 }, children })
+    open && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { paddingLeft: 8 }, children })
   ] });
 }
 function AuditCategory({ label, info, count: count5, batchLabel, batchDangerous, onBatch, defaultOpen, children }) {
-  const [open, setOpen] = (0, import_react58.useState)(count5 > 0 && defaultOpen !== false);
-  const [confirming, setConfirming] = (0, import_react58.useState)(false);
-  (0, import_react58.useEffect)(() => {
+  const [open, setOpen] = (0, import_react59.useState)(count5 > 0 && defaultOpen !== false);
+  const [confirming, setConfirming] = (0, import_react59.useState)(false);
+  (0, import_react59.useEffect)(() => {
     if (!confirming) return;
     const t2 = setTimeout(() => setConfirming(false), 3e3);
     return () => clearTimeout(t2);
   }, [confirming]);
-  const handleBatch = (0, import_react58.useCallback)(() => {
+  const handleBatch = (0, import_react59.useCallback)(() => {
     if (batchDangerous && !confirming) {
       setConfirming(true);
       return;
@@ -174340,9 +174360,9 @@ function AuditCategory({ label, info, count: count5, batchLabel, batchDangerous,
     setConfirming(false);
   }, [batchDangerous, confirming, onBatch]);
   const isEmpty = count5 === 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { marginBottom: 4 }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { marginBottom: 4 }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 6 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)(
         "button",
         {
           onClick: () => !isEmpty && setOpen(!open),
@@ -174353,7 +174373,7 @@ function AuditCategory({ label, info, count: count5, batchLabel, batchDangerous,
             flex: 1
           },
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { children: [
               open && !isEmpty ? "\u25BC" : "\u25B6",
               " ",
               label,
@@ -174361,24 +174381,24 @@ function AuditCategory({ label, info, count: count5, batchLabel, batchDangerous,
               count5,
               ")"
             ] }),
-            isEmpty && /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { style: { marginLeft: 8, color: "#2ecc71", fontSize: 10 }, children: "\u2713" })
+            isEmpty && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { marginLeft: 8, color: "#2ecc71", fontSize: 10 }, children: "\u2713" })
           ]
         }
       ),
-      info && /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(InfoHover, { text: info }),
-      batchLabel && count5 > 0 && onBatch && /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("button", { onClick: handleBatch, style: {
+      info && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(InfoHover, { text: info }),
+      batchLabel && count5 > 0 && onBatch && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("button", { onClick: handleBatch, style: {
         ...actionBtnStyle4,
         color: confirming ? "#e74c3c" : batchDangerous ? "#e74c3c" : "#7aafff",
         borderColor: confirming ? "#e74c3c" : "#4a90d9"
       }, children: confirming ? `Confirm (${count5})` : batchLabel })
     ] }),
-    open && !isEmpty && /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: { paddingLeft: 8, marginTop: 2 }, children })
+    open && !isEmpty && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { paddingLeft: 8, marginTop: 2 }, children })
   ] });
 }
 function InfoHover({ text }) {
-  const [pos, setPos] = (0, import_react58.useState)(null);
-  const anchorRef = (0, import_react58.useRef)(null);
-  const show = (0, import_react58.useCallback)(() => {
+  const [pos, setPos] = (0, import_react59.useState)(null);
+  const anchorRef = (0, import_react59.useRef)(null);
+  const show = (0, import_react59.useCallback)(() => {
     const el = anchorRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -174390,9 +174410,9 @@ function InfoHover({ text }) {
     }
     setPos({ top: rect.bottom + 4, left });
   }, []);
-  const hide = (0, import_react58.useCallback)(() => setPos(null), []);
-  return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)(import_jsx_runtime46.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+  const hide = (0, import_react59.useCallback)(() => setPos(null), []);
+  return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)(import_jsx_runtime47.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
       "span",
       {
         ref: anchorRef,
@@ -174419,7 +174439,7 @@ function InfoHover({ text }) {
       }
     ),
     pos && (0, import_react_dom3.createPortal)(
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("div", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: {
         position: "fixed",
         top: pos.top,
         left: pos.left,
@@ -174440,7 +174460,7 @@ function InfoHover({ text }) {
   ] });
 }
 function ActionBtn({ label, danger, onClick }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
     "button",
     {
       onClick: (e2) => {
@@ -174457,8 +174477,8 @@ function ActionBtn({ label, danger, onClick }) {
   );
 }
 function NoteLink({ file, app, children, style }) {
-  const [hov, setHov] = (0, import_react58.useState)(false);
-  return /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+  const [hov, setHov] = (0, import_react59.useState)(false);
+  return /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
     "span",
     {
       onClick: (e2) => {
@@ -174578,8 +174598,8 @@ var actionBtnStyle4 = {
 };
 
 // src/components/ServicesOverlay.tsx
-var import_react59 = __toESM(require_react(), 1);
-var import_jsx_runtime47 = __toESM(require_jsx_runtime(), 1);
+var import_react60 = __toESM(require_react(), 1);
+var import_jsx_runtime48 = __toESM(require_jsx_runtime(), 1);
 function bridgeDotColor(status, disabled) {
   if (disabled) return "#555";
   if (!status) return "#555";
@@ -174653,14 +174673,14 @@ function formatUptime(ms) {
 }
 function ServicesOverlay({ open, onClose }) {
   const app = useObsidian();
-  const [view, setView] = (0, import_react59.useState)(null);
-  const [expandedLog, setExpandedLog] = (0, import_react59.useState)(false);
-  const [busy, setBusy] = (0, import_react59.useState)(false);
-  const [taskrunnerExpanded, setTaskrunnerExpanded] = (0, import_react59.useState)(false);
-  const [taskrunnerMode, setTaskrunnerMode] = (0, import_react59.useState)("signal");
-  const [taskrunnerEntries, setTaskrunnerEntries] = (0, import_react59.useState)([]);
-  const timerRef = (0, import_react59.useRef)(null);
-  const refresh = (0, import_react59.useCallback)(async () => {
+  const [view, setView] = (0, import_react60.useState)(null);
+  const [expandedLog, setExpandedLog] = (0, import_react60.useState)(false);
+  const [busy, setBusy] = (0, import_react60.useState)(false);
+  const [taskrunnerExpanded, setTaskrunnerExpanded] = (0, import_react60.useState)(false);
+  const [taskrunnerMode, setTaskrunnerMode] = (0, import_react60.useState)("signal");
+  const [taskrunnerEntries, setTaskrunnerEntries] = (0, import_react60.useState)([]);
+  const timerRef = (0, import_react60.useRef)(null);
+  const refresh = (0, import_react60.useCallback)(async () => {
     const [bridgeView, trEntries] = await Promise.all([
       fetchBridge(app),
       fetchTaskrunnerEntries(app, taskrunnerMode)
@@ -174668,7 +174688,7 @@ function ServicesOverlay({ open, onClose }) {
     setView(bridgeView);
     setTaskrunnerEntries(trEntries);
   }, [app, taskrunnerMode]);
-  (0, import_react59.useEffect)(() => {
+  (0, import_react60.useEffect)(() => {
     if (!open) return;
     refresh();
     timerRef.current = setInterval(refresh, 5e3);
@@ -174676,7 +174696,7 @@ function ServicesOverlay({ open, onClose }) {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [open, refresh]);
-  (0, import_react59.useEffect)(() => {
+  (0, import_react60.useEffect)(() => {
     if (!open) return;
     const onKeyDown = (e2) => {
       if (e2.key === "Escape") {
@@ -174688,7 +174708,7 @@ function ServicesOverlay({ open, onClose }) {
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [open, onClose]);
-  const callPluginAction = (0, import_react59.useCallback)(async (method) => {
+  const callPluginAction = (0, import_react60.useCallback)(async (method) => {
     const plugin = getPlugin2(app);
     if (!plugin) return;
     setBusy(true);
@@ -174737,7 +174757,7 @@ function ServicesOverlay({ open, onClose }) {
   } else {
     statusText = "Stopped";
   }
-  const openBridgesSettings = (0, import_react59.useCallback)(() => {
+  const openBridgesSettings = (0, import_react60.useCallback)(() => {
     const appAny = app;
     try {
       const plugin = getPlugin2(app);
@@ -174747,36 +174767,36 @@ function ServicesOverlay({ open, onClose }) {
     } catch {
     }
   }, [app]);
-  return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)(import_jsx_runtime47.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { onClick: onClose, style: { ...backdropStyle8, opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.3s ease" } }),
-    /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: {
+  return /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)(import_jsx_runtime48.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { onClick: onClose, style: { ...backdropStyle8, opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity 0.3s ease" } }),
+    /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("div", { style: {
       ...panelStyle5,
       transform: open ? "translate(-50%, 0)" : "translate(-50%, calc(100vh + 100%))",
       transition: open ? "transform 0.35s ease" : "transform 0.35s ease, visibility 0s 0.35s",
       pointerEvents: open ? "auto" : "none",
       visibility: open ? "visible" : "hidden"
     }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: headerStyle4, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { fontSize: 14, fontWeight: 600, color: "#ddd" }, children: "Services" }),
-        /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("button", { onClick: refresh, style: refreshBtnStyle, children: "Refresh" })
+      /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("div", { style: headerStyle4, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("span", { style: { fontSize: 14, fontWeight: 600, color: "#ddd" }, children: "Services" }),
+        /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("button", { onClick: refresh, style: refreshBtnStyle, children: "Refresh" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: scrollAreaStyle2, children: [
-        !view && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { padding: "30px 0", textAlign: "center", color: "#888", fontSize: 12 }, children: "Loading bridge status\u2026" }),
-        view && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { borderBottom: "1px solid #222" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: serviceRowStyle, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: {
+      /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("div", { style: scrollAreaStyle2, children: [
+        !view && /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { style: { padding: "30px 0", textAlign: "center", color: "#888", fontSize: 12 }, children: "Loading bridge status\u2026" }),
+        view && /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("div", { style: { borderBottom: "1px solid #222" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("div", { style: serviceRowStyle, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("span", { style: {
               width: 8,
               height: 8,
               borderRadius: "50%",
               flexShrink: 0,
               background: dotColor
             } }),
-            /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { fontSize: 13, color: "#ddd", fontWeight: 500 }, children: view.label }),
-              /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { fontSize: 10, color: "#777", marginTop: 1 }, children: view.desc }),
-              /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { fontSize: 11, color: "#888", marginTop: 2 }, children: statusText })
+            /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { style: { fontSize: 13, color: "#ddd", fontWeight: 500 }, children: view.label }),
+              /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { style: { fontSize: 10, color: "#777", marginTop: 1 }, children: view.desc }),
+              /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { style: { fontSize: 11, color: "#888", marginTop: 2 }, children: statusText })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
               "button",
               {
                 onClick: () => setExpandedLog(!expandedLog),
@@ -174787,7 +174807,7 @@ function ServicesOverlay({ open, onClose }) {
             needsAction && /* User-action state: jump to Settings → Bridges where the QR
              * SVG and Reset button live. Highlighted so it reads as the
              * primary call-to-action. */
-            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
               "button",
               {
                 onClick: openBridgesSettings,
@@ -174799,7 +174819,7 @@ function ServicesOverlay({ open, onClose }) {
                 children: state2 === "awaiting_qr" ? "Pair" : "Fix"
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
               "button",
               {
                 onClick: () => callPluginAction(running2 ? "torusBridgeStop" : "torusBridgeStart"),
@@ -174812,7 +174832,7 @@ function ServicesOverlay({ open, onClose }) {
                 children: busy ? "\u2026" : running2 ? "Stop" : "Start"
               }
             ),
-            running2 && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
+            running2 && /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
               "button",
               {
                 onClick: () => callPluginAction("torusBridgeRestart"),
@@ -174822,34 +174842,34 @@ function ServicesOverlay({ open, onClose }) {
               }
             )
           ] }),
-          expandedLog && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: logPanelStyle, children: view.logEntries.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { color: "#666" }, children: "No log output" }) : view.logEntries.map((e2, i3) => /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { color: "#666" }, children: e2.ts_local }),
-            e2.label ? /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: { color: "#5a8" }, children: [
+          expandedLog && /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { style: logPanelStyle, children: view.logEntries.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("span", { style: { color: "#666" }, children: "No log output" }) : view.logEntries.map((e2, i3) => /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("div", { style: { whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("span", { style: { color: "#666" }, children: e2.ts_local }),
+            e2.label ? /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("span", { style: { color: "#5a8" }, children: [
               " [",
               e2.label,
               "]"
             ] }) : null,
-            /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: { color: failingMessageColor(e2.message) }, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("span", { style: { color: failingMessageColor(e2.message) }, children: [
               " ",
               e2.message
             ] })
           ] }, i3)) })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { borderBottom: "1px solid #222" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: serviceRowStyle, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: {
+        /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("div", { style: { borderBottom: "1px solid #222" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("div", { style: serviceRowStyle, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("span", { style: {
               width: 8,
               height: 8,
               borderRadius: "50%",
               flexShrink: 0,
               background: hasRecentTaskrunnerFailure(taskrunnerEntries) ? "#a44" : "#4a4"
             } }),
-            /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { fontSize: 13, color: "#ddd", fontWeight: 500 }, children: "Taskrunner" }),
-              /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { fontSize: 10, color: "#777", marginTop: 1 }, children: "Periodic dispatcher \u2014 tasks.jsonl" }),
-              /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { fontSize: 11, color: "#888", marginTop: 2 }, children: summarizeTaskrunner(taskrunnerEntries) })
+            /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("div", { style: { flex: 1, minWidth: 0 }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { style: { fontSize: 13, color: "#ddd", fontWeight: 500 }, children: "Taskrunner" }),
+              /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { style: { fontSize: 10, color: "#777", marginTop: 1 }, children: "Periodic dispatcher \u2014 tasks.jsonl" }),
+              /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { style: { fontSize: 11, color: "#888", marginTop: 2 }, children: summarizeTaskrunner(taskrunnerEntries) })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
               "button",
               {
                 onClick: () => setTaskrunnerExpanded(!taskrunnerExpanded),
@@ -174858,8 +174878,8 @@ function ServicesOverlay({ open, onClose }) {
               }
             )
           ] }),
-          taskrunnerExpanded && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: logPanelStyle, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 6 }, children: /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
+          taskrunnerExpanded && /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("div", { style: logPanelStyle, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 6 }, children: /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
               "button",
               {
                 onClick: () => setTaskrunnerMode((m2) => m2 === "signal" ? "all" : "signal"),
@@ -174867,14 +174887,14 @@ function ServicesOverlay({ open, onClose }) {
                 children: taskrunnerMode === "signal" ? "Show All" : "Show Signal"
               }
             ) }),
-            taskrunnerEntries.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { color: "#666" }, children: "No log output" }) : taskrunnerEntries.map((e2, i3) => /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { style: { whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { style: { color: "#666" }, children: e2.ts_local }),
-              e2.label ? /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: { color: "#5a8" }, children: [
+            taskrunnerEntries.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("span", { style: { color: "#666" }, children: "No log output" }) : taskrunnerEntries.map((e2, i3) => /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("div", { style: { whiteSpace: "pre-wrap", wordBreak: "break-all" }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("span", { style: { color: "#666" }, children: e2.ts_local }),
+              e2.label ? /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("span", { style: { color: "#5a8" }, children: [
                 " [",
                 e2.label,
                 "]"
               ] }) : null,
-              /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { style: { color: failingMessageColor(e2.message) }, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("span", { style: { color: failingMessageColor(e2.message) }, children: [
                 " ",
                 e2.message
               ] })
@@ -174979,9 +174999,9 @@ var logPanelStyle = {
 };
 
 // src/components/IdeationOverlay.tsx
-var import_jsx_runtime48 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime49 = __toESM(require_jsx_runtime(), 1);
 function IdeationOverlay({ disabled }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime49.jsx)(
     "button",
     {
       onClick: (e2) => {
@@ -175030,14 +175050,14 @@ function IdeationOverlay({ disabled }) {
 }
 
 // src/components/NavBar.tsx
-var import_jsx_runtime49 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime50 = __toESM(require_jsx_runtime(), 1);
 function NavBar({ onBack, onForward }) {
   const { canBack, canForward, back, forward } = useNavigation();
   const handleBack = onBack ?? back;
   const handleForward = onForward ?? forward;
   if (!canBack && !canForward) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("div", { style: containerStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime49.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("div", { style: containerStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(
       "button",
       {
         onClick: handleBack,
@@ -175047,7 +175067,7 @@ function NavBar({ onBack, onForward }) {
         children: "\u2190"
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime49.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(
       "button",
       {
         onClick: handleForward,
@@ -175081,17 +175101,17 @@ var navBtnStyle2 = {
 };
 
 // src/contexts/SelectionGlowStyle.tsx
-var import_react60 = __toESM(require_react(), 1);
-var import_jsx_runtime50 = __toESM(require_jsx_runtime(), 1);
-var Ctx2 = (0, import_react60.createContext)({ style: "ring", setStyle: () => {
+var import_react61 = __toESM(require_react(), 1);
+var import_jsx_runtime51 = __toESM(require_jsx_runtime(), 1);
+var Ctx2 = (0, import_react61.createContext)({ style: "ring", setStyle: () => {
 } });
 function SelectionGlowProvider({ children }) {
-  const [style, setStyle] = (0, import_react60.useState)("ring");
-  return /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(Ctx2.Provider, { value: { style, setStyle }, children });
+  const [style, setStyle] = (0, import_react61.useState)("ring");
+  return /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(Ctx2.Provider, { value: { style, setStyle }, children });
 }
 
 // src/hooks/usePathData.ts
-var import_react61 = __toESM(require_react(), 1);
+var import_react62 = __toESM(require_react(), 1);
 var import_obsidian19 = require("obsidian");
 
 // src/lib/findPaths.ts
@@ -175171,7 +175191,7 @@ function dfsAllPaths(start, end, getNeighbors, maxHops, maxPaths) {
 // src/hooks/usePathData.ts
 function usePathData(fileA, fileB, mode, ideas, library, app) {
   const key = `${fileA ?? ""}|${fileB ?? ""}|${mode}`;
-  return (0, import_react61.useMemo)(() => {
+  return (0, import_react62.useMemo)(() => {
     if (!fileA || !fileB || fileA === fileB) return null;
     const allSourceFiles = /* @__PURE__ */ new Set();
     for (const room of Object.values(library.rooms)) {
@@ -175268,8 +175288,8 @@ function usePathData(fileA, fileB, mode, ideas, library, app) {
 }
 
 // src/App.tsx
-var import_react62 = __toESM(require_react(), 1);
-var import_jsx_runtime51 = __toESM(require_jsx_runtime(), 1);
+var import_react63 = __toESM(require_react(), 1);
+var import_jsx_runtime52 = __toESM(require_jsx_runtime(), 1);
 var sceneLightRef = { current: { ambientColor: "#1a0a52", ambientI: 2, keyColor: "#fff4e0", keyI: 0.5, fillColor: "#e8d8c8", fillI: 2, brightnessMultiplier: 1, directionalMul: 1 } };
 var cameraConfigRef = { current: { focalMultiplier: 1, phasedUpRollFrac: 0.05 } };
 var warmGlowRef = { current: 1 };
@@ -175300,7 +175320,7 @@ function DprController() {
   const setDpr = useThree((s) => s.setDpr);
   const fullDpr = window.devicePixelRatio;
   const lowDpr = Math.max(0.5, fullDpr * 0.3);
-  const lastDpr = (0, import_react62.useRef)(fullDpr);
+  const lastDpr = (0, import_react63.useRef)(fullDpr);
   useFrame(() => {
     const settled = cameraSettledFracRef.current;
     let target = lastDpr.current;
@@ -175315,12 +175335,12 @@ function DprController() {
 }
 var HEMI_BASE_INTENSITY = 3;
 function FlightLightingDriver() {
-  const startedOutdoor = (0, import_react62.useRef)(false);
-  const startBrightness = (0, import_react62.useRef)(1);
-  const startWarmGlow = (0, import_react62.useRef)(0.55);
-  const startWindowLight = (0, import_react62.useRef)(113);
-  const startDirectionalMul = (0, import_react62.useRef)(0);
-  const wasActive = (0, import_react62.useRef)(false);
+  const startedOutdoor = (0, import_react63.useRef)(false);
+  const startBrightness = (0, import_react63.useRef)(1);
+  const startWarmGlow = (0, import_react63.useRef)(0.55);
+  const startWindowLight = (0, import_react63.useRef)(113);
+  const startDirectionalMul = (0, import_react63.useRef)(0);
+  const wasActive = (0, import_react63.useRef)(false);
   useFrame(() => {
     const active = flyActiveRef.current;
     if (active && !wasActive.current) {
@@ -175343,12 +175363,12 @@ function FlightLightingDriver() {
   return null;
 }
 function SceneLights() {
-  const ambRef = (0, import_react62.useRef)(null);
-  const keyRef = (0, import_react62.useRef)(null);
-  const fillRef = (0, import_react62.useRef)(null);
-  const hemiRef = (0, import_react62.useRef)(null);
+  const ambRef = (0, import_react63.useRef)(null);
+  const keyRef = (0, import_react63.useRef)(null);
+  const fillRef = (0, import_react63.useRef)(null);
+  const hemiRef = (0, import_react63.useRef)(null);
   const { invalidate: invalidate2 } = useThree();
-  const lastHash = (0, import_react62.useRef)("");
+  const lastHash = (0, import_react63.useRef)("");
   useFrame(() => {
     const s = sceneLightRef.current;
     const m2 = s.brightnessMultiplier;
@@ -175375,16 +175395,16 @@ function SceneLights() {
       invalidate2();
     }
   });
-  return /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)(import_jsx_runtime51.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("ambientLight", { ref: ambRef, intensity: 2, color: "#52350a" }),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("hemisphereLight", { ref: hemiRef, args: ["#fff4e0", "#3a2a1a", HEMI_BASE_INTENSITY] }),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("directionalLight", { ref: keyRef, position: [10, 8, 10], intensity: 0.5, color: "#fff4e0" }),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("directionalLight", { ref: fillRef, position: [-10, 10, -10], intensity: 2, color: "#e8d8c8" })
+  return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)(import_jsx_runtime52.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("ambientLight", { ref: ambRef, intensity: 2, color: "#52350a" }),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("hemisphereLight", { ref: hemiRef, args: ["#fff4e0", "#3a2a1a", HEMI_BASE_INTENSITY] }),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("directionalLight", { ref: keyRef, position: [10, 8, 10], intensity: 0.5, color: "#fff4e0" }),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("directionalLight", { ref: fillRef, position: [-10, 10, -10], intensity: 2, color: "#e8d8c8" })
   ] });
 }
 function InvalidateBridge() {
   const { invalidate: invalidate2 } = useThree();
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     const handler = () => invalidate2();
     window.addEventListener("torus-invalidate", handler);
     return () => window.removeEventListener("torus-invalidate", handler);
@@ -175393,7 +175413,7 @@ function InvalidateBridge() {
 }
 function VisibilityBridge() {
   const { gl, invalidate: invalidate2 } = useThree();
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     const canvas = gl.domElement;
     let docVisible = !document.hidden;
     let onScreen = true;
@@ -175425,7 +175445,7 @@ function VisibilityBridge() {
 }
 function ResizeInvalidator() {
   const { gl, invalidate: invalidate2 } = useThree();
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     const canvas = gl.domElement;
     const container = canvas.parentElement;
     if (!container) return;
@@ -175445,52 +175465,52 @@ function SelectionBridge({
   onSelectionChange
 }) {
   const { clearSelection, selectOnly, selectMultiple, selectedFiles } = useSelection();
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     clearRef.current = clearSelection;
     return () => {
       clearRef.current = null;
     };
   }, [clearSelection, clearRef]);
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     selectOnlyRef.current = selectOnly;
     return () => {
       selectOnlyRef.current = null;
     };
   }, [selectOnly, selectOnlyRef]);
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     selectMultipleRef.current = selectMultiple;
     return () => {
       selectMultipleRef.current = null;
     };
   }, [selectMultiple, selectMultipleRef]);
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     selectedRef.current = selectedFiles;
     onSelectionChange([...selectedFiles]);
   }, [selectedFiles, selectedRef, onSelectionChange]);
   return null;
 }
 function App6({ llmSettings }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(NavigationProvider, { initialMode: llmSettings.preferredLibraryView, children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(LayoutConfigProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(FacadeDebugProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(AppInner, { llmSettings }) }) }) });
+  return /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(NavigationProvider, { initialMode: llmSettings.preferredLibraryView, children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(LayoutConfigProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(FacadeDebugProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(AppInner, { llmSettings }) }) }) });
 }
 function AppInner({ llmSettings }) {
   const app = useObsidian();
   const { current: navState, navigate, replace: navReplace, lastLibraryMode, lastNetworkMode, peekBack, peekForward, back: navBack, forward: navForward, setAllFiles: navSetAllFiles } = useNavigation();
-  const clearSelectionRef = (0, import_react62.useRef)(null);
-  const selectOnlyRef = (0, import_react62.useRef)(null);
-  const selectMultipleRef = (0, import_react62.useRef)(null);
-  const selectedFilesRef = (0, import_react62.useRef)(/* @__PURE__ */ new Set());
-  const handleBackRef = (0, import_react62.useRef)(() => {
+  const clearSelectionRef = (0, import_react63.useRef)(null);
+  const selectOnlyRef = (0, import_react63.useRef)(null);
+  const selectMultipleRef = (0, import_react63.useRef)(null);
+  const selectedFilesRef = (0, import_react63.useRef)(/* @__PURE__ */ new Set());
+  const handleBackRef = (0, import_react63.useRef)(() => {
   });
-  const handleForwardRef = (0, import_react62.useRef)(() => {
+  const handleForwardRef = (0, import_react63.useRef)(() => {
   });
-  const [syncedSelection, setSyncedSelection] = (0, import_react62.useState)([]);
+  const [syncedSelection, setSyncedSelection] = (0, import_react63.useState)([]);
   const selectionCount = syncedSelection.length;
-  const [navTarget, setNavTarget] = (0, import_react62.useState)(null);
-  const navDistanceRef = (0, import_react62.useRef)(void 0);
-  const navDeskInboxFocusRef = (0, import_react62.useRef)(false);
-  const [navReady, setNavReady] = (0, import_react62.useState)(false);
-  const [isExterior, setIsExterior] = (0, import_react62.useState)(true);
-  (0, import_react62.useEffect)(() => {
+  const [navTarget, setNavTarget] = (0, import_react63.useState)(null);
+  const navDistanceRef = (0, import_react63.useRef)(void 0);
+  const navDeskInboxFocusRef = (0, import_react63.useRef)(false);
+  const [navReady, setNavReady] = (0, import_react63.useState)(false);
+  const [isExterior, setIsExterior] = (0, import_react63.useState)(true);
+  (0, import_react63.useEffect)(() => {
     isExteriorRef.current = isExterior;
     const profile = isExterior ? lightingProfileRef.current.outdoor : lightingProfileRef.current.indoor;
     const startBrightness = sceneLightRef.current.brightnessMultiplier;
@@ -175518,12 +175538,12 @@ function AppInner({ llmSettings }) {
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
   }, [isExterior]);
-  const [facingWing, setFacingWing] = (0, import_react62.useState)(0);
-  const handleSetFacingWing = (0, import_react62.useCallback)((wing) => {
+  const [facingWing, setFacingWing] = (0, import_react63.useState)(0);
+  const handleSetFacingWing = (0, import_react63.useCallback)((wing) => {
     setFacingWing(wing);
     setNavTarget([0, 0, 0]);
   }, []);
-  const [maxPolar, setMaxPolar] = (0, import_react62.useState)(Math.PI / 2);
+  const [maxPolar, setMaxPolar] = (0, import_react63.useState)(Math.PI / 2);
   const inNetworkMode = navState.mode === "network-map" || navState.mode === "network-tree";
   const inPathMode = navState.mode === "path-short" || navState.mode === "path-all";
   const isIdeasView = inNetworkMode || inPathMode;
@@ -175535,7 +175555,7 @@ function AppInner({ llmSettings }) {
   const pathFileB = navState.selection.length >= 2 ? navState.selection[1] : syncedSelection[1] ?? null;
   const pathEndpointA = selectionCount >= 2 || inPathMode ? pathFileA : null;
   const pathEndpointB = selectionCount >= 2 || inPathMode ? pathFileB : null;
-  const onNavigate = (0, import_react62.useCallback)((pos, anchor, distance, modeOverride) => {
+  const onNavigate = (0, import_react63.useCallback)((pos, anchor, distance, modeOverride) => {
     if (pos[1] === -999) {
       const files = selectedFilesRef.current;
       if (files.size > 0) {
@@ -175552,15 +175572,15 @@ function AppInner({ llmSettings }) {
       setNavTarget(pos);
     }
   }, [navigate, lastLibraryMode, lastNetworkMode, navState]);
-  const pendingHighlight = (0, import_react62.useRef)(null);
-  const pendingIdeaLookAt = (0, import_react62.useRef)(null);
-  const pendingPeek = (0, import_react62.useRef)(null);
-  const pendingLibraryModeRef = (0, import_react62.useRef)(null);
-  const lastNetworkFilesRef = (0, import_react62.useRef)(networkFiles);
+  const pendingHighlight = (0, import_react63.useRef)(null);
+  const pendingIdeaLookAt = (0, import_react63.useRef)(null);
+  const pendingPeek = (0, import_react63.useRef)(null);
+  const pendingLibraryModeRef = (0, import_react63.useRef)(null);
+  const lastNetworkFilesRef = (0, import_react63.useRef)(networkFiles);
   if (networkFiles.length > 0) lastNetworkFilesRef.current = networkFiles;
   const renderNetworkFiles = networkFiles.length > 0 ? networkFiles : navTarget !== null && lastNetworkFilesRef.current.length > 0 ? lastNetworkFilesRef.current : [];
-  const [modeSwitchInFlight, setModeSwitchInFlight] = (0, import_react62.useState)(false);
-  const onArrived = (0, import_react62.useCallback)(() => {
+  const [modeSwitchInFlight, setModeSwitchInFlight] = (0, import_react63.useState)(false);
+  const onArrived = (0, import_react63.useCallback)(() => {
     setNavTarget(null);
     lastNetworkFilesRef.current = [];
     if (pendingLibraryModeRef.current) {
@@ -175570,31 +175590,31 @@ function AppInner({ llmSettings }) {
       setTimeout(() => setModeSwitchInFlight(false), 600);
     }
   }, [navigate, navState]);
-  const flyToDeskThenSwitchMode = (0, import_react62.useCallback)((newMode) => {
+  const flyToDeskThenSwitchMode = (0, import_react63.useCallback)((newMode) => {
     setModeSwitchInFlight(true);
     pendingLibraryModeRef.current = newMode;
     navDistanceRef.current = void 0;
     setNavTarget([0, 0, 0]);
   }, []);
-  const onEnteredLibrary = (0, import_react62.useCallback)(() => setIsExterior(false), []);
-  const onHighlight = (0, import_react62.useCallback)((file) => {
+  const onEnteredLibrary = (0, import_react63.useCallback)(() => setIsExterior(false), []);
+  const onHighlight = (0, import_react63.useCallback)((file) => {
     pendingHighlight.current = file;
   }, []);
-  const onPeek = (0, import_react62.useCallback)((position, file) => {
+  const onPeek = (0, import_react63.useCallback)((position, file) => {
     pendingPeek.current = { position, file };
   }, []);
-  const networkBoundsRef = (0, import_react62.useRef)({ x: 12, z: 30 });
-  const [searchOpen, setSearchOpen] = (0, import_react62.useState)(false);
-  const [statsOpen, setStatsOpen] = (0, import_react62.useState)(false);
-  const toggleStats = (0, import_react62.useCallback)(() => setStatsOpen((v3) => !v3), []);
-  const [servicesOpen, setServicesOpen] = (0, import_react62.useState)(false);
-  const toggleServices = (0, import_react62.useCallback)(() => setServicesOpen((v3) => !v3), []);
-  const containerRef = (0, import_react62.useRef)(null);
-  (0, import_react62.useEffect)(() => {
+  const networkBoundsRef = (0, import_react63.useRef)({ x: 12, z: 30 });
+  const [searchOpen, setSearchOpen] = (0, import_react63.useState)(false);
+  const [statsOpen, setStatsOpen] = (0, import_react63.useState)(false);
+  const toggleStats = (0, import_react63.useCallback)(() => setStatsOpen((v3) => !v3), []);
+  const [servicesOpen, setServicesOpen] = (0, import_react63.useState)(false);
+  const toggleServices = (0, import_react63.useCallback)(() => setServicesOpen((v3) => !v3), []);
+  const containerRef = (0, import_react63.useRef)(null);
+  (0, import_react63.useEffect)(() => {
     if (inNetworkMode) return;
     navReplace({ selection: syncedSelection, ...syncedSelection.length > 0 ? { anchor: void 0 } : {} });
   }, [syncedSelection, inNetworkMode, navReplace]);
-  const enterNetwork = (0, import_react62.useCallback)((mode = lastNetworkMode) => {
+  const enterNetwork = (0, import_react63.useCallback)((mode = lastNetworkMode) => {
     const files = selectedFilesRef.current;
     if (files.size === 0) return;
     const sel = [...files];
@@ -175605,7 +175625,7 @@ function AppInner({ llmSettings }) {
       depth: files.size > 1 ? 1 : navState.depth
     });
   }, [navigate, lastNetworkMode, navState.depth]);
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     const onKeyDown = (e2) => {
       if ((e2.metaKey || e2.ctrlKey) && (e2.key === "ArrowLeft" || e2.key === "ArrowRight")) {
         const tag = e2.target?.tagName;
@@ -175639,7 +175659,7 @@ function AppInner({ llmSettings }) {
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [searchOpen, inNetworkMode, navigate, navState.depth, lastLibraryMode]);
   const library = useLibrary();
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     const paths = [];
     for (const key of library.roomOrder) {
       const room = library.rooms[key];
@@ -175655,32 +175675,32 @@ function AppInner({ llmSettings }) {
   }, [app, library.roomOrder, library.rooms]);
   const isFacade = navState.mode === "library-flat";
   const { roundUseWings } = useLayoutConfig();
-  const wingsRadius = (0, import_react62.useMemo)(
+  const wingsRadius = (0, import_react63.useMemo)(
     () => computeWingsRadius(library.wingOrder, library.wings),
     [library.wingOrder, library.wings]
   );
-  const totalRooms = (0, import_react62.useMemo)(
+  const totalRooms = (0, import_react63.useMemo)(
     () => library.wingOrder.reduce((n, k2) => n + (library.wings[k2]?.roomOrder.length ?? 0), 0),
     [library.wingOrder, library.wings]
   );
-  const minRoundRadius = (0, import_react62.useMemo)(
+  const minRoundRadius = (0, import_react63.useMemo)(
     () => Math.max(38, 0.75 * (wingsRadius + ALCOVE_RADIUS) - ALCOVE_RADIUS),
     [wingsRadius]
   );
-  const roundRadius = (0, import_react62.useMemo)(
+  const roundRadius = (0, import_react63.useMemo)(
     () => roundUseWings ? wingsRadius : Math.max(minRoundRadius, computeRadius(totalRooms)),
     [roundUseWings, wingsRadius, totalRooms, minRoundRadius]
   );
-  const slotMap = (0, import_react62.useMemo)(
+  const slotMap = (0, import_react63.useMemo)(
     () => buildRoomSlotMap(library.wingOrder, library.wings, roundUseWings).slotMap,
     [library.wingOrder, library.wings, roundUseWings]
   );
-  const facadeWallHeight = (0, import_react62.useMemo)(
+  const facadeWallHeight = (0, import_react63.useMemo)(
     () => computeFacadeWallHeight(library.wingOrder, library.wings, library.rooms, wingsRadius),
     [library.wingOrder, library.wings, library.rooms, wingsRadius]
   );
   const ideas = useIdeas(library);
-  const priorityRoomKey = (0, import_react62.useMemo)(() => {
+  const priorityRoomKey = (0, import_react63.useMemo)(() => {
     if (navState.anchor?.startsWith("room/")) {
       const slug = navState.anchor.slice(5);
       for (const k2 of library.roomOrder) {
@@ -175700,7 +175720,7 @@ function AppInner({ llmSettings }) {
   const pathDataAll = usePathData(pathEndpointA, pathEndpointB, "all", ideas, library, app);
   const pathData = inPathMode ? pathMode === "all" ? pathDataAll : pathDataShort : null;
   const showPath = navState.showPath ?? false;
-  const pathEdgeKeys = (0, import_react62.useMemo)(() => {
+  const pathEdgeKeys = (0, import_react63.useMemo)(() => {
     if (!showPath || !inNetworkMode || !pathDataShort) return null;
     const keys = /* @__PURE__ */ new Set();
     for (const edge of pathDataShort.edges) {
@@ -175709,11 +175729,11 @@ function AppInner({ llmSettings }) {
     }
     return keys;
   }, [showPath, inNetworkMode, pathDataShort]);
-  const pathExtraFiles = (0, import_react62.useMemo)(() => {
+  const pathExtraFiles = (0, import_react63.useMemo)(() => {
     if (!showPath || !inNetworkMode || !pathDataShort) return void 0;
     return new Set(pathDataShort.paths.flat());
   }, [showPath, inNetworkMode, pathDataShort]);
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     const allFiles = [];
     for (const room of Object.values(library.rooms)) {
       for (const sg of room.subgroups) {
@@ -175723,7 +175743,7 @@ function AppInner({ llmSettings }) {
     for (const n of ideas.notes) allFiles.push(n.file);
     navSetAllFiles(allFiles);
   }, [library, ideas, navSetAllFiles]);
-  const navigateToShelf = (0, import_react62.useCallback)((filePath, modeOverride) => {
+  const navigateToShelf = (0, import_react63.useCallback)((filePath, modeOverride) => {
     const { roomOrder, rooms } = library;
     const willBeFacade = (modeOverride ?? lastLibraryMode) === "library-flat";
     for (let i3 = 0; i3 < roomOrder.length; i3++) {
@@ -175770,7 +175790,7 @@ function AppInner({ llmSettings }) {
     }
     return false;
   }, [library, lastLibraryMode, slotMap, wingsRadius, roundRadius, facadeWallHeight, onNavigate, onHighlight]);
-  const applyCamera = (0, import_react62.useCallback)((state2) => {
+  const applyCamera = (0, import_react63.useCallback)((state2) => {
     const isNet = state2.mode === "network-map" || state2.mode === "network-tree";
     if (isNet) return;
     const stateFacade = state2.mode === "library-flat";
@@ -175825,13 +175845,13 @@ function AppInner({ llmSettings }) {
     }
     setNavTarget([0, 0, 0]);
   }, [library, ideas, slotMap, wingsRadius, roundRadius, facadeWallHeight, onHighlight, setNavTarget]);
-  const handleBack = (0, import_react62.useCallback)(() => {
+  const handleBack = (0, import_react63.useCallback)(() => {
     if (!peekBack) return;
     navBack();
     applyCamera(peekBack);
     selectMultipleRef.current?.(peekBack.selection);
   }, [peekBack, navBack, applyCamera]);
-  const handleForward = (0, import_react62.useCallback)(() => {
+  const handleForward = (0, import_react63.useCallback)(() => {
     if (!peekForward) return;
     navForward();
     applyCamera(peekForward);
@@ -175839,7 +175859,7 @@ function AppInner({ llmSettings }) {
   }, [peekForward, navForward, applyCamera]);
   handleBackRef.current = handleBack;
   handleForwardRef.current = handleForward;
-  const exitToLibrary = (0, import_react62.useCallback)((targetMode) => {
+  const exitToLibrary = (0, import_react63.useCallback)((targetMode) => {
     const mode = targetMode ?? lastLibraryMode;
     const files = selectedFilesRef.current;
     if (files.size !== 1) {
@@ -175858,7 +175878,7 @@ function AppInner({ llmSettings }) {
     navigate({ ...navState, mode });
     setNavTarget([0, 0, 0]);
   }, [navigate, navState, lastLibraryMode, navigateToShelf, ideas, onHighlight, setNavTarget]);
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     const onTorusFind = (e2) => {
       const { filePath } = e2.detail;
       if (!filePath) return;
@@ -175880,7 +175900,7 @@ function AppInner({ llmSettings }) {
     window.addEventListener("torus-find", onTorusFind);
     return () => window.removeEventListener("torus-find", onTorusFind);
   }, [ideas, navigate, navState, lastLibraryMode, navigateToShelf, onHighlight, onNavigate]);
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     const onTorusLibrary = (e2) => {
       const { filePath } = e2.detail;
       if (!filePath) return;
@@ -175894,7 +175914,7 @@ function AppInner({ llmSettings }) {
     window.addEventListener("torus-library", onTorusLibrary);
     return () => window.removeEventListener("torus-library", onTorusLibrary);
   }, [navigate, navState, lastLibraryMode, ideas, navigateToShelf, onHighlight]);
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     const onTorusNetwork = (e2) => {
       const { filePath } = e2.detail;
       if (!filePath) return;
@@ -175903,9 +175923,9 @@ function AppInner({ llmSettings }) {
     window.addEventListener("torus-network", onTorusNetwork);
     return () => window.removeEventListener("torus-network", onTorusNetwork);
   }, [navigate, navState, lastNetworkMode]);
-  return /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(TorusConfigProvider, { config: configFromSettings(llmSettings), children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(NoteSelectionProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(NotePositionsProvider, { requestNav: onNavigate, children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(SortingDeskProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(FilterProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(SelectionProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(SelectionGlowProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(ContextMenuProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(ProgressiveLoadProvider, { allRoomKeys: library.roomOrder, isExterior, enabled: navReady, priorityRoomKey, children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("div", { ref: containerRef, style: { display: "flex", flexDirection: "column", width: "100%", height: "100%" }, onContextMenu: (e2) => e2.preventDefault(), children: /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("div", { style: { flex: 1, position: "relative", overflow: "hidden", minHeight: 0 }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(NavBar, { onBack: handleBack, onForward: handleForward }),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(TorusConfigProvider, { config: configFromSettings(llmSettings), children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(NoteSelectionProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(NotePositionsProvider, { requestNav: onNavigate, children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(SortingDeskProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(FilterProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(SelectionProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(SelectionGlowProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(ContextMenuProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(ProgressiveLoadProvider, { allRoomKeys: library.roomOrder, isExterior, enabled: navReady, priorityRoomKey, children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("div", { ref: containerRef, style: { display: "flex", flexDirection: "column", width: "100%", height: "100%" }, onContextMenu: (e2) => e2.preventDefault(), children: /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: { flex: 1, position: "relative", overflow: "hidden", minHeight: 0 }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(NavBar, { onBack: handleBack, onForward: handleForward }),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)(
       Canvas,
       {
         frameloop: "demand",
@@ -175915,11 +175935,11 @@ function AppInner({ llmSettings }) {
           if (!inNetworkMode && !inPathMode) clearSelectionRef.current?.();
         },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(SelectionBridge, { clearRef: clearSelectionRef, selectOnlyRef, selectMultipleRef, selectedRef: selectedFilesRef, onSelectionChange: setSyncedSelection }),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("fog", { attach: "fog", args: ["#0a0a0f", 60, 400] }),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(SceneLights, {}),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(SkyDome, {}),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(import_react62.Suspense, { fallback: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(Text2, { position: [0, 12, 0], fontSize: 1.5, color: "#c8a050", anchorX: "center", anchorY: "middle", children: "Building the Torus..." }), children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(Library, { viewMode: navState.mode === "library-flat" ? "library-flat" : navState.mode === "library-round" ? "library-round" : lastLibraryMode, isIdeasView, navTarget, onPanComplete: () => setNavReady(true), networkFiles: renderNetworkFiles, networkDepth, networkViewMode, pathData, pathEdgeKeys, pathExtraFiles, onNodeDoubleClick: (file, shift) => {
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(SelectionBridge, { clearRef: clearSelectionRef, selectOnlyRef, selectMultipleRef, selectedRef: selectedFilesRef, onSelectionChange: setSyncedSelection }),
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("fog", { attach: "fog", args: ["#0a0a0f", 60, 400] }),
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(SceneLights, {}),
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(SkyDome, {}),
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(import_react63.Suspense, { fallback: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(Text2, { position: [0, 12, 0], fontSize: 1.5, color: "#c8a050", anchorX: "center", anchorY: "middle", children: "Building the Torus..." }), children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(Library, { viewMode: navState.mode === "library-flat" ? "library-flat" : navState.mode === "library-round" ? "library-round" : lastLibraryMode, isIdeasView, navTarget, onPanComplete: () => setNavReady(true), networkFiles: renderNetworkFiles, networkDepth, networkViewMode, pathData, pathEdgeKeys, pathExtraFiles, onNodeDoubleClick: (file, shift) => {
             if (shift) {
               const newFocal = [.../* @__PURE__ */ new Set([...navState.focal, file])];
               navigate({ ...navState, selection: newFocal, focal: newFocal });
@@ -175931,7 +175951,7 @@ function AppInner({ llmSettings }) {
           }, onNetworkBounds: (x2, z) => {
             networkBoundsRef.current = { x: x2, z };
           }, onToggleStats: toggleStats, onToggleServices: toggleServices, facingWing, onSetFacingWing: handleSetFacingWing }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
             CameraController,
             {
               target: navTarget,
@@ -175953,13 +175973,13 @@ function AppInner({ llmSettings }) {
               facingWing
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(DprController, {}),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(FlightLightingDriver, {}),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(KeyboardNav, {}),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(ResizeInvalidator, {}),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(InvalidateBridge, {}),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(VisibilityBridge, {}),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(DprController, {}),
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(FlightLightingDriver, {}),
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(KeyboardNav, {}),
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(ResizeInvalidator, {}),
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(InvalidateBridge, {}),
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(VisibilityBridge, {}),
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
             OrbitControls2,
             {
               autoRotate: isExterior && !navTarget,
@@ -175980,11 +176000,11 @@ function AppInner({ llmSettings }) {
         ]
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("div", { style: {
+    !isExterior && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("div", { style: {
       opacity: modeSwitchInFlight ? 0 : 1,
       transition: "opacity 250ms ease",
       pointerEvents: modeSwitchInFlight ? "none" : "auto"
-    }, children: /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
+    }, children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
       Legend,
       {
         onNavigate,
@@ -175995,24 +176015,25 @@ function AppInner({ llmSettings }) {
         navReady
       }
     ) }),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(LibrarianPanel, { onPeek }),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(InboxFilterPopover, {}),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(ContextMenu, {}),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(MenuOpBridge, {}),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(DeleteDialog, {}),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(UnlinkDialog, {}),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(MoveDialog, {}),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(NotePicker, {}),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(BusyOverlay, {}),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(DiscardDialog, {}),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(HelpOverlay, { isExterior }),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(SearchOverlay, { open: searchOpen, onClose: () => setSearchOpen(false), onOpen: () => setSearchOpen(true), onNavigate, onHighlight, onIdeaLookAt: (file) => {
+    isExterior && navReady && !navTarget && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(EnterButton, { onNavigate }),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(LibrarianPanel, { onPeek }),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(InboxFilterPopover, {}),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(ContextMenu, {}),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(MenuOpBridge, {}),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(DeleteDialog, {}),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(UnlinkDialog, {}),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(MoveDialog, {}),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(NotePicker, {}),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(BusyOverlay, {}),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(DiscardDialog, {}),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(HelpOverlay, { isExterior }),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(SearchOverlay, { open: searchOpen, onClose: () => setSearchOpen(false), onOpen: () => setSearchOpen(true), onNavigate, onHighlight, onIdeaLookAt: (file) => {
       pendingIdeaLookAt.current = file;
     } }),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(StatsOverlay, { open: statsOpen, onClose: () => setStatsOpen(false), onNavigate }),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(ServicesOverlay, { open: servicesOpen, onClose: () => setServicesOpen(false) }),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(IdeationOverlay, { disabled: isExterior }),
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(HoverLabel, {})
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(StatsOverlay, { open: statsOpen, onClose: () => setStatsOpen(false), onNavigate }),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(ServicesOverlay, { open: servicesOpen, onClose: () => setServicesOpen(false) }),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(IdeationOverlay, { disabled: isExterior }),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(HoverLabel, {})
   ] }) }) }) }) }) }) }) }) }) }) });
 }
 
@@ -176021,7 +176042,10 @@ var VIEW_TYPE_TORUS = "the-torus-view";
 var TorusView = class extends import_obsidian20.ItemView {
   root = null;
   host;
-  rechecking = false;
+  probing = false;
+  /** One-shot: auto-probe at most once per view open, so a probe that never
+   *  flips `checked` can't spin us in a re-render/re-probe loop. */
+  probeDone = false;
   constructor(leaf, host) {
     super(leaf);
     this.host = host;
@@ -176048,35 +176072,55 @@ var TorusView = class extends import_obsidian20.ItemView {
       this.root = null;
     }
   }
-  /** Gate the 3D scene on required deps. When claude/obsidianCli are missing,
-   *  show a "Finish setup" interstitial instead of a broken scene; otherwise
+  /** Gate the 3D scene on required deps. When any mandatory dep is missing,
+   *  show a "finish setup" interstitial instead of a broken scene; otherwise
    *  mount the React library. Runs on every view open. */
   render() {
     const status = this.host.getRequiredStatus();
-    if (status.requiredReady) {
-      this.renderScene();
+    if (!status.checked && !this.probeDone) {
+      this.renderChecking();
+      if (!this.probing) {
+        this.probing = true;
+        this.host.refreshRequiredStatus().catch(() => {
+        }).finally(() => {
+          this.probing = false;
+          this.probeDone = true;
+          this.render();
+        });
+      }
       return;
     }
-    this.renderInterstitial(status.missingRequired);
-    if (!status.checked && !this.rechecking) {
-      this.rechecking = true;
-      this.host.refreshRequiredStatus().then(() => this.render()).catch(() => {
-      }).finally(() => {
-        this.rechecking = false;
-      });
-    }
+    if (status.requiredReady) this.renderScene();
+    else this.renderInterstitial(status.missingRequired);
+  }
+  /** Neutral holding state while the required-dep probe runs. Quiet on purpose:
+   *  it must not read as either the setup screen or a broken scene. */
+  renderChecking() {
+    this.teardownScene();
+    this.contentEl.empty();
+    const wrap = this.contentEl.createDiv({ cls: "torus-setup-gate" });
+    wrap.style.display = "flex";
+    wrap.style.flexDirection = "column";
+    wrap.style.alignItems = "center";
+    wrap.style.justifyContent = "center";
+    wrap.style.height = "100%";
+    wrap.style.padding = "2em";
+    wrap.style.textAlign = "center";
+    const line = wrap.createEl("p", { text: "Checking setup\u2026" });
+    line.style.color = "var(--text-muted)";
   }
   renderScene() {
     this.contentEl.empty();
     const container = this.contentEl.createDiv({ cls: "torus-3d-container" });
     this.root = (0, import_client.createRoot)(container);
     this.root.render(
-      (0, import_react63.createElement)(
+      (0, import_react64.createElement)(
         ObsidianProvider,
         { app: this.app },
-        (0, import_react63.createElement)(App6, { llmSettings: this.host.llmSettings })
+        (0, import_react64.createElement)(App6, { llmSettings: this.host.llmSettings })
       )
     );
+    this.host.runOptionalNags();
   }
   renderInterstitial(missing) {
     this.teardownScene();
@@ -176092,25 +176136,30 @@ var TorusView = class extends import_obsidian20.ItemView {
     wrap.style.textAlign = "center";
     wrap.createEl("h2", { text: "The Torus \u2014 finish setup" });
     const lead = wrap.createEl("p", {
-      text: "A couple of command-line tools are needed before the library and your Twin can run:"
+      text: missing.length === 1 ? missing[0].soloLead : "The Torus needs a few things before it can run:"
     });
     lead.style.color = "var(--text-muted)";
     lead.style.maxWidth = "32em";
     const list = wrap.createDiv();
     list.style.display = "flex";
     list.style.flexDirection = "column";
-    list.style.gap = "0.5em";
+    list.style.gap = "0.85em";
     list.style.margin = "0.5em 0 1em";
+    list.style.width = "100%";
+    list.style.maxWidth = "32em";
     for (const item of missing) {
       const row = list.createDiv();
-      row.style.maxWidth = "32em";
+      row.style.display = "flex";
+      row.style.flexDirection = "column";
+      row.style.alignItems = "center";
+      row.style.gap = "0.35em";
       row.createEl("strong", { text: item.name });
       const why = row.createEl("div", { text: item.why });
       why.style.fontSize = "0.9em";
       why.style.color = "var(--text-muted)";
+      const fix = row.createEl("button", { text: item.fixLabel, cls: "mod-cta" });
+      fix.onclick = () => item.openFix();
     }
-    const openBtn = wrap.createEl("button", { text: "Open Setup", cls: "mod-cta" });
-    openBtn.onclick = () => this.host.openSetup();
     const recheck = wrap.createEl("button", { text: "Recheck" });
     recheck.onclick = async () => {
       recheck.setText("Checking\u2026");
@@ -176780,8 +176829,8 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
           await this.plugin.saveSettings();
         })
       );
-      new import_obsidian22.Setting(containerEl).setName("Preferred library view").setDesc("Which library layout to show on load").addDropdown(
-        (dropdown) => dropdown.addOption("library-round", "Round").addOption("library-flat", "Facade").setValue(this.plugin.settings.preferredLibraryView).onChange(async (value) => {
+      new import_obsidian22.Setting(containerEl).setName("Library layout").setDesc("Building style for the Torus library").addDropdown(
+        (dropdown) => dropdown.addOption("library-round", "Pantheon").addOption("library-flat", "Great Hall").setValue(this.plugin.settings.preferredLibraryView).onChange(async (value) => {
           this.plugin.settings.preferredLibraryView = value;
           await this.plugin.saveSettings();
         })
@@ -176803,16 +176852,48 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
       };
       const claudeOk = ps.checked && ps.claude;
       const cliOk = ps.checked && ps.obsidianCli;
-      const allInstallableOk = claudeOk && cliOk && ps.qmd;
+      const requiredOk = ps.claudeApp && ps.claude && ps.obsidianCli;
+      const texturesOk = ps.textures;
+      const smartSearchOk = ps.qmd && (ps.qmdSource === "bundle" && ps.smartSearchReady || ps.qmdSource === "path");
+      const recommendedOk = texturesOk && smartSearchOk;
+      const badgeTier = !ps.checked ? "neutral" : !requiredOk ? "red" : !recommendedOk ? "yellow" : "green";
+      const allInstallableOk = requiredOk && recommendedOk;
       const qmdInProgress = ps.qmdBundleState === "downloading" || ps.qmdBundleState === "extracting";
       const warming = ps.smartSearchWarmupState === "warming";
-      const statusName = !ps.checked ? "Setup status" : !claudeOk ? "Missing required: Claude CLI" : !cliOk ? "Missing required: Obsidian CLI" : qmdInProgress ? "Setting up Smart Search\u2026" : warming ? "Smart Search: indexing\u2026" : !ps.qmd ? "Ready (Smart Search is optional)" : "Ready";
-      const desc = ps.checked ? `Claude App ${ps.claudeApp ? "\u2713" : "\u2717"}  \xB7  Claude CLI ${fmtStatus("claude")}${ps.claude ? "" : " (required)"}  \xB7  Obsidian CLI ${fmtStatus("obsidianCli")}${ps.obsidianCli ? "" : " (required)"}  \xB7  Smart Search ${fmtSmartSearch()}` + (allInstallableOk ? "  \u2014  all set." : "  \u2014  resolve missing items, then click Recheck.") : "Checking\u2026";
+      const statusName = !ps.checked ? "Setup status" : !ps.claudeApp ? "Missing required: Claude App" : !claudeOk ? "Missing required: Claude CLI" : !cliOk ? "Missing required: Obsidian CLI" : qmdInProgress ? "Setting up Smart Search\u2026" : warming ? "Smart Search: indexing\u2026" : !recommendedOk ? "Ready (optional components available)" : "Ready";
+      const desc = ps.checked ? `Claude App ${ps.claudeApp ? "\u2713" : "\u2717"}${ps.claudeApp ? "" : " (required)"}  \xB7  Claude CLI ${fmtStatus("claude")}${ps.claude ? "" : " (required)"}  \xB7  Obsidian CLI ${fmtStatus("obsidianCli")}${ps.obsidianCli ? "" : " (required)"}  \xB7  Textures ${ps.textures ? "\u2713" : "\u2717 not installed"}  \xB7  Smart Search ${fmtSmartSearch()}` + (allInstallableOk ? "  \u2014  all set." : "  \u2014  resolve missing items, then click Recheck.") : "Checking\u2026";
+      const badgeInfo = {
+        neutral: { icon: "\u2026", verdict: "Checking\u2026", line: "Probing your setup.", color: "var(--text-muted)" },
+        red: { icon: "\u2717", verdict: "Action needed", line: "A required component is missing.", color: "var(--text-error)" },
+        yellow: { icon: "\u26A0", verdict: "Almost there", line: "An optional component is not installed yet.", color: "var(--text-warning)" },
+        green: { icon: "\u2713", verdict: "All set", line: "Everything is installed.", color: "var(--text-success)" }
+      }[badgeTier];
+      const banner = containerEl.createDiv();
+      banner.style.display = "flex";
+      banner.style.alignItems = "center";
+      banner.style.gap = "0.75em";
+      banner.style.padding = "0.75em 1em";
+      banner.style.borderRadius = "8px";
+      banner.style.margin = "0.25em 0 0.9em";
+      banner.style.background = badgeTier === "neutral" ? "var(--background-secondary)" : `color-mix(in srgb, ${badgeInfo.color} 12%, var(--background-primary))`;
+      banner.style.border = `1px solid color-mix(in srgb, ${badgeInfo.color} 35%, transparent)`;
+      const badgeIcon = banner.createEl("div", { text: badgeInfo.icon });
+      badgeIcon.style.fontSize = "1.6em";
+      badgeIcon.style.lineHeight = "1";
+      badgeIcon.style.color = badgeInfo.color;
+      const badgeText = banner.createDiv();
+      const badgeVerdict = badgeText.createEl("div", { text: badgeInfo.verdict });
+      badgeVerdict.style.fontWeight = "700";
+      badgeVerdict.style.color = badgeInfo.color;
+      const badgeLine = badgeText.createEl("div", { text: badgeInfo.line });
+      badgeLine.style.fontSize = "0.9em";
+      badgeLine.style.color = "var(--text-muted)";
       new import_obsidian22.Setting(containerEl).setName(statusName).setDesc(desc).addButton(
         (btn) => btn.setButtonText("Recheck").onClick(async () => {
           btn.setDisabled(true).setButtonText("Checking\u2026");
           try {
             await this.plugin.refreshPrereqs();
+            this.plugin.nagOptionalComponentsIfNeeded();
           } finally {
             this.display();
           }
@@ -180397,11 +180478,11 @@ function cleanJinaContent(urlContent) {
 }
 
 // src/components/AddToTorusModals.tsx
-var import_react64 = __toESM(require_react(), 1);
 var import_react65 = __toESM(require_react(), 1);
+var import_react66 = __toESM(require_react(), 1);
 var import_client2 = __toESM(require_client(), 1);
 var import_obsidian29 = require("obsidian");
-var import_jsx_runtime52 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime53 = __toESM(require_jsx_runtime(), 1);
 function loadManifestRooms(plugin) {
   try {
     const raw = plugin.torusManifestRooms();
@@ -180413,9 +180494,9 @@ function loadManifestRooms(plugin) {
   }
 }
 function ShelfPicker({ rooms, room, shelf, onChange, disabled }) {
-  const shelves = (0, import_react64.useMemo)(() => rooms.find((r2) => r2.name === room)?.shelves ?? [], [rooms, room]);
-  return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)(
+  const shelves = (0, import_react65.useMemo)(() => rooms.find((r2) => r2.name === room)?.shelves ?? [], [rooms, room]);
+  return /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)(
       "select",
       {
         value: room,
@@ -180427,13 +180508,13 @@ function ShelfPicker({ rooms, room, shelf, onChange, disabled }) {
         },
         style: selectStyle3,
         children: [
-          rooms.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("option", { value: "", children: "(no rooms)" }),
-          rooms.map((r2) => /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("option", { value: r2.name, children: r2.name }, r2.name))
+          rooms.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("option", { value: "", children: "(no rooms)" }),
+          rooms.map((r2) => /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("option", { value: r2.name, children: r2.name }, r2.name))
         ]
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { style: { color: "var(--text-muted)" }, children: "/" }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { style: { color: "var(--text-muted)" }, children: "/" }),
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)(
       "select",
       {
         value: shelf,
@@ -180441,21 +180522,21 @@ function ShelfPicker({ rooms, room, shelf, onChange, disabled }) {
         onChange: (e2) => onChange(room, e2.target.value),
         style: selectStyle3,
         children: [
-          shelves.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("option", { value: "", children: "(no shelves)" }),
-          shelves.map((s) => /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("option", { value: s, children: s }, s))
+          shelves.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("option", { value: "", children: "(no shelves)" }),
+          shelves.map((s) => /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("option", { value: s, children: s }, s))
         ]
       }
     )
   ] });
 }
 function AddNoteForm({ plugin, filePath, onClose }) {
-  const [target, setTarget] = (0, import_react64.useState)("inbox");
-  const [room, setRoom] = (0, import_react64.useState)("");
-  const [shelf, setShelf] = (0, import_react64.useState)("");
-  const [summary, setSummary] = (0, import_react64.useState)(false);
-  const [busy, setBusy] = (0, import_react64.useState)(false);
-  const [rooms, setRooms] = (0, import_react64.useState)([]);
-  (0, import_react64.useEffect)(() => {
+  const [target, setTarget] = (0, import_react65.useState)("inbox");
+  const [room, setRoom] = (0, import_react65.useState)("");
+  const [shelf, setShelf] = (0, import_react65.useState)("");
+  const [summary, setSummary] = (0, import_react65.useState)(false);
+  const [busy, setBusy] = (0, import_react65.useState)(false);
+  const [rooms, setRooms] = (0, import_react65.useState)([]);
+  (0, import_react65.useEffect)(() => {
     const { rooms: rooms2, error } = loadManifestRooms(plugin);
     if (error) {
       new import_obsidian29.Notice(`Couldn't load manifest: ${error}`);
@@ -180467,7 +180548,7 @@ function AddNoteForm({ plugin, filePath, onClose }) {
       setShelf(rooms2[0].shelves[0] ?? "");
     }
   }, [plugin]);
-  const confirm = (0, import_react64.useCallback)(() => {
+  const confirm = (0, import_react65.useCallback)(() => {
     if (busy) return;
     if (target === "shelf" && (!room || !shelf)) {
       new import_obsidian29.Notice("Pick a room and shelf, or switch to Inbox.");
@@ -180494,15 +180575,15 @@ function AddNoteForm({ plugin, filePath, onClose }) {
       setBusy(false);
     }
   }, [busy, target, room, shelf, summary, filePath, plugin, onClose]);
-  return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: formStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: fieldRowStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { style: fieldLabelStyle, children: "File:" }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { style: { ...fieldValueStyle, fontFamily: "var(--font-monospace)" }, children: filePath })
+  return /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: formStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: fieldRowStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { style: fieldLabelStyle, children: "File:" }),
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { style: { ...fieldValueStyle, fontFamily: "var(--font-monospace)" }, children: filePath })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("div", { style: sectionLabelStyle3, children: "Target" }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("label", { style: radioRowStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("div", { style: sectionLabelStyle3, children: "Target" }),
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("label", { style: radioRowStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
           "input",
           {
             type: "radio",
@@ -180512,11 +180593,11 @@ function AddNoteForm({ plugin, filePath, onClose }) {
             disabled: busy
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { children: "Inbox" }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { style: mutedNoteStyle, children: "(triage manually)" })
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { children: "Inbox" }),
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { style: mutedNoteStyle, children: "(triage manually)" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("label", { style: radioRowStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("label", { style: radioRowStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
           "input",
           {
             type: "radio",
@@ -180526,8 +180607,8 @@ function AddNoteForm({ plugin, filePath, onClose }) {
             disabled: busy || rooms.length === 0
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { children: "Shelf:" }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { children: "Shelf:" }),
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
           ShelfPicker,
           {
             rooms,
@@ -180543,8 +180624,8 @@ function AddNoteForm({ plugin, filePath, onClose }) {
         )
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("label", { style: checkboxRowStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("label", { style: checkboxRowStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
         "input",
         {
           type: "checkbox",
@@ -180553,11 +180634,11 @@ function AddNoteForm({ plugin, filePath, onClose }) {
           disabled: busy
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { children: "Add AI auto-summary" })
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { children: "Add AI auto-summary" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: buttonRowStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("button", { onClick: onClose, disabled: busy, style: cancelBtnStyle5, children: "Cancel" }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("button", { onClick: confirm, disabled: busy, style: confirmBtnStyle, children: busy ? "Adding\u2026" : "Add to Torus" })
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: buttonRowStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("button", { onClick: onClose, disabled: busy, style: cancelBtnStyle5, children: "Cancel" }),
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("button", { onClick: confirm, disabled: busy, style: confirmBtnStyle, children: busy ? "Adding\u2026" : "Add to Torus" })
     ] })
   ] });
 }
@@ -180572,7 +180653,7 @@ var AddNoteModal = class extends import_obsidian29.Modal {
     this.titleEl.setText("Add to Torus");
     this.contentEl.empty();
     this.root = (0, import_client2.createRoot)(this.contentEl);
-    this.root.render((0, import_react65.createElement)(AddNoteForm, {
+    this.root.render((0, import_react66.createElement)(AddNoteForm, {
       plugin: this.plugin,
       filePath: this.filePath,
       onClose: () => this.close()
@@ -180601,17 +180682,17 @@ function listAllFolders(app) {
   return out;
 }
 function AddDirectoryForm({ app, plugin, initialFolder, onClose }) {
-  const allFolders = (0, import_react64.useMemo)(() => listAllFolders(app), [app]);
-  const [folderPath, setFolderPath] = (0, import_react64.useState)(initialFolder ?? allFolders[0] ?? "");
-  const [target, setTarget] = (0, import_react64.useState)("inbox");
-  const [room, setRoom] = (0, import_react64.useState)("");
-  const [shelf, setShelf] = (0, import_react64.useState)("");
-  const [summary, setSummary] = (0, import_react64.useState)(false);
-  const [busy, setBusy] = (0, import_react64.useState)(false);
-  const [rooms, setRooms] = (0, import_react64.useState)([]);
-  const [failed, setFailed] = (0, import_react64.useState)([]);
-  const [resultSummary, setResultSummary] = (0, import_react64.useState)(null);
-  (0, import_react64.useEffect)(() => {
+  const allFolders = (0, import_react65.useMemo)(() => listAllFolders(app), [app]);
+  const [folderPath, setFolderPath] = (0, import_react65.useState)(initialFolder ?? allFolders[0] ?? "");
+  const [target, setTarget] = (0, import_react65.useState)("inbox");
+  const [room, setRoom] = (0, import_react65.useState)("");
+  const [shelf, setShelf] = (0, import_react65.useState)("");
+  const [summary, setSummary] = (0, import_react65.useState)(false);
+  const [busy, setBusy] = (0, import_react65.useState)(false);
+  const [rooms, setRooms] = (0, import_react65.useState)([]);
+  const [failed, setFailed] = (0, import_react65.useState)([]);
+  const [resultSummary, setResultSummary] = (0, import_react65.useState)(null);
+  (0, import_react65.useEffect)(() => {
     const { rooms: rooms2 } = loadManifestRooms(plugin);
     setRooms(rooms2);
     if (rooms2.length > 0) {
@@ -180619,8 +180700,8 @@ function AddDirectoryForm({ app, plugin, initialFolder, onClose }) {
       setShelf(rooms2[0].shelves[0] ?? "");
     }
   }, [plugin]);
-  const fileCount = (0, import_react64.useMemo)(() => listMarkdownInFolder(app, folderPath).length, [app, folderPath]);
-  const confirm = (0, import_react64.useCallback)(async () => {
+  const fileCount = (0, import_react65.useMemo)(() => listMarkdownInFolder(app, folderPath).length, [app, folderPath]);
+  const confirm = (0, import_react65.useCallback)(async () => {
     if (busy) return;
     if (target === "shelf" && (!room || !shelf)) {
       new import_obsidian29.Notice("Pick a room and shelf, or switch to Inbox.");
@@ -180662,46 +180743,46 @@ function AddDirectoryForm({ app, plugin, initialFolder, onClose }) {
       navigator.clipboard.writeText(failed.map((f) => `${f.path}	${f.error}`).join("\n"));
       new import_obsidian29.Notice("Copied failed-file list to clipboard.");
     };
-    return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: formStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("div", { style: { ...fieldRowStyle, color: "var(--text-warning)" }, children: resultSummary }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("div", { style: { maxHeight: 200, overflow: "auto", border: "1px solid var(--background-modifier-border)", borderRadius: 4 }, children: /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 12 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("tr", { style: { background: "var(--background-secondary)" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("th", { style: thStyle, children: "Path" }),
-          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("th", { style: thStyle, children: "Error" })
+    return /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: formStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("div", { style: { ...fieldRowStyle, color: "var(--text-warning)" }, children: resultSummary }),
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("div", { style: { maxHeight: 200, overflow: "auto", border: "1px solid var(--background-modifier-border)", borderRadius: 4 }, children: /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 12 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("tr", { style: { background: "var(--background-secondary)" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("th", { style: thStyle, children: "Path" }),
+          /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("th", { style: thStyle, children: "Error" })
         ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("tbody", { children: failed.map((f, i3) => /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("tr", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("td", { style: { ...tdStyle, fontFamily: "var(--font-monospace)" }, children: f.path }),
-          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("td", { style: tdStyle, children: f.error })
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("tbody", { children: failed.map((f, i3) => /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("tr", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("td", { style: { ...tdStyle, fontFamily: "var(--font-monospace)" }, children: f.path }),
+          /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("td", { style: tdStyle, children: f.error })
         ] }, i3)) })
       ] }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: buttonRowStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("button", { onClick: copy, style: cancelBtnStyle5, children: "Copy to clipboard" }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("button", { onClick: onClose, style: confirmBtnStyle, children: "Close" })
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: buttonRowStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("button", { onClick: copy, style: cancelBtnStyle5, children: "Copy to clipboard" }),
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("button", { onClick: onClose, style: confirmBtnStyle, children: "Close" })
       ] })
     ] });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: formStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: fieldRowStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { style: fieldLabelStyle, children: "Folder:" }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: formStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: fieldRowStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { style: fieldLabelStyle, children: "Folder:" }),
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
         "select",
         {
           value: folderPath,
           onChange: (e2) => setFolderPath(e2.target.value),
           disabled: busy,
           style: { ...selectStyle3, flex: 1, fontFamily: "var(--font-monospace)" },
-          children: allFolders.map((f) => /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("option", { value: f, children: f === "" ? "/" : f }, f))
+          children: allFolders.map((f) => /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("option", { value: f, children: f === "" ? "/" : f }, f))
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: fieldRowStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { style: fieldLabelStyle, children: "Files in scope:" }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { style: fieldValueStyle, children: fileCount })
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: fieldRowStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { style: fieldLabelStyle, children: "Files in scope:" }),
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { style: fieldValueStyle, children: fileCount })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("div", { style: sectionLabelStyle3, children: "Target" }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("label", { style: radioRowStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("div", { style: sectionLabelStyle3, children: "Target" }),
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("label", { style: radioRowStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
           "input",
           {
             type: "radio",
@@ -180711,11 +180792,11 @@ function AddDirectoryForm({ app, plugin, initialFolder, onClose }) {
             disabled: busy
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { children: "Inbox" }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { style: mutedNoteStyle, children: "(AI-assisted shelving)" })
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { children: "Inbox" }),
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { style: mutedNoteStyle, children: "(AI-assisted shelving)" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("label", { style: radioRowStyle, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("label", { style: radioRowStyle, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
           "input",
           {
             type: "radio",
@@ -180725,8 +180806,8 @@ function AddDirectoryForm({ app, plugin, initialFolder, onClose }) {
             disabled: busy || rooms.length === 0
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { children: "Shelf:" }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { children: "Shelf:" }),
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
           ShelfPicker,
           {
             rooms,
@@ -180742,8 +180823,8 @@ function AddDirectoryForm({ app, plugin, initialFolder, onClose }) {
         )
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("label", { style: checkboxRowStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("label", { style: checkboxRowStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
         "input",
         {
           type: "checkbox",
@@ -180752,12 +180833,12 @@ function AddDirectoryForm({ app, plugin, initialFolder, onClose }) {
           disabled: busy
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { children: "Add AI auto-summary to each" })
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { children: "Add AI auto-summary to each" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("div", { style: mutedNoteStyle, children: "Non-recursive \u2014 only files directly in this folder." }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: buttonRowStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("button", { onClick: onClose, disabled: busy, style: cancelBtnStyle5, children: "Cancel" }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("div", { style: mutedNoteStyle, children: "Non-recursive \u2014 only files directly in this folder." }),
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: buttonRowStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("button", { onClick: onClose, disabled: busy, style: cancelBtnStyle5, children: "Cancel" }),
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
         "button",
         {
           onClick: confirm,
@@ -180780,7 +180861,7 @@ var AddDirectoryModal = class extends import_obsidian29.Modal {
     this.titleEl.setText("Add Directory to Torus");
     this.contentEl.empty();
     this.root = (0, import_client2.createRoot)(this.contentEl);
-    this.root.render((0, import_react65.createElement)(AddDirectoryForm, {
+    this.root.render((0, import_react66.createElement)(AddDirectoryForm, {
       app: this.app,
       plugin: this.plugin,
       initialFolder: this.initialFolder,
@@ -180794,10 +180875,10 @@ var AddDirectoryModal = class extends import_obsidian29.Modal {
   }
 };
 function EjectForm({ plugin, filePath, status, location, onClose }) {
-  const [busy, setBusy] = (0, import_react64.useState)(false);
+  const [busy, setBusy] = (0, import_react65.useState)(false);
   const torusRoot = plugin.settings.torusRoot;
   const inSourcesOrIdeas = filePath.startsWith(`${torusRoot}/Sources/`) || filePath.startsWith(`${torusRoot}/Ideas/`);
-  const confirm = (0, import_react64.useCallback)(() => {
+  const confirm = (0, import_react65.useCallback)(() => {
     if (busy) return;
     setBusy(true);
     try {
@@ -180817,43 +180898,43 @@ function EjectForm({ plugin, filePath, status, location, onClose }) {
     }
   }, [busy, filePath, plugin, onClose]);
   const currentDesc = status === "shelved" && location ? `shelved on ${location}` : status === "inbox" ? "in the Inbox" : status === "pending" ? "pending enrichment" : `status: ${status}`;
-  return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: formStyle, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: fieldRowStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { style: fieldLabelStyle, children: "File:" }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { style: { ...fieldValueStyle, fontFamily: "var(--font-monospace)" }, children: filePath })
+  return /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: formStyle, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: fieldRowStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { style: fieldLabelStyle, children: "File:" }),
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { style: { ...fieldValueStyle, fontFamily: "var(--font-monospace)" }, children: filePath })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: fieldRowStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { style: fieldLabelStyle, children: "Currently:" }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { style: fieldValueStyle, children: currentDesc })
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: fieldRowStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { style: fieldLabelStyle, children: "Currently:" }),
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { style: fieldValueStyle, children: currentDesc })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("div", { style: sectionLabelStyle3, children: "Ejecting will" }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("ul", { style: { margin: "0 0 0 1em", padding: 0, color: "var(--text-normal)", fontSize: 13, lineHeight: 1.6 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("li", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("div", { style: sectionLabelStyle3, children: "Ejecting will" }),
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("ul", { style: { margin: "0 0 0 1em", padding: 0, color: "var(--text-normal)", fontSize: 13, lineHeight: 1.6 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("li", { children: [
           "Strip ",
-          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("code", { children: "torus_*" }),
+          /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("code", { children: "torus_*" }),
           " frontmatter from the note"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("li", { children: "Remove the manifest entry" }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("li", { children: "Leave the file in place, body unchanged" })
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("li", { children: "Remove the manifest entry" }),
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("li", { children: "Leave the file in place, body unchanged" })
       ] })
     ] }),
-    inSourcesOrIdeas && /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: warningBoxStyle, children: [
+    inSourcesOrIdeas && /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: warningBoxStyle, children: [
       "\u26A0 This file lives under ",
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("code", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("code", { children: [
         torusRoot,
         "/Sources/"
       ] }),
       " or ",
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("code", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("code", { children: [
         torusRoot,
         "/Ideas/"
       ] }),
       ". Ejecting leaves it as an unmanaged file in a Torus directory. Consider moving it elsewhere first."
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { style: buttonRowStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("button", { onClick: onClose, disabled: busy, style: cancelBtnStyle5, children: "Cancel" }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("button", { onClick: confirm, disabled: busy, style: { ...confirmBtnStyle, color: "var(--text-error)" }, children: busy ? "Ejecting\u2026" : "Eject" })
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { style: buttonRowStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("button", { onClick: onClose, disabled: busy, style: cancelBtnStyle5, children: "Cancel" }),
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("button", { onClick: confirm, disabled: busy, style: { ...confirmBtnStyle, color: "var(--text-error)" }, children: busy ? "Ejecting\u2026" : "Eject" })
     ] })
   ] });
 }
@@ -180870,7 +180951,7 @@ var EjectModal = class extends import_obsidian29.Modal {
     this.titleEl.setText("Eject from Torus");
     this.contentEl.empty();
     this.root = (0, import_client2.createRoot)(this.contentEl);
-    this.root.render((0, import_react65.createElement)(EjectForm, {
+    this.root.render((0, import_react66.createElement)(EjectForm, {
       plugin: this.plugin,
       filePath: this.filePath,
       status: this.status,
@@ -191803,6 +191884,11 @@ var TorusPlugin = class extends import_obsidian31.Plugin {
   /** Reference to our settings tab so deep-links (e.g. the Services panel's
    *  Pair button) can pre-select the Bridges sub-tab before Obsidian opens it. */
   settingTab = null;
+  /** In-memory, per-session guard so the optional-component nags (Textures,
+   *  Smart Search) fire at most once per session even though they're re-invoked
+   *  whenever prereqs settle into required-present. Distinct from the persisted
+   *  `dismissedInstallReminders` (the permanent "don't remind me"). */
+  optionalNagShown = false;
   /** Bundled BM25 index (Orama). Populated async on onload — null while
    *  building or after a load failure. Lex-tier fallback when qmd is absent;
    *  see torusSearch for backend-selection logic. */
@@ -194981,31 +195067,42 @@ ${titled}
       this.torusTrace("plugin:reconcileSmartSearchWarmup", `failed: ${e2?.message ?? e2}`);
     });
   }
-  /** Open Settings → The Torus, where Setup status — the single install
-   *  surface — lives. Used by the TorusView "finish setup" interstitial and by
-   *  the optional-component nags. */
+  /** Open Settings → The Torus, landing on the General sub-tab (Setup status —
+   *  the single install surface). Presets the sub-tab BEFORE openTabById fires
+   *  the tab's display(), so it lands on Setup status, not whatever sub-tab was
+   *  open last (the ServicesOverlay pattern). Used by the interstitial's
+   *  Claude-App / Claude-CLI fix buttons and the optional-component nags. */
   openTorusSettings() {
+    this.settingTab?.setActiveTab?.("general");
     const setting = this.app.setting;
     setting.open();
     setting.openTabById(this.manifest.id);
   }
-  /** Optional-component nags. Fires once per load, and only when required deps
-   *  are present (if they're missing, the user is on the TorusView "finish
-   *  setup" interstitial, not the library — don't nag over the gate). For each
-   *  uninstalled optional component (Textures, Smart Search), surface a single
-   *  dismissible toast pointing at Setup status — a Notice, not a modal, because
-   *  the library runs fine without either (wireframe / lex-only). "Don't remind
-   *  me" sets dismissedInstallReminders and silences all future nags. */
+  /** Optional-component nags. Re-invoked whenever prereqs settle into
+   *  required-present — at onload, from either Recheck handler, and when
+   *  TorusView renders the scene — because on a fresh install the required deps
+   *  are missing at onload (nag bails, correctly) and become present only
+   *  mid-session. The in-memory `optionalNagShown` guard makes it fire at most
+   *  once per session; the persisted `dismissedInstallReminders` is the
+   *  permanent "don't remind me".
+   *
+   *  Fires only when ALL mandatory deps are present (else the user is on the
+   *  "finish setup" interstitial, not the library — don't nag over the gate).
+   *  For each uninstalled optional component (Textures, Smart Search), surfaces
+   *  one dismissible toast pointing at Setup status — a Notice, not a modal,
+   *  because the library runs fine without either (wireframe / lex-only). */
   nagOptionalComponentsIfNeeded() {
+    if (this.optionalNagShown) return;
     if (this.settings.dismissedInstallReminders) return;
     const ps = this.prereqStatus;
-    if (!ps.claude || !ps.obsidianCli) return;
+    if (!ps.claudeApp || !ps.claude || !ps.obsidianCli) return;
     const nags = [];
     if (!ps.textures) nags.push("Textures");
     const smartSearchInstalled = ps.qmd && ps.qmdSource === "bundle" && ps.smartSearchReady;
     const smartSearchViaPath = ps.qmd && ps.qmdSource === "path";
     if (this.qmdBundleAvailableForTarget() && !smartSearchInstalled && !smartSearchViaPath) nags.push("Smart Search");
     if (nags.length === 0) return;
+    this.optionalNagShown = true;
     for (const component of nags) {
       const blurb = component === "Textures" ? "The Torus looks better with textures \u2014 full PBR materials instead of flat colors." : "Smart Search adds semantic + hybrid vault search on top of keyword search.";
       const notice = new import_obsidian31.Notice("", 0);
@@ -199551,13 +199648,37 @@ ${remainingLines.join("\n")}
       llmSettings: this.settings,
       getRequiredStatus: () => {
         const ps = this.prereqStatus;
+        const openObsidianGeneral = () => {
+          const s = this.app.setting;
+          s.open();
+          s.openTabById("about");
+        };
         const missingRequired = [];
-        if (!ps.claude) missingRequired.push({ name: "Claude CLI", why: "powers your Twin and the capture \u2192 enrich pipeline" });
-        if (!ps.obsidianCli) missingRequired.push({ name: "Obsidian CLI", why: "lets the Twin read and write your vault" });
-        return { requiredReady: ps.claude && ps.obsidianCli, missingRequired, checked: ps.checked };
+        if (!ps.claudeApp) missingRequired.push({
+          name: "Claude desktop app",
+          why: "the desktop app that runs your Twin",
+          soloLead: "The Claude desktop app must be installed before The Torus can run.",
+          fixLabel: "Open Torus Setup",
+          openFix: () => this.openTorusSettings()
+        });
+        if (!ps.claude) missingRequired.push({
+          name: "Claude CLI",
+          why: "powers your Twin and the capture \u2192 enrich pipeline",
+          soloLead: "The Claude CLI must be installed before The Torus can run.",
+          fixLabel: "Open Torus Setup",
+          openFix: () => this.openTorusSettings()
+        });
+        if (!ps.obsidianCli) missingRequired.push({
+          name: "Obsidian's command-line interface (CLI)",
+          why: "lets the Twin read and write your vault",
+          soloLead: "Obsidian's command-line interface (CLI) must be enabled before The Torus can run.",
+          fixLabel: "Open Obsidian Settings",
+          openFix: openObsidianGeneral
+        });
+        return { requiredReady: ps.claudeApp && ps.claude && ps.obsidianCli, missingRequired, checked: ps.checked };
       },
       refreshRequiredStatus: () => this.refreshPrereqs(),
-      openSetup: () => this.openTorusSettings()
+      runOptionalNags: () => this.nagOptionalComponentsIfNeeded()
     }));
     this.app.workspace.onLayoutReady(() => {
       const toDetach = [];
