@@ -176893,7 +176893,6 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
           btn.setDisabled(true).setButtonText("Checking\u2026");
           try {
             await this.plugin.refreshPrereqs();
-            this.plugin.nagOptionalComponentsIfNeeded();
           } finally {
             this.display();
           }
@@ -177208,8 +177207,8 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
         }
       );
       this.renderEmailStatusRow(containerEl);
-      new import_obsidian22.Setting(containerEl).setName("Email address").setDesc("IMAP login (e.g. zero@thetorus.ai)").addText(
-        (text) => text.setPlaceholder("zero@thetorus.ai").setValue(this.plugin.settings.imapUser).onChange(async (value) => {
+      new import_obsidian22.Setting(containerEl).setName("Email address").setDesc("IMAP login (e.g. mytwin@gmail.com)").addText(
+        (text) => text.setPlaceholder("mytwin@gmail.com").setValue(this.plugin.settings.imapUser).onChange(async (value) => {
           this.plugin.settings.imapUser = value;
           await this.plugin.saveSettings();
         })
@@ -177222,7 +177221,7 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
         text.inputEl.type = "password";
       });
       new import_obsidian22.Setting(containerEl).setName("IMAP host").setDesc("IMAP server for email bridge (e.g. imap.gmail.com)").addText(
-        (text) => text.setPlaceholder("outlook.office365.com").setValue(this.plugin.settings.imapHost).onChange(async (value) => {
+        (text) => text.setPlaceholder("imap.gmail.com").setValue(this.plugin.settings.imapHost).onChange(async (value) => {
           this.plugin.settings.imapHost = value;
           await this.plugin.saveSettings();
         })
@@ -177244,7 +177243,7 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
         if (fda.ok) {
           setting.setDesc("\u2705  chat.db is readable. Obsidian has Full Disk Access.");
         } else {
-          setting.setDesc(`\u26A0\uFE0F  ${fda.error || "chat.db is not readable."} Grant Full Disk Access to Obsidian, then return here.`);
+          setting.setDesc("\u26A0\uFE0F  Allow Obsidian, to read the chats database then return here.");
           if (process.platform === "darwin") {
             setting.addButton(
               (btn) => btn.setButtonText("Open System Settings").setCta().onClick(() => {
@@ -177291,16 +177290,21 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
       );
       {
         const status = JSON.parse(this.plugin.torusTelegramStatus());
+        const on = this.plugin.settings.enableTelegramBridge;
+        const token = this.plugin.settings.telegramBotToken?.trim();
+        const ids = this.plugin.settings.telegramAuthorizedUserIds?.trim();
         const setting = new import_obsidian22.Setting(containerEl).setName("Status");
-        if (status.state === "failed" && status.lastError) {
-          setting.setDesc(`\u274C  ${status.lastError}`);
+        if (!on) {
+          this.setBridgeStatusDesc(setting, "off", "Enable above to start (reload to apply after entering a token).");
+        } else if (!token || !ids) {
+          this.setBridgeStatusDesc(setting, "notready", "Enter a bot token and your authorized user ID below.");
+        } else if (status.state === "failed" && status.lastError) {
+          this.setBridgeStatusDesc(setting, "notready", status.lastError);
         } else if (status.running && status.botUsername) {
           const last = status.lastInboundAt ? `last message ${new Date(status.lastInboundAt).toLocaleString()}` : "no messages yet \u2014 send one to test";
-          setting.setDesc(`\u2705  Connected as @${status.botUsername} \u2014 ${last}`);
-        } else if (status.disabled) {
-          setting.setDesc("Bridge is off. Enable it above (and reload to apply) after entering a token.");
+          this.setBridgeStatusDesc(setting, "ready", `Connected as @${status.botUsername} \u2014 ${last}`);
         } else {
-          setting.setDesc("Not connected yet. Enter a bot token, enable, then reload the plugin.");
+          this.setBridgeStatusDesc(setting, "notready", "Reload the plugin to connect.");
         }
         setting.addButton(
           (btn) => btn.setButtonText("Recheck").onClick(() => this.display())
@@ -177448,17 +177452,30 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
    *  (IMAP runner doesn't expose a status method yet), so this is purely
    *  config-derived. Green when both host+user are set and toggle is on;
    *  amber when toggle is on but config is incomplete; grey when off. */
+  /** Shared three-state status readout (Off / Ready / Not ready) used by every
+   *  bridge's Status row. Writes a colored, bold verdict word plus an optional
+   *  detail sentence into the Setting's description element. */
+  setBridgeStatusDesc(setting, tier, detail) {
+    const t2 = BRIDGE_READY[tier];
+    const el = setting.descEl;
+    el.empty();
+    const badge = el.createSpan({ text: t2.label });
+    badge.style.color = t2.color;
+    badge.style.fontWeight = "600";
+    if (detail) el.createSpan({ text: ` \u2014 ${detail}` });
+  }
   renderEmailStatusRow(containerEl) {
     const on = this.plugin.settings.enablePluginImap;
     const host = this.plugin.settings.imapHost?.trim();
     const user = this.plugin.settings.imapUser?.trim();
+    const pass = this.plugin.settings.imapPassword?.trim();
     const setting = new import_obsidian22.Setting(containerEl).setName("Status");
     if (!on) {
-      setting.setDesc("\u25CB  Off");
-    } else if (host && user) {
-      setting.setDesc(`\u2705  Connected as ${user}`);
+      this.setBridgeStatusDesc(setting, "off", "Enable above to start.");
+    } else if (host && user && pass) {
+      this.setBridgeStatusDesc(setting, "ready", `Configured for ${user}.`);
     } else {
-      setting.setDesc("\u26A0\uFE0F  Setup required \u2014 fill in email address and IMAP host below.");
+      this.setBridgeStatusDesc(setting, "notready", "Fill in email address, password, and IMAP host below.");
     }
   }
   /** Single-line status row for the iMessage Bridge — read from
@@ -177471,29 +177488,18 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
       snap = JSON.parse(this.plugin.torusImessageStatus());
     } catch {
     }
+    const on = this.plugin.settings.enablePluginImessage;
+    const handles = parseHandles(this.plugin.settings.imessageSelfHandles);
     const setting = new import_obsidian22.Setting(containerEl).setName("Status");
-    if (!snap) {
-      setting.setDesc("\u25CB  Status unavailable");
-      return;
+    if (!on) {
+      this.setBridgeStatusDesc(setting, "off", "Enable above to start.");
+    } else if (handles.length === 0) {
+      this.setBridgeStatusDesc(setting, "notready", "Add at least one handle below.");
+    } else if (snap?.lastError) {
+      this.setBridgeStatusDesc(setting, "notready", snap.lastError);
+    } else {
+      this.setBridgeStatusDesc(setting, "ready", `Watching ${handles.length} handle${handles.length === 1 ? "" : "s"}: ${handles.join(", ")}`);
     }
-    if (snap.disabled) {
-      setting.setDesc("\u25CB  Off");
-      return;
-    }
-    if (snap.lastError) {
-      setting.setDesc(`\u274C  ${snap.lastError}`);
-      return;
-    }
-    if (snap.running) {
-      const handles = snap.selfHandles ?? [];
-      if (handles.length === 0) {
-        setting.setDesc("\u26A0\uFE0F  Running but no handles configured \u2014 add yours below.");
-      } else {
-        setting.setDesc(`\u2705  Watching ${handles.length} handle${handles.length === 1 ? "" : "s"}: ${handles.join(", ")}`);
-      }
-      return;
-    }
-    setting.setDesc("\u26A0\uFE0F  Setup required \u2014 fill in at least one handle below.");
   }
   // ─────────────────────────────────────────────────────────────────────────
   // WhatsApp status block — Reset/QR/state-aware status row
@@ -177511,33 +177517,28 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
   //   - torusBridgeReset('whatsapp') wipes the WA session and respawns
   // ─────────────────────────────────────────────────────────────────────────
   renderWhatsappStatusBlock(containerEl) {
-    const block = containerEl.createDiv();
-    block.style.marginBottom = "1.5em";
-    block.style.padding = "0.75em";
-    block.style.border = "1px solid var(--background-modifier-border)";
-    block.style.borderRadius = "6px";
-    block.style.background = "var(--background-secondary)";
-    const topRow = block.createDiv();
-    topRow.style.display = "flex";
-    topRow.style.alignItems = "center";
-    topRow.style.gap = "0.5em";
-    const dot = topRow.createSpan();
-    dot.style.display = "inline-block";
-    dot.style.width = "0.7em";
-    dot.style.height = "0.7em";
-    dot.style.borderRadius = "50%";
-    dot.style.background = "var(--text-muted)";
-    dot.style.flexShrink = "0";
-    const stateLabel = topRow.createSpan();
-    stateLabel.style.fontWeight = "600";
-    stateLabel.textContent = "\u2026";
-    const contextLine = block.createDiv();
-    contextLine.style.marginTop = "0.25em";
-    contextLine.style.fontSize = "0.9em";
-    contextLine.style.color = "var(--text-muted)";
-    contextLine.textContent = "Loading\u2026";
-    const qrSection = block.createDiv();
-    qrSection.style.marginTop = "0.75em";
+    const statusSetting = new import_obsidian22.Setting(containerEl).setName("Status");
+    let resetBtn;
+    statusSetting.addButton((btn) => {
+      resetBtn = btn;
+      btn.setButtonText("Reset & re-pair").onClick(() => {
+        if (this.resetInFlight) return;
+        new ResetBridgeConfirmModal(this.app, async () => {
+          this.resetInFlight = true;
+          btn.setDisabled(true).setButtonText("Resetting\u2026");
+          try {
+            const raw = await this.plugin.torusBridgeReset("whatsapp");
+            const result = JSON.parse(raw);
+            if (!result.ok) new import_obsidian22.Notice(`Reset failed: ${result.message}`);
+            else new import_obsidian22.Notice("WhatsApp bridge reset \u2014 waiting for new QR\u2026");
+          } catch (e2) {
+            new import_obsidian22.Notice(`Reset error: ${e2 instanceof Error ? e2.message : String(e2)}`);
+          }
+        }).open();
+      });
+    });
+    const qrSection = containerEl.createDiv();
+    qrSection.style.margin = "0.5em 0 1.5em";
     qrSection.style.display = "none";
     qrSection.style.flexDirection = "column";
     qrSection.style.alignItems = "center";
@@ -177549,7 +177550,6 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
     qrContainer.style.width = "240px";
     qrContainer.style.height = "240px";
     qrContainer.style.background = "#fff";
-    qrContainer.style.padding = "0";
     qrContainer.style.borderRadius = "4px";
     qrContainer.style.display = "flex";
     qrContainer.style.alignItems = "center";
@@ -177560,49 +177560,25 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
     qrInstructions.style.textAlign = "center";
     qrInstructions.style.maxWidth = "320px";
     qrInstructions.textContent = "On your phone: WhatsApp \u2192 Settings \u2192 Linked Devices \u2192 Link a Device \u2192 point at this code";
-    const buttonRow = block.createDiv();
-    buttonRow.style.marginTop = "0.75em";
-    buttonRow.style.display = "flex";
-    buttonRow.style.gap = "0.5em";
-    const resetBtn = buttonRow.createEl("button", { text: "Reset & re-pair" });
-    resetBtn.style.padding = "0.4em 0.9em";
-    resetBtn.onclick = () => {
-      if (this.resetInFlight) return;
-      new ResetBridgeConfirmModal(this.app, async () => {
-        this.resetInFlight = true;
-        resetBtn.disabled = true;
-        resetBtn.textContent = "Resetting\u2026";
-        try {
-          const raw = await this.plugin.torusBridgeReset("whatsapp");
-          const result = JSON.parse(raw);
-          if (!result.ok) {
-            new import_obsidian22.Notice(`Reset failed: ${result.message}`);
-            contextLine.textContent = result.message;
-          } else {
-            new import_obsidian22.Notice("WhatsApp bridge reset \u2014 waiting for new QR\u2026");
-          }
-        } catch (e2) {
-          new import_obsidian22.Notice(`Reset error: ${e2 instanceof Error ? e2.message : String(e2)}`);
-        }
-      }).open();
-    };
     const poll = async () => {
       let snap = null;
       try {
         snap = JSON.parse(this.plugin.torusBridgeStatus());
       } catch {
       }
+      const on = this.plugin.settings.enablePluginSpawnedBridge;
       if (!snap) {
-        dot.style.background = "var(--text-muted)";
-        stateLabel.textContent = "Unknown";
-        contextLine.textContent = "Could not read bridge status.";
+        this.setBridgeStatusDesc(
+          statusSetting,
+          on ? "notready" : "off",
+          on ? "Could not read bridge status." : "Enable above to start."
+        );
+        qrSection.style.display = "none";
         return;
       }
-      const palette = BRIDGE_STATE_PALETTE[snap.state] || BRIDGE_STATE_PALETTE.idle;
-      dot.style.background = palette.color;
-      stateLabel.textContent = palette.label;
-      contextLine.textContent = describeBridgeContext(snap);
-      if (snap.state === "awaiting_qr") {
+      const tier = !on ? "off" : snap.state === "ready" ? "ready" : "notready";
+      this.setBridgeStatusDesc(statusSetting, tier, on ? describeBridgeContext(snap) : "Enable above to start.");
+      if (on && snap.state === "awaiting_qr") {
         qrSection.style.display = "flex";
         try {
           const qrRaw = await this.plugin.torusBridgeQr("whatsapp");
@@ -177627,8 +177603,7 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
       }
       if (this.resetInFlight && (snap.state === "awaiting_qr" || snap.state === "ready" || snap.state === "failed" || snap.state === "idle")) {
         this.resetInFlight = false;
-        resetBtn.disabled = false;
-        resetBtn.textContent = "Reset & re-pair";
+        resetBtn?.setDisabled(false).setButtonText("Reset & re-pair");
       }
     };
     poll().catch(() => {
@@ -177639,18 +177614,15 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
     }, 2e3);
   }
 };
-var BRIDGE_STATE_PALETTE = {
-  idle: { color: "var(--text-muted)", label: "Idle" },
-  spawning: { color: "var(--text-muted)", label: "Starting" },
-  awaiting_qr: { color: "var(--color-orange, #d18616)", label: "Awaiting QR scan" },
-  ready: { color: "var(--color-green, #2ea043)", label: "Ready" },
-  restarting: { color: "var(--text-muted)", label: "Restarting" },
-  failed: { color: "var(--color-red, #d73a49)", label: "Failed" }
+var BRIDGE_READY = {
+  off: { label: "Off", color: "var(--text-muted)" },
+  ready: { label: "Ready", color: "var(--color-green, #2ea043)" },
+  notready: { label: "Not ready", color: "var(--color-red, #d73a49)" }
 };
 function describeBridgeContext(snap) {
   switch (snap.state) {
     case "idle":
-      return snap.bridge_path ? "Bridge not started \u2014 toggle to enable." : "Set the bridge install path above to start.";
+      return snap.bridge_path ? "Bridge not started yet." : "Click Download & install above to set up the bridge.";
     case "spawning":
       return "Starting bridge\u2026";
     case "awaiting_qr":
@@ -195078,18 +195050,20 @@ ${titled}
     setting.open();
     setting.openTabById(this.manifest.id);
   }
-  /** Optional-component nags. Re-invoked whenever prereqs settle into
-   *  required-present — at onload, from either Recheck handler, and when
-   *  TorusView renders the scene — because on a fresh install the required deps
-   *  are missing at onload (nag bails, correctly) and become present only
-   *  mid-session. The in-memory `optionalNagShown` guard makes it fire at most
-   *  once per session; the persisted `dismissedInstallReminders` is the
-   *  permanent "don't remind me".
+  /** Optional-component nags. Fires ONLY when the user actually opens the Torus
+   *  library (TorusView renders the 3D scene) — not at onload and not from the
+   *  Settings screen. A user sitting in Settings (or who never opens the donut)
+   *  should never see these; nudging to install a component only makes sense
+   *  once they've engaged with the thing that uses it.
    *
-   *  Fires only when ALL mandatory deps are present (else the user is on the
-   *  "finish setup" interstitial, not the library — don't nag over the gate).
+   *  Also gated on ALL mandatory deps being present (else the user is on the
+   *  "finish setup" interstitial, not the library — an optional nag must never
+   *  stack on top of a required-missing prompt). The in-memory `optionalNagShown`
+   *  guard makes it fire at most once per session; the persisted
+   *  `dismissedInstallReminders` is the permanent "don't remind me".
+   *
    *  For each uninstalled optional component (Textures, Smart Search), surfaces
-   *  one dismissible toast pointing at Setup status — a Notice, not a modal,
+   *  one auto-dismissing toast pointing at Setup status — a Notice, not a modal,
    *  because the library runs fine without either (wireframe / lex-only). */
   nagOptionalComponentsIfNeeded() {
     if (this.optionalNagShown) return;
@@ -195104,8 +195078,8 @@ ${titled}
     if (nags.length === 0) return;
     this.optionalNagShown = true;
     for (const component of nags) {
-      const blurb = component === "Textures" ? "The Torus looks better with textures \u2014 full PBR materials instead of flat colors." : "Smart Search adds semantic + hybrid vault search on top of keyword search.";
-      const notice = new import_obsidian31.Notice("", 0);
+      const blurb = component === "Textures" ? "The Torus looks better with textures \u2014 full PBR materials instead of flat colors." : "Smart search adds AI powered search on top of keyword search.";
+      const notice = new import_obsidian31.Notice("", 1e4);
       const el = notice.noticeEl;
       el.createEl("div", { text: blurb });
       el.createEl("div", { text: "Install in Settings \u2192 The Torus \u2192 Setup status.", cls: "setting-item-description" });
@@ -199615,7 +199589,7 @@ ${remainingLines.join("\n")}
     setActiveLogger(this.torusLogger);
     this.torusTrace("plugin", "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 PLUGIN ONLOAD \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550");
     this.torusTrace("plugin", `torusRoot=${this.settings.torusRoot}`);
-    this.refreshPrereqs().then(() => this.reconcileSmartSearchWarmupIfNeeded()).then(() => this.nagOptionalComponentsIfNeeded()).catch((e2) => console.error("[Torus prereqs]", e2));
+    this.refreshPrereqs().then(() => this.reconcileSmartSearchWarmupIfNeeded()).catch((e2) => console.error("[Torus prereqs]", e2));
     try {
       this.writeClaudeHookWrappers();
       const torusDirForHooks = this.absPath(this.settings.torusRoot);
