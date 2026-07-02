@@ -176020,10 +176020,11 @@ function AppInner({ llmSettings }) {
 var VIEW_TYPE_TORUS = "the-torus-view";
 var TorusView = class extends import_obsidian20.ItemView {
   root = null;
-  llmSettings;
-  constructor(leaf, llmSettings) {
+  host;
+  rechecking = false;
+  constructor(leaf, host) {
     super(leaf);
-    this.llmSettings = llmSettings;
+    this.host = host;
   }
   getViewType() {
     return VIEW_TYPE_TORUS;
@@ -176035,21 +176036,91 @@ var TorusView = class extends import_obsidian20.ItemView {
     return "torus";
   }
   async onOpen() {
+    this.render();
+  }
+  async onClose() {
+    this.teardownScene();
+    this.contentEl.empty();
+  }
+  teardownScene() {
+    if (this.root) {
+      this.root.unmount();
+      this.root = null;
+    }
+  }
+  /** Gate the 3D scene on required deps. When claude/obsidianCli are missing,
+   *  show a "Finish setup" interstitial instead of a broken scene; otherwise
+   *  mount the React library. Runs on every view open. */
+  render() {
+    const status = this.host.getRequiredStatus();
+    if (status.requiredReady) {
+      this.renderScene();
+      return;
+    }
+    this.renderInterstitial(status.missingRequired);
+    if (!status.checked && !this.rechecking) {
+      this.rechecking = true;
+      this.host.refreshRequiredStatus().then(() => this.render()).catch(() => {
+      }).finally(() => {
+        this.rechecking = false;
+      });
+    }
+  }
+  renderScene() {
+    this.contentEl.empty();
     const container = this.contentEl.createDiv({ cls: "torus-3d-container" });
     this.root = (0, import_client.createRoot)(container);
     this.root.render(
       (0, import_react63.createElement)(
         ObsidianProvider,
         { app: this.app },
-        (0, import_react63.createElement)(App6, { llmSettings: this.llmSettings })
+        (0, import_react63.createElement)(App6, { llmSettings: this.host.llmSettings })
       )
     );
   }
-  async onClose() {
-    if (this.root) {
-      this.root.unmount();
-      this.root = null;
+  renderInterstitial(missing) {
+    this.teardownScene();
+    this.contentEl.empty();
+    const wrap = this.contentEl.createDiv({ cls: "torus-setup-gate" });
+    wrap.style.display = "flex";
+    wrap.style.flexDirection = "column";
+    wrap.style.alignItems = "center";
+    wrap.style.justifyContent = "center";
+    wrap.style.height = "100%";
+    wrap.style.gap = "1em";
+    wrap.style.padding = "2em";
+    wrap.style.textAlign = "center";
+    wrap.createEl("h2", { text: "The Torus \u2014 finish setup" });
+    const lead = wrap.createEl("p", {
+      text: "A couple of command-line tools are needed before the library and your Twin can run:"
+    });
+    lead.style.color = "var(--text-muted)";
+    lead.style.maxWidth = "32em";
+    const list = wrap.createDiv();
+    list.style.display = "flex";
+    list.style.flexDirection = "column";
+    list.style.gap = "0.5em";
+    list.style.margin = "0.5em 0 1em";
+    for (const item of missing) {
+      const row = list.createDiv();
+      row.style.maxWidth = "32em";
+      row.createEl("strong", { text: item.name });
+      const why = row.createEl("div", { text: item.why });
+      why.style.fontSize = "0.9em";
+      why.style.color = "var(--text-muted)";
     }
+    const openBtn = wrap.createEl("button", { text: "Open Setup", cls: "mod-cta" });
+    openBtn.onclick = () => this.host.openSetup();
+    const recheck = wrap.createEl("button", { text: "Recheck" });
+    recheck.onclick = async () => {
+      recheck.setText("Checking\u2026");
+      recheck.disabled = true;
+      try {
+        await this.host.refreshRequiredStatus();
+      } finally {
+        this.render();
+      }
+    };
   }
 };
 
@@ -176736,8 +176807,7 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
       const qmdInProgress = ps.qmdBundleState === "downloading" || ps.qmdBundleState === "extracting";
       const warming = ps.smartSearchWarmupState === "warming";
       const statusName = !ps.checked ? "Setup status" : !claudeOk ? "Missing required: Claude CLI" : !cliOk ? "Missing required: Obsidian CLI" : qmdInProgress ? "Setting up Smart Search\u2026" : warming ? "Smart Search: indexing\u2026" : !ps.qmd ? "Ready (Smart Search is optional)" : "Ready";
-      const xcodeNote = ps.checked && !ps.xcode ? "  \xB7  xcode CLT \u2717 (heads-up: macOS may prompt for it later)" : "";
-      const desc = ps.checked ? `Claude App ${ps.claudeApp ? "\u2713" : "\u2717"}  \xB7  Claude CLI ${fmtStatus("claude")}${ps.claude ? "" : " (required)"}  \xB7  Obsidian CLI ${fmtStatus("obsidianCli")}${ps.obsidianCli ? "" : " (required)"}  \xB7  Smart Search ${fmtSmartSearch()}${xcodeNote}` + (allInstallableOk ? "  \u2014  all set." : "  \u2014  resolve missing items, then click Recheck.") : "Checking\u2026";
+      const desc = ps.checked ? `Claude App ${ps.claudeApp ? "\u2713" : "\u2717"}  \xB7  Claude CLI ${fmtStatus("claude")}${ps.claude ? "" : " (required)"}  \xB7  Obsidian CLI ${fmtStatus("obsidianCli")}${ps.obsidianCli ? "" : " (required)"}  \xB7  Smart Search ${fmtSmartSearch()}` + (allInstallableOk ? "  \u2014  all set." : "  \u2014  resolve missing items, then click Recheck.") : "Checking\u2026";
       new import_obsidian22.Setting(containerEl).setName(statusName).setDesc(desc).addButton(
         (btn) => btn.setButtonText("Recheck").onClick(async () => {
           btn.setDisabled(true).setButtonText("Checking\u2026");
@@ -194294,7 +194364,6 @@ ${titled}
    *  - qmdBundleState: in-progress / failed state for the bundled download (Smart Search stage A); renders into the Setup UI
    *  - smartSearchWarmupState: in-progress / failed state for the qwen warmup (stage B, runs after stage A)
    *  - smartSearchReady: stage B has completed successfully (marker file present)
-   *  - xcode: heads-up only (informational warning, not action)
    *  - textures: in-plugin install action (texture pack from sister repo) */
   prereqStatus = {
     claude: false,
@@ -194306,20 +194375,16 @@ ${titled}
     smartSearchReady: false,
     bridgeBundleState: "idle",
     obsidianCli: false,
-    xcode: false,
     textures: false,
     checked: false
   };
-  /** Probe each prerequisite. claude/qmd via binResolver; xcode via
-   *  `xcode-select -p`; textures by checking for a known file in plugin dir;
-   *  obsidianCli via a login-shell `obsidian eval 'code=1'` that round-trips
-   *  the in-app feature toggle (binary alone isn't enough — the in-app toggle
-   *  controls whether `eval` is honored). */
+  /** Probe each prerequisite. claude/qmd via binResolver; textures by checking
+   *  for a known file in plugin dir; obsidianCli via a login-shell
+   *  `obsidian eval 'code=1'` that round-trips the in-app feature toggle
+   *  (binary alone isn't enough — the in-app toggle controls whether `eval`
+   *  is honored). */
   async refreshPrereqs() {
     const probeBin = async (name) => !!await resolveBin(name, () => {
-    });
-    const probeXcode = () => new Promise((resolveP) => {
-      (0, import_child_process6.exec)("xcode-select -p", { timeout: 5e3 }, (err) => resolveP(!err));
     });
     const probeObsidianCli = () => new Promise((resolveP) => {
       const shell = process.env.SHELL || "/bin/zsh";
@@ -194346,10 +194411,9 @@ ${titled}
         return false;
       }
     };
-    const [claude, pathQmd, xcode, obsidianCli] = await Promise.all([
+    const [claude, pathQmd, obsidianCli] = await Promise.all([
       probeBin("claude"),
       probeBin("qmd"),
-      probeXcode(),
       probeObsidianCli()
     ]);
     const claudeApp = process.platform === "darwin" && (0, import_fs9.existsSync)("/Applications/Claude.app");
@@ -194368,12 +194432,11 @@ ${titled}
       qmd,
       qmdSource,
       obsidianCli,
-      xcode,
       textures,
       smartSearchReady,
       checked: true
     };
-    this.torusTrace("plugin:prereqs", `claude=${claude} claudeApp=${claudeApp} qmd=${qmd}(${qmdSource ?? "none"}) obsidianCli=${obsidianCli} xcode=${xcode} textures=${textures} smartSearchReady=${smartSearchReady}`);
+    this.torusTrace("plugin:prereqs", `claude=${claude} claudeApp=${claudeApp} qmd=${qmd}(${qmdSource ?? "none"}) obsidianCli=${obsidianCli} textures=${textures} smartSearchReady=${smartSearchReady}`);
   }
   /** One-click install of the Claude Code CLI via Anthropic's official native
    *  installer (no npm/Node). The `claude` CLI is a separate artifact from the
@@ -194878,30 +194941,6 @@ ${titled}
     const torusDir = this.absPath(this.settings.torusRoot);
     const markerPath = (0, import_path7.join)(torusDir, ".twin", ".installed");
     if ((0, import_fs9.existsSync)(markerPath)) return;
-    await this.refreshPrereqs();
-    if (!this.prereqStatus.claude || !this.prereqStatus.obsidianCli) {
-      const missing = [];
-      if (!this.prereqStatus.claude) missing.push("claude");
-      if (!this.prereqStatus.obsidianCli) missing.push("obsidianCli");
-      const warnings = [];
-      if (!this.prereqStatus.xcode) {
-        warnings.push(
-          "Heads up: Xcode Command Line Tools aren't installed. macOS may pop up an 'install required components' dialog when you run the commands below \u2014 you can dismiss it; the install proceeds fine without CLT. The dialog can re-appear later if other dev tools (git, cc, make) trigger it, but it doesn't auto-nag on its own."
-        );
-      }
-      const actions = [];
-      if (!this.prereqStatus.textures) {
-        actions.push({
-          name: "Texture pack",
-          desc: "Optional. ~127MB download from harrybuck/the-torus-textures. Without it, the 3D scene renders with solid-color materials instead of full PBR textures. You can install later via Settings \u2192 The Torus \u2192 Setup status.",
-          buttonText: "Install texture pack",
-          run: () => this.installTexturePack()
-        });
-      }
-      this.torusTrace("plugin:install", `BLOCKED missing prereqs: ${missing.join(",")}; warnings: ${warnings.length}; actions: ${actions.length}`);
-      new PrereqsModal(this.app, missing, warnings, actions).open();
-      return;
-    }
     this.torusTrace("plugin:install", `fresh install \u2014 torusDir=${torusDir}`);
     try {
       const result = await this.runVaultAssetSync();
@@ -194909,16 +194948,6 @@ ${titled}
         installed_at: (/* @__PURE__ */ new Date()).toISOString(),
         plugin_version: this.manifest.version
       }, null, 2));
-      if (this.prereqStatus.qmd) {
-        const day2Marker = (0, import_path7.join)(torusDir, ".twin", ".qmd-day2-shown");
-        try {
-          (0, import_fs9.writeFileSync)(day2Marker, JSON.stringify({
-            shown: (/* @__PURE__ */ new Date()).toISOString(),
-            choice: "present_at_install"
-          }));
-        } catch {
-        }
-      }
       const summary = result.copied.length > 0 ? `${result.copied.length} file${result.copied.length === 1 ? "" : "s"} installed at ${this.settings.torusRoot}` : `Already up-to-date at ${this.settings.torusRoot}`;
       new import_obsidian31.Notice(`Torus: ${summary}`);
       if (result.conflicted.length > 0) {
@@ -194930,83 +194959,6 @@ ${titled}
       this.torusTrace("plugin:install", `FAILED ${e2?.message || e2}`);
       console.error("[Torus install]", e2);
     }
-  }
-  /** Day-2 Modal: when qmd appears between sessions (user installed it after
-   *  first-install completed without it), surface a Modal asking whether to
-   *  add semantic search. Bundled BM25 stays as the lex backend regardless;
-   *  qmd ADDS the vec/hybrid tier on top. Marker file ensures we ask once.
-   *
-   *  Three states the marker can record:
-   *  - `present_at_install` — qmd was around at first-install, no Modal needed
-   *  - `add` — user clicked "Add semantic search" in the Modal
-   *  - `not_now` — user clicked "Not now"
-   *
-   *  All three suppress further Modal showings. Re-trigger requires deleting
-   *  the marker manually (or the user toggles via Settings, which is the
-   *  long-term re-enable path). */
-  runQmdDay2ModalIfNeeded() {
-    if (!this.prereqStatus.qmd) return;
-    const torusDir = this.absPath(this.settings.torusRoot);
-    const markerPath = (0, import_path7.join)(torusDir, ".twin", ".qmd-day2-shown");
-    if ((0, import_fs9.existsSync)(markerPath)) return;
-    this.torusTrace("plugin:qmd-day2", "qmd detected for first time \u2014 opening Modal");
-    new QmdDay2Modal(
-      this.app,
-      // Add: write marker, ensure semantic enabled, kick off embed now so
-      // user doesn't wait for the next 30-min qmd-update tick.
-      () => {
-        try {
-          (0, import_fs9.writeFileSync)(markerPath, JSON.stringify({
-            shown: (/* @__PURE__ */ new Date()).toISOString(),
-            choice: "add"
-          }));
-        } catch {
-        }
-        this.settings.enableSemanticSearch = true;
-        saveSettings(this).catch(() => {
-        });
-        new import_obsidian31.Notice("Adding qmd semantic search \u2014 first embed in progress.");
-        this.torusQmdUpdate().catch((e2) => console.error("[Torus qmd-day2 add]", e2));
-      },
-      // Not now: write marker (so we don't ask again), set semantic OFF so
-      // the qmd-update task doesn't auto-embed against the user's wishes.
-      // User can flip the toggle in Settings → The Torus → Search to enable.
-      () => {
-        try {
-          (0, import_fs9.writeFileSync)(markerPath, JSON.stringify({
-            shown: (/* @__PURE__ */ new Date()).toISOString(),
-            choice: "not_now"
-          }));
-        } catch {
-        }
-        this.settings.enableSemanticSearch = false;
-        saveSettings(this).catch(() => {
-        });
-        new import_obsidian31.Notice("Skipping semantic search. Re-enable in Settings \u2192 The Torus \u2192 Search.");
-      }
-    ).open();
-  }
-  /** Show the WelcomeInstallModal on plugin load when ANY of the optional
-   *  components (Smart Search, textures) is still uninstalled AND the user
-   *  hasn't checked "Don't remind me." Suppresses itself when:
-   *  - Smart Search and textures are both already installed
-   *  - settings.dismissedInstallReminders === true (user opted out)
-   *  - The plugin is a dev build (no SHA for this target → no Smart Search
-   *    install path available) AND textures aren't relevant either
-   *
-   *  The modal renders state-aware rows — only uninstalled components get
-   *  their checkbox shown, so a user with textures already installed just
-   *  sees the Smart Search row, etc. */
-  async runWelcomeInstallModalIfNeeded() {
-    if (this.settings.dismissedInstallReminders) return;
-    const ps = this.prereqStatus;
-    const smartSearchInstallable = this.qmdBundleAvailableForTarget();
-    const smartSearchInstalled = ps.qmd && ps.qmdSource === "bundle" && ps.smartSearchReady;
-    const showSmartSearchRow = smartSearchInstallable && !smartSearchInstalled && !(ps.qmd && ps.qmdSource === "path");
-    const showTexturesRow = !ps.textures;
-    if (!showSmartSearchRow && !showTexturesRow) return;
-    this.torusTrace("plugin:WelcomeInstallModal", `showing rows: smartSearch=${showSmartSearchRow} textures=${showTexturesRow}`);
-    new WelcomeInstallModal(this.app, this, { showSmartSearchRow, showTexturesRow }).open();
   }
   /** Stage B reconciliation. Resumes the qwen warmup when:
    *  - qmd bundle is installed (we own the launcher)
@@ -195028,6 +194980,58 @@ ${titled}
     this.warmupSemanticIndex().catch((e2) => {
       this.torusTrace("plugin:reconcileSmartSearchWarmup", `failed: ${e2?.message ?? e2}`);
     });
+  }
+  /** Open Settings → The Torus, where Setup status — the single install
+   *  surface — lives. Used by the TorusView "finish setup" interstitial and by
+   *  the optional-component nags. */
+  openTorusSettings() {
+    const setting = this.app.setting;
+    setting.open();
+    setting.openTabById(this.manifest.id);
+  }
+  /** Optional-component nags. Fires once per load, and only when required deps
+   *  are present (if they're missing, the user is on the TorusView "finish
+   *  setup" interstitial, not the library — don't nag over the gate). For each
+   *  uninstalled optional component (Textures, Smart Search), surface a single
+   *  dismissible toast pointing at Setup status — a Notice, not a modal, because
+   *  the library runs fine without either (wireframe / lex-only). "Don't remind
+   *  me" sets dismissedInstallReminders and silences all future nags. */
+  nagOptionalComponentsIfNeeded() {
+    if (this.settings.dismissedInstallReminders) return;
+    const ps = this.prereqStatus;
+    if (!ps.claude || !ps.obsidianCli) return;
+    const nags = [];
+    if (!ps.textures) nags.push("Textures");
+    const smartSearchInstalled = ps.qmd && ps.qmdSource === "bundle" && ps.smartSearchReady;
+    const smartSearchViaPath = ps.qmd && ps.qmdSource === "path";
+    if (this.qmdBundleAvailableForTarget() && !smartSearchInstalled && !smartSearchViaPath) nags.push("Smart Search");
+    if (nags.length === 0) return;
+    for (const component of nags) {
+      const blurb = component === "Textures" ? "The Torus looks better with textures \u2014 full PBR materials instead of flat colors." : "Smart Search adds semantic + hybrid vault search on top of keyword search.";
+      const notice = new import_obsidian31.Notice("", 0);
+      const el = notice.noticeEl;
+      el.createEl("div", { text: blurb });
+      el.createEl("div", { text: "Install in Settings \u2192 The Torus \u2192 Setup status.", cls: "setting-item-description" });
+      const actions = el.createDiv();
+      actions.style.marginTop = "0.5em";
+      actions.style.display = "flex";
+      actions.style.gap = "1.25em";
+      const open = actions.createEl("a", { text: "Open Setup", href: "#" });
+      open.onclick = (e2) => {
+        e2.preventDefault();
+        this.openTorusSettings();
+        notice.hide();
+      };
+      const dismiss = actions.createEl("a", { text: "Don't remind me", href: "#" });
+      dismiss.onclick = (e2) => {
+        e2.preventDefault();
+        this.settings.dismissedInstallReminders = true;
+        saveSettings(this).catch(() => {
+        });
+        notice.hide();
+      };
+    }
+    this.torusTrace("plugin:nag", `optional components uninstalled: ${nags.join(", ")}`);
   }
   /** Deploy bundled twin-assets + ensure standard vault dirs. Idempotent and
    *  silent — safe to run on every plugin load. Closes the upgrade-path gap
@@ -199514,7 +199518,7 @@ ${remainingLines.join("\n")}
     setActiveLogger(this.torusLogger);
     this.torusTrace("plugin", "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 PLUGIN ONLOAD \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550");
     this.torusTrace("plugin", `torusRoot=${this.settings.torusRoot}`);
-    this.refreshPrereqs().then(() => this.runQmdDay2ModalIfNeeded()).then(() => this.runWelcomeInstallModalIfNeeded()).then(() => this.reconcileSmartSearchWarmupIfNeeded()).catch((e2) => console.error("[Torus prereqs]", e2));
+    this.refreshPrereqs().then(() => this.reconcileSmartSearchWarmupIfNeeded()).then(() => this.nagOptionalComponentsIfNeeded()).catch((e2) => console.error("[Torus prereqs]", e2));
     try {
       this.writeClaudeHookWrappers();
       const torusDirForHooks = this.absPath(this.settings.torusRoot);
@@ -199543,7 +199547,18 @@ ${remainingLines.join("\n")}
       if (swept > 0) this.torusTrace("plugin", `onload swept ${swept} orphan file(s) from .twin/tmp/`);
     } catch {
     }
-    this.registerView(VIEW_TYPE_TORUS, (leaf) => new TorusView(leaf, this.settings));
+    this.registerView(VIEW_TYPE_TORUS, (leaf) => new TorusView(leaf, {
+      llmSettings: this.settings,
+      getRequiredStatus: () => {
+        const ps = this.prereqStatus;
+        const missingRequired = [];
+        if (!ps.claude) missingRequired.push({ name: "Claude CLI", why: "powers your Twin and the capture \u2192 enrich pipeline" });
+        if (!ps.obsidianCli) missingRequired.push({ name: "Obsidian CLI", why: "lets the Twin read and write your vault" });
+        return { requiredReady: ps.claude && ps.obsidianCli, missingRequired, checked: ps.checked };
+      },
+      refreshRequiredStatus: () => this.refreshPrereqs(),
+      openSetup: () => this.openTorusSettings()
+    }));
     this.app.workspace.onLayoutReady(() => {
       const toDetach = [];
       this.app.workspace.iterateAllLeaves((leaf) => {
@@ -200149,152 +200164,6 @@ var PREREQ_HELP = {
   // Adding a copy-pasteable npm command here ambushes the user with the wrong
   // path; the bundle wrapper is the right one.
 };
-var PrereqsModal = class extends import_obsidian31.Modal {
-  constructor(app, missing, warnings = [], actions = []) {
-    super(app);
-    this.missing = missing;
-    this.warnings = warnings;
-    this.actions = actions;
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.createEl("h2", { text: "The Torus \u2014 setup incomplete" });
-    for (const w of this.warnings) {
-      const note2 = contentEl.createEl("p", { text: w });
-      note2.style.padding = "0.75em";
-      note2.style.background = "var(--background-secondary)";
-      note2.style.borderLeft = "3px solid var(--text-muted)";
-      note2.style.borderRadius = "4px";
-      note2.style.fontSize = "0.9em";
-      note2.style.color = "var(--text-muted)";
-      note2.style.userSelect = "text";
-      note2.style.margin = "0.5em 0 1em";
-    }
-    contentEl.createEl("p", {
-      text: "Address the following before reloading:"
-    });
-    const list = contentEl.createEl("div");
-    list.style.display = "flex";
-    list.style.flexDirection = "column";
-    list.style.gap = "0.75em";
-    list.style.margin = "1em 0";
-    for (const m2 of this.missing) {
-      const help = PREREQ_HELP[m2] || { name: m2, install: "(install per its docs)", why: "" };
-      const row = list.createDiv();
-      row.style.padding = "0.5em 0.75em";
-      row.style.background = "var(--background-secondary)";
-      row.style.borderRadius = "4px";
-      row.createEl("strong", { text: help.name });
-      if (help.instructional) {
-        const stepRow = row.createDiv({ text: help.install });
-        stepRow.style.marginTop = "0.25em";
-        stepRow.style.padding = "0.25em 0.5em";
-        stepRow.style.background = "var(--background-primary)";
-        stepRow.style.borderRadius = "3px";
-        stepRow.style.userSelect = "text";
-      } else {
-        const cmdRow = row.createDiv();
-        cmdRow.style.display = "flex";
-        cmdRow.style.alignItems = "center";
-        cmdRow.style.gap = "0.5em";
-        cmdRow.style.marginTop = "0.25em";
-        const cmd = cmdRow.createEl("code", { text: help.install });
-        cmd.style.userSelect = "text";
-        cmd.style.flex = "1";
-        cmd.style.padding = "0.25em 0.5em";
-        cmd.style.background = "var(--background-primary)";
-        cmd.style.borderRadius = "3px";
-        const copyBtn = cmdRow.createEl("button", { text: "Copy" });
-        copyBtn.style.fontSize = "0.85em";
-        copyBtn.onclick = async () => {
-          try {
-            await navigator.clipboard.writeText(help.install);
-          } catch {
-          }
-          copyBtn.textContent = "Copied";
-          setTimeout(() => {
-            copyBtn.textContent = "Copy";
-          }, 1500);
-        };
-      }
-      if (help.why) {
-        const why = row.createEl("div", { text: help.why });
-        why.style.marginTop = "0.25em";
-        why.style.fontSize = "0.85em";
-        why.style.color = "var(--text-muted)";
-        why.style.userSelect = "text";
-      }
-    }
-    if (this.actions.length > 0) {
-      const actionsHeader = contentEl.createEl("p", { text: "Or install in-plugin:" });
-      actionsHeader.style.marginTop = "1em";
-      const actionList = contentEl.createEl("div");
-      actionList.style.display = "flex";
-      actionList.style.flexDirection = "column";
-      actionList.style.gap = "0.75em";
-      actionList.style.margin = "0.5em 0";
-      for (const action of this.actions) {
-        const row = actionList.createDiv();
-        row.style.padding = "0.5em 0.75em";
-        row.style.background = "var(--background-secondary)";
-        row.style.borderRadius = "4px";
-        const headerRow = row.createDiv();
-        headerRow.style.display = "flex";
-        headerRow.style.alignItems = "center";
-        headerRow.style.justifyContent = "space-between";
-        headerRow.style.gap = "0.5em";
-        headerRow.createEl("strong", { text: action.name });
-        const btn = headerRow.createEl("button", { text: action.buttonText });
-        btn.classList.add("mod-cta");
-        btn.style.fontSize = "0.85em";
-        btn.onclick = async () => {
-          btn.disabled = true;
-          const original = action.buttonText;
-          btn.textContent = "Working\u2026";
-          try {
-            const result = await action.run();
-            if (result.ok) {
-              btn.textContent = result.doneText || "Installed \u2713";
-              btn.classList.remove("mod-cta");
-            } else {
-              btn.textContent = `Failed \u2014 Retry (${result.error || "unknown"})`;
-              btn.disabled = false;
-              setTimeout(() => {
-                btn.textContent = original;
-              }, 4e3);
-            }
-          } catch (e2) {
-            btn.textContent = `Error \u2014 Retry`;
-            btn.disabled = false;
-            setTimeout(() => {
-              btn.textContent = original;
-            }, 4e3);
-          }
-        };
-        const desc = row.createEl("div", { text: action.desc });
-        desc.style.marginTop = "0.25em";
-        desc.style.fontSize = "0.85em";
-        desc.style.color = "var(--text-muted)";
-        desc.style.userSelect = "text";
-      }
-    }
-    const note = contentEl.createEl("p");
-    note.createSpan({ text: "After installing, reload the plugin: " });
-    note.createEl("code", { text: 'Cmd+P \u2192 "Reload app without saving"' });
-    note.createSpan({ text: ". The Torus will re-check on next load." });
-    const buttons = contentEl.createDiv();
-    buttons.style.display = "flex";
-    buttons.style.justifyContent = "flex-end";
-    buttons.style.marginTop = "1em";
-    const dismiss = buttons.createEl("button", { text: "Dismiss" });
-    dismiss.classList.add("mod-cta");
-    dismiss.onclick = () => this.close();
-  }
-  onClose() {
-    this.contentEl.empty();
-  }
-};
 var InstallErrorModal = class extends import_obsidian31.Modal {
   constructor(app, message) {
     super(app);
@@ -200325,181 +200194,6 @@ var InstallErrorModal = class extends import_obsidian31.Modal {
     const dismiss = buttons.createEl("button", { text: "Dismiss" });
     dismiss.classList.add("mod-cta");
     dismiss.onclick = () => this.close();
-  }
-  onClose() {
-    this.contentEl.empty();
-  }
-};
-var QmdDay2Modal = class extends import_obsidian31.Modal {
-  constructor(app, onAdd, onSkip) {
-    super(app);
-    this.onAdd = onAdd;
-    this.onSkip = onSkip;
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.createEl("h2", { text: "qmd detected \u2014 add semantic search?" });
-    const body = contentEl.createEl("p");
-    body.appendText("qmd is now installed and can power vec and hybrid search modes via local qwen embeddings. ");
-    body.appendText("Bundled BM25 will continue to handle lex queries; this just adds the semantic tier.");
-    body.style.userSelect = "text";
-    const cost = contentEl.createEl("p");
-    cost.appendText("First embed run downloads the qwen model (~300MB) and indexes the vault. ");
-    cost.appendText("Roughly 2 minutes on Apple Silicon, 15\u201330 minutes on Intel. Subsequent runs are incremental.");
-    cost.style.padding = "0.75em";
-    cost.style.background = "var(--background-secondary)";
-    cost.style.borderLeft = "3px solid var(--text-muted)";
-    cost.style.borderRadius = "4px";
-    cost.style.fontSize = "0.9em";
-    cost.style.color = "var(--text-muted)";
-    cost.style.userSelect = "text";
-    cost.style.margin = "0.75em 0 1em";
-    const footnote = contentEl.createEl("p", {
-      text: "Either choice is final until you change it in Settings \u2192 The Torus \u2192 Search."
-    });
-    footnote.style.fontSize = "0.85em";
-    footnote.style.color = "var(--text-muted)";
-    const buttons = contentEl.createDiv();
-    buttons.style.display = "flex";
-    buttons.style.justifyContent = "flex-end";
-    buttons.style.gap = "0.5em";
-    buttons.style.marginTop = "1.25em";
-    const skip = buttons.createEl("button", { text: "Not now" });
-    skip.onclick = () => {
-      this.onSkip();
-      this.close();
-    };
-    const add = buttons.createEl("button", { text: "Add semantic search" });
-    add.classList.add("mod-cta");
-    add.onclick = () => {
-      this.onAdd();
-      this.close();
-    };
-  }
-  onClose() {
-    this.contentEl.empty();
-  }
-};
-var WelcomeInstallModal = class extends import_obsidian31.Modal {
-  plugin;
-  rows;
-  smartSearchChecked = false;
-  texturesChecked = false;
-  constructor(app, plugin, rows) {
-    super(app);
-    this.plugin = plugin;
-    this.rows = rows;
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.createEl("h2", { text: "Set up The Torus" });
-    const intro = contentEl.createEl("p", {
-      text: "The Torus has two optional components. Install whichever you'll use."
-    });
-    intro.style.userSelect = "text";
-    intro.style.marginBottom = "1em";
-    const installBtn = /* @__PURE__ */ (() => {
-      let b2 = null;
-      return {
-        get() {
-          return b2;
-        },
-        set(v3) {
-          b2 = v3;
-        }
-      };
-    })();
-    const updateInstallEnabled = () => {
-      const anyChecked = this.smartSearchChecked || this.texturesChecked;
-      const btn = installBtn.get();
-      if (btn) btn.disabled = !anyChecked;
-    };
-    const buildRow = (opts) => {
-      const row = contentEl.createDiv();
-      row.style.display = "flex";
-      row.style.alignItems = "flex-start";
-      row.style.gap = "0.6em";
-      row.style.padding = "0.6em 0.8em";
-      row.style.margin = "0.4em 0";
-      row.style.background = "var(--background-secondary)";
-      row.style.borderRadius = "4px";
-      const cb = row.createEl("input", { type: "checkbox" });
-      cb.style.marginTop = "0.3em";
-      cb.onchange = () => {
-        opts.onChange(cb.checked);
-        updateInstallEnabled();
-      };
-      const text = row.createDiv();
-      text.style.flex = "1";
-      text.style.userSelect = "text";
-      const titleEl = text.createEl("div", { text: opts.title });
-      titleEl.style.fontWeight = "600";
-      const descEl = text.createEl("div", { text: opts.desc });
-      descEl.style.fontSize = "0.85em";
-      descEl.style.color = "var(--text-muted)";
-      descEl.style.marginTop = "0.25em";
-      row.onclick = (ev) => {
-        if (ev.target === cb) return;
-        cb.checked = !cb.checked;
-        cb.dispatchEvent(new Event("change"));
-      };
-    };
-    if (this.rows.showSmartSearchRow) {
-      buildRow({
-        title: "Install Smart Search (~60 MB now, ~600 MB in background)",
-        desc: "AI-powered vault search. Downloads qmd from our release, then the semantic embedding model from HuggingFace in the background. Keyword search works immediately; smart matching kicks in once the model finishes.",
-        onChange: (v3) => {
-          this.smartSearchChecked = v3;
-        }
-      });
-    }
-    if (this.rows.showTexturesRow) {
-      buildRow({
-        title: "Install textures (~30 MB)",
-        desc: "Full 3D library visuals \u2014 leather book spines, wood shelves, the works. Without these the library renders as a wireframe but still works.",
-        onChange: (v3) => {
-          this.texturesChecked = v3;
-        }
-      });
-    }
-    const buttons = contentEl.createDiv();
-    buttons.style.display = "flex";
-    buttons.style.justifyContent = "flex-end";
-    buttons.style.gap = "0.5em";
-    buttons.style.marginTop = "1.5em";
-    const dontRemind = buttons.createEl("button", { text: "Don't remind me" });
-    dontRemind.onclick = async () => {
-      this.plugin.settings.dismissedInstallReminders = true;
-      try {
-        await saveSettings(this.plugin);
-      } catch {
-      }
-      this.close();
-    };
-    const later = buttons.createEl("button", { text: "Maybe later" });
-    later.onclick = () => this.close();
-    const install = buttons.createEl("button", { text: "Install selected" });
-    install.classList.add("mod-cta");
-    install.disabled = true;
-    installBtn.set(install);
-    install.onclick = () => {
-      if (this.smartSearchChecked) {
-        this.plugin.ensureQmdBundle().catch((e2) => {
-          new import_obsidian31.Notice(`Smart Search install failed: ${e2?.message ?? e2}`);
-        });
-      }
-      if (this.texturesChecked) {
-        this.plugin.installTexturePack().then((r2) => {
-          if (r2.ok) new import_obsidian31.Notice(`Texture pack installed (${Math.round((r2.size || 0) / 1024 / 1024)} MB). Reload plugin to apply.`);
-          else new import_obsidian31.Notice(`Texture install failed: ${r2.error}`);
-        }).catch((e2) => {
-          new import_obsidian31.Notice(`Texture install failed: ${e2?.message ?? e2}`);
-        });
-      }
-      this.close();
-    };
   }
   onClose() {
     this.contentEl.empty();
