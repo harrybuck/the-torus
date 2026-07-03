@@ -176870,7 +176870,7 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
       };
       const claudeOk = ps.checked && ps.claude;
       const cliOk = ps.checked && ps.obsidianCli;
-      const requiredOk = ps.claudeApp && ps.claude && ps.obsidianCli;
+      const requiredOk = ps.claudeApp && ps.claude && ps.obsidianCli && ps.git;
       const texturesOk = ps.textures;
       const smartSearchOk = ps.qmd && (ps.qmdSource === "bundle" && ps.smartSearchReady || ps.qmdSource === "path");
       const recommendedOk = texturesOk && smartSearchOk;
@@ -176878,8 +176878,8 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
       const allInstallableOk = requiredOk && recommendedOk;
       const qmdInProgress = ps.qmdBundleState === "downloading" || ps.qmdBundleState === "extracting";
       const warming = ps.smartSearchWarmupState === "warming";
-      const statusName = !ps.checked ? "Setup status" : !ps.claudeApp ? "Missing required: Claude App" : !claudeOk ? "Missing required: Claude CLI" : !cliOk ? "Missing required: Obsidian CLI" : qmdInProgress ? "Setting up Smart Search\u2026" : warming ? "Smart Search: indexing\u2026" : !recommendedOk ? "Ready (optional components available)" : "Ready";
-      const desc = ps.checked ? `Claude App ${ps.claudeApp ? "\u2713" : "\u2717"}${ps.claudeApp ? "" : " (required)"}  \xB7  Claude CLI ${fmtStatus("claude")}${ps.claude ? "" : " (required)"}  \xB7  Obsidian CLI ${fmtStatus("obsidianCli")}${ps.obsidianCli ? "" : " (required)"}  \xB7  Textures ${ps.textures ? "\u2713" : "\u2717 not installed"}  \xB7  Smart Search ${fmtSmartSearch()}` + (allInstallableOk ? "  \u2014  all set." : "  \u2014  resolve missing items, then click Recheck.") : "Checking\u2026";
+      const statusName = !ps.checked ? "Setup status" : !ps.claudeApp ? "Missing required: Claude App" : !claudeOk ? "Missing required: Claude CLI" : !cliOk ? "Missing required: Obsidian CLI" : !ps.git ? "Missing required: Git" : qmdInProgress ? "Setting up Smart Search\u2026" : warming ? "Smart Search: indexing\u2026" : !recommendedOk ? "Ready (optional components available)" : "Ready";
+      const desc = ps.checked ? `Claude App ${ps.claudeApp ? "\u2713" : "\u2717"}${ps.claudeApp ? "" : " (required)"}  \xB7  Claude CLI ${fmtStatus("claude")}${ps.claude ? "" : " (required)"}  \xB7  Obsidian CLI ${fmtStatus("obsidianCli")}${ps.obsidianCli ? "" : " (required)"}  \xB7  Git ${ps.git ? "\u2713" : "\u2717"}${ps.git ? "" : " (required)"}  \xB7  Textures ${ps.textures ? "\u2713" : "\u2717 not installed"}  \xB7  Smart Search ${fmtSmartSearch()}` + (allInstallableOk ? "  \u2014  all set." : "  \u2014  resolve missing items, then click Recheck.") : "Checking\u2026";
       const badgeInfo = {
         neutral: { icon: "\u2026", verdict: "Checking\u2026", line: "Probing your setup.", color: "var(--text-muted)" },
         red: { icon: "\u2717", verdict: "Action needed", line: "A required component is missing.", color: "var(--text-error)" },
@@ -176922,9 +176922,9 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
         row.style.background = "var(--background-secondary)";
         row.style.borderRadius = "4px";
         row.style.margin = "0.5em 0";
-        row.createEl("strong", { text: "Install git (Desktop launcher only)" });
+        row.createEl("strong", { text: "Install git (required)" });
         const why = row.createEl("div", {
-          text: "The Desktop Code launcher needs git; the Terminal launch works without it. Installs Apple\u2019s Command Line Tools."
+          text: "Required for the single-click Desktop launcher. Installs Apple\u2019s Command Line Tools; the Terminal launch still works without it."
         });
         why.style.marginTop = "0.25em";
         why.style.fontSize = "0.9em";
@@ -199801,7 +199801,14 @@ ${remainingLines.join("\n")}
           fixLabel: "Open Obsidian Settings",
           openFix: openObsidianGeneral
         });
-        return { requiredReady: ps.claudeApp && ps.claude && ps.obsidianCli, missingRequired, checked: ps.checked };
+        if (!ps.git) missingRequired.push({
+          name: "Git",
+          why: "the single-click launcher needs it to start your Twin",
+          soloLead: "Git must be installed before The Torus can run.",
+          fixLabel: "Open Torus Setup",
+          openFix: () => this.openTorusSettings()
+        });
+        return { requiredReady: ps.claudeApp && ps.claude && ps.obsidianCli && ps.git, missingRequired, checked: ps.checked };
       },
       refreshRequiredStatus: () => this.refreshPrereqs(),
       runOptionalNags: () => this.nagOptionalComponentsIfNeeded()
