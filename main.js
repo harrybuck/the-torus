@@ -176936,7 +176936,7 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
         btnRow.style.marginTop = "0.5em";
         const gitBtn = btnRow.createEl("button", { text: "Install git" });
         gitBtn.classList.add("mod-cta");
-        const gitNote = btnRow.createEl("span", { text: "Opens Apple\u2019s installer (a few minutes)." });
+        const gitNote = btnRow.createEl("span", { text: "Opens macOS\u2019s Command Line Tools installer (a system dialog; a few minutes)." });
         gitNote.style.fontSize = "0.8em";
         gitNote.style.color = "var(--text-muted)";
         gitBtn.onclick = async () => {
@@ -176948,11 +176948,17 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
               gitBtn.textContent = "Installed \u2713";
               await this.plugin.refreshPrereqs();
               this.display();
+            } else if (res.started) {
+              gitBtn.textContent = "Waiting for macOS installer\u2026";
+              gitNote.textContent = "macOS is asking to install its Command Line Tools \u2014 look for that dialog behind this window (or a bouncing Dock icon), click Install, wait for it to finish, relaunch Claude, then click Recheck above.";
+              new import_obsidian22.Notice(
+                "macOS Command Line Tools installer opened \u2014 it may be hidden behind this window or in your Dock. Click Install there, let it finish, then relaunch Claude and Recheck.",
+                12e3
+              );
             } else {
-              new import_obsidian22.Notice(res.note || res.error || "Finish Apple\u2019s installer, relaunch Claude, then Recheck.", 9e3);
+              new import_obsidian22.Notice(res.error || "Could not start the installer. Install git manually, then Recheck.", 9e3);
               gitBtn.disabled = false;
               gitBtn.textContent = "Install git";
-              gitNote.textContent = "Finish Apple\u2019s installer, relaunch Claude, then Recheck above.";
             }
           } catch (e2) {
             new import_obsidian22.Notice(`Git install failed: ${e2?.message || e2}`);
@@ -191907,6 +191913,7 @@ function resummarizeTaskId(path2) {
   const slug = path2.replace(/\.md$/, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   return `resummarize-${slug}`;
 }
+var TORUS_REPO_MARKER = "This bare git repository was created by The Torus (Obsidian plugin) so the Claude\ndesktop app's Code tab can bind this folder \u2014 its launcher requires the opened\nfolder to be inside a git repo. It has no commits and no history. If you version\nyour whole vault with git and this nested repo gets in the way, it is safe to\ndelete this .git directory.";
 var TorusPlugin = class extends import_obsidian31.Plugin {
   settings = DEFAULT_LLM_SETTINGS;
   taskrunner = null;
@@ -194672,10 +194679,16 @@ ${titled}
           return resolveP();
         }
         (0, import_child_process6.execFile)(gitBin, ["init", torusDir], (initErr) => {
-          this.torusTrace(
-            "plugin:ensureTorusDirRepo",
-            initErr ? `git init failed: ${initErr.message}` : `initialized repo at ${torusDir}`
-          );
+          if (initErr) {
+            this.torusTrace("plugin:ensureTorusDirRepo", `git init failed: ${initErr.message}`);
+            return resolveP();
+          }
+          this.torusTrace("plugin:ensureTorusDirRepo", `initialized repo at ${torusDir}`);
+          try {
+            (0, import_fs9.writeFileSync)((0, import_path7.join)(torusDir, ".git", "description"), TORUS_REPO_MARKER + "\n", "utf-8");
+          } catch (e2) {
+            this.torusTrace("plugin:ensureTorusDirRepo", `marker write failed: ${e2.message}`);
+          }
           resolveP();
         });
       });
