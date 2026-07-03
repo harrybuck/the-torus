@@ -162667,6 +162667,18 @@ function migrateLocationValue(value) {
 }
 
 // src/hooks/useSortingDesk.ts
+function createdKey(created) {
+  const m2 = created.match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!m2) return 0;
+  const [, y, mo, d, h2, mi, s = "00"] = m2;
+  return Number(`${y}${mo}${d}${h2}${mi}${s}`);
+}
+function mtimeKey(ms) {
+  if (!ms) return 0;
+  const d = new Date(ms);
+  const p3 = (n) => String(n).padStart(2, "0");
+  return Number(`${d.getFullYear()}${p3(d.getMonth() + 1)}${p3(d.getDate())}${p3(d.getHours())}${p3(d.getMinutes())}${p3(d.getSeconds())}`);
+}
 function useSortingDesk() {
   const app = useObsidian();
   const [files, setFiles] = (0, import_react22.useState)([]);
@@ -162719,6 +162731,10 @@ function useSortingDesk() {
         proposed_confidence: String(fm.torus_proposed_confidence ?? "") || (proposed_room ? "low" : ""),
         proposed_reason: String(fm.torus_proposed_reason ?? ""),
         type: String(fm.torus_type ?? ""),
+        // Sort key is torus_created (the honest "when Torus first saw it"
+        // timestamp), NOT mtime — a note re-edited by Zero must not jump to
+        // newest. Fall back to mtime only when torus_created is missing/bad.
+        created: createdKey(String(fm.torus_created ?? "")) || mtimeKey(file.stat?.mtime ?? 0),
         mtime: file.stat?.mtime ?? 0
       });
     }
@@ -162772,9 +162788,11 @@ function DeskBooks({ visible = true }) {
       const key = n.proposed_room && knownNames.has(n.proposed_room) ? n.proposed_room : INBOX_NONE_KEY;
       return !excludedRooms.has(key);
     });
-    const sorted = [...filtered].sort(
-      (a2, b2) => sortOrder === "newest-top" ? a2.mtime - b2.mtime : b2.mtime - a2.mtime
-    );
+    const sorted = [...filtered].sort((a2, b2) => {
+      const d = a2.created - b2.created;
+      const key = d !== 0 ? d : a2.mtime - b2.mtime;
+      return sortOrder === "newest-top" ? key : -key;
+    });
     return sorted;
   }, [allDeskNotes, excludedRooms, knownNames, sortOrder]);
   deskNoteCountRef.current = deskNotes.length;
@@ -176898,6 +176916,51 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
           }
         })
       );
+      if (ps.checked && !ps.git) {
+        const row = containerEl.createDiv();
+        row.style.padding = "0.5em 0.75em";
+        row.style.background = "var(--background-secondary)";
+        row.style.borderRadius = "4px";
+        row.style.margin = "0.5em 0";
+        row.createEl("strong", { text: "Install git (Desktop launcher only)" });
+        const why = row.createEl("div", {
+          text: "The Desktop Code launcher needs git; the Terminal launch works without it. Installs Apple\u2019s Command Line Tools."
+        });
+        why.style.marginTop = "0.25em";
+        why.style.fontSize = "0.9em";
+        why.style.color = "var(--text-muted)";
+        const btnRow = row.createDiv();
+        btnRow.style.display = "flex";
+        btnRow.style.alignItems = "center";
+        btnRow.style.gap = "0.6em";
+        btnRow.style.marginTop = "0.5em";
+        const gitBtn = btnRow.createEl("button", { text: "Install git" });
+        gitBtn.classList.add("mod-cta");
+        const gitNote = btnRow.createEl("span", { text: "Opens Apple\u2019s installer (a few minutes)." });
+        gitNote.style.fontSize = "0.8em";
+        gitNote.style.color = "var(--text-muted)";
+        gitBtn.onclick = async () => {
+          gitBtn.disabled = true;
+          gitBtn.textContent = "Opening installer\u2026";
+          try {
+            const res = await this.plugin.torusInstallGit();
+            if (res.ok) {
+              gitBtn.textContent = "Installed \u2713";
+              await this.plugin.refreshPrereqs();
+              this.display();
+            } else {
+              new import_obsidian22.Notice(res.note || res.error || "Finish Apple\u2019s installer, relaunch Claude, then Recheck.", 9e3);
+              gitBtn.disabled = false;
+              gitBtn.textContent = "Install git";
+              gitNote.textContent = "Finish Apple\u2019s installer, relaunch Claude, then Recheck above.";
+            }
+          } catch (e2) {
+            new import_obsidian22.Notice(`Git install failed: ${e2?.message || e2}`);
+            gitBtn.disabled = false;
+            gitBtn.textContent = "Install git";
+          }
+        };
+      }
       const missingTools = [];
       if (ps.checked && !ps.claude) missingTools.push("claude");
       if (ps.checked && !ps.obsidianCli) missingTools.push("obsidianCli");
@@ -191965,6 +192028,15 @@ var TorusPlugin = class extends import_obsidian31.Plugin {
         return;
       }
       const torusDir = (0, import_path7.join)(vaultRoot, this.settings.torusRoot);
+      if (!await this.probeGit()) {
+        new import_obsidian31.Notice(
+          "Git isn\u2019t installed \u2014 opening a Terminal Zero session instead. Install git in Settings \u2192 Setup status to use the Desktop launcher.",
+          9e3
+        );
+        this.torusTrace("plugin:launchCCZeroNative", "git missing \u2014 falling back to terminal launcher");
+        return this.launchCCZero({ tier: "high" });
+      }
+      await this.ensureTorusDirRepo(torusDir);
       const url = `claude://code/new?folder=${encodeURIComponent(torusDir)}&q=${encodeURIComponent("/torus-orient")}`;
       this.torusTrace("plugin:launchCCZeroNative", `launching ${url}`);
       (0, import_child_process6.exec)(`open "${url.replace(/"/g, '\\"')}"`, (err) => {
@@ -192306,11 +192378,11 @@ var TorusPlugin = class extends import_obsidian31.Plugin {
       high: { BUDGET_RAW: 65e3, BUDGET_DIGEST: 2e4, RECENCY_FLOOR_HOURS: 72, MAX_REFLECTIONS: 3, INCLUDE_REFLECTIONS: true }
     };
     const cfg = TIER_CONFIG[tier] || TIER_CONFIG.high;
-    const PER_FILE_TOKENS = 25e3;
+    const PER_FILE_TOKENS = 2e4;
     const MAX_RAW_TOKENS = PER_FILE_TOKENS;
     const ACTIVITY_TAIL_LINES = 50;
     const RECENCY_DECAY = 0.95;
-    const CHARS_PER_TOKEN = 4;
+    const CHARS_PER_TOKEN = 3.6;
     const MAX_FILES = 10;
     const ACK_STRING = "Got the context.";
     const tokensOf = (s) => Math.ceil(s.length / CHARS_PER_TOKEN);
@@ -194434,6 +194506,7 @@ ${titled}
     bridgeBundleState: "idle",
     obsidianCli: false,
     textures: false,
+    git: false,
     checked: false
   };
   /** Probe each prerequisite. claude/qmd via binResolver; textures by checking
@@ -194469,10 +194542,11 @@ ${titled}
         return false;
       }
     };
-    const [claude, pathQmd, obsidianCli] = await Promise.all([
+    const [claude, pathQmd, obsidianCli, git] = await Promise.all([
       probeBin("claude"),
       probeBin("qmd"),
-      probeObsidianCli()
+      probeObsidianCli(),
+      this.probeGit()
     ]);
     const claudeApp = process.platform === "darwin" && (0, import_fs9.existsSync)("/Applications/Claude.app");
     const textures = probeTextures();
@@ -194491,10 +194565,28 @@ ${titled}
       qmdSource,
       obsidianCli,
       textures,
+      git,
       smartSearchReady,
       checked: true
     };
-    this.torusTrace("plugin:prereqs", `claude=${claude} claudeApp=${claudeApp} qmd=${qmd}(${qmdSource ?? "none"}) obsidianCli=${obsidianCli} textures=${textures} smartSearchReady=${smartSearchReady}`);
+    this.torusTrace("plugin:prereqs", `claude=${claude} claudeApp=${claudeApp} qmd=${qmd}(${qmdSource ?? "none"}) obsidianCli=${obsidianCli} textures=${textures} git=${git} smartSearchReady=${smartSearchReady}`);
+  }
+  /** Probe whether git is available — needed for the Desktop Code launcher, which
+   *  hard-requires git ("Git is required for local sessions"). On macOS git ships
+   *  with the Command Line Tools, so `xcode-select -p` is the correct *passive*
+   *  probe: it returns the dev-dir path when CLT is installed and exits non-zero
+   *  otherwise, WITHOUT popping Apple's installer. Running `git`/`/usr/bin/git`
+   *  directly on a CLT-less Mac would trigger that dialog — never do that in a
+   *  passive scan. (Homebrew itself requires CLT, so CLT-present ⟺ git-available
+   *  in practice.) Off-mac: a plain `git --version`. */
+  probeGit() {
+    return new Promise((resolveP) => {
+      if (process.platform === "darwin") {
+        (0, import_child_process6.execFile)("/usr/bin/xcode-select", ["-p"], (err) => resolveP(!err));
+      } else {
+        (0, import_child_process6.execFile)("git", ["--version"], (err) => resolveP(!err));
+      }
+    });
   }
   /** One-click install of the Claude Code CLI via Anthropic's official native
    *  installer (no npm/Node). The `claude` CLI is a separate artifact from the
@@ -194526,6 +194618,66 @@ ${titled}
         const ok = this.prereqStatus.claude;
         this.torusTrace("plugin:installClaude", `done \u2014 claude resolved=${ok}`);
         resolve2(ok ? { ok: true, doneText: "Installed \u2713" } : { ok: false, error: "installer ran but claude still not resolvable \u2014 check ~/.local/bin" });
+      });
+    });
+  }
+  /** Fire Apple's Command Line Tools installer (which provides git) for the
+   *  Desktop Code launcher. Unlike torusInstallClaudeCli — a blocking `curl|bash`
+   *  we can confirm — `xcode-select --install` only *opens* Apple's own GUI
+   *  installer and returns immediately; the multi-minute download happens
+   *  out-of-band, and the Claude app likely needs a relaunch to detect the newly
+   *  installed git. So this returns a "started — come back and Recheck" result,
+   *  never a confirmed install. Mac-only (git-on-CLT is the mac story; other
+   *  platforms install git their own way). */
+  async torusInstallGit() {
+    if (process.platform !== "darwin") {
+      return { ok: false, error: "Automatic git install is Mac-only here \u2014 install git for your platform, then click Recheck." };
+    }
+    if (await this.probeGit()) return { ok: true, note: "Git is already installed." };
+    this.torusTrace("plugin:installGit", "firing xcode-select --install");
+    return new Promise((resolve2) => {
+      (0, import_child_process6.execFile)("/usr/bin/xcode-select", ["--install"], (err, _stdout, stderr) => {
+        const msg = String(stderr || "").trim();
+        if (err && /already installed/i.test(msg)) {
+          return resolve2({ ok: true, note: "Command Line Tools are already installed." });
+        }
+        this.torusTrace("plugin:installGit", `installer triggered${err ? ` (${msg})` : ""}`);
+        resolve2({
+          ok: false,
+          started: true,
+          note: "Apple\u2019s Command Line Tools installer opened. Finish it, relaunch Claude, then click Recheck."
+        });
+      });
+    });
+  }
+  /** Ensure <torusDir> is inside a git repo so the Desktop Code tab binds cwd —
+   *  it only binds (loads `.claude/skills/`, honors `obsidian eval`) when the
+   *  opened folder lives inside a repo. Vault-safe, every branch verified live:
+   *    · already in a repo (its own OR the vault's) → DO NOTHING
+   *    · in no repo                                  → plain `git init` (unborn HEAD)
+   *  Hard rules, never violated (each a real vault-backup footgun):
+   *    · NEVER a tracked `.gitignore` in the torus dir — the user's vault repo
+   *      reads it too and silently drops all future Torus content from backup.
+   *    · NEVER commit the inner repo — a committed nested repo becomes a gitlink
+   *      (160000) in the outer vault repo → backup captures a SHA, not the notes.
+   *    · NEVER nest into an existing repo — if rev-parse finds an ancestor, the
+   *      vault is already a repo; opening the subdir binds fine, do nothing.
+   *  Plain `git init` (unborn HEAD, no commit, no .gitignore) stays benign. */
+  ensureTorusDirRepo(torusDir) {
+    const gitBin = process.platform === "darwin" ? "/usr/bin/git" : "git";
+    return new Promise((resolveP) => {
+      (0, import_child_process6.execFile)(gitBin, ["-C", torusDir, "rev-parse", "--show-toplevel"], (err) => {
+        if (!err) {
+          this.torusTrace("plugin:ensureTorusDirRepo", "already in a repo \u2014 no init");
+          return resolveP();
+        }
+        (0, import_child_process6.execFile)(gitBin, ["init", torusDir], (initErr) => {
+          this.torusTrace(
+            "plugin:ensureTorusDirRepo",
+            initErr ? `git init failed: ${initErr.message}` : `initialized repo at ${torusDir}`
+          );
+          resolveP();
+        });
       });
     });
   }
