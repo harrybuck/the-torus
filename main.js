@@ -169399,15 +169399,15 @@ function LibrarianPanel({ onPeek }) {
     if (!info || !effectiveRoom || !effectiveShelf || busy) return;
     setBusy(true);
     try {
-      const basename2 = info.file.split("/").pop()?.replace(/\.md$/, "") || info.title;
+      const basename3 = info.file.split("/").pop()?.replace(/\.md$/, "") || info.title;
       const torusFile = app.vault.getAbstractFileByPath(manifest2);
       if (torusFile instanceof import_obsidian9.TFile) {
         await app.vault.process(torusFile, (content) => {
           let updated = content;
           if (info.isShelved) {
-            updated = removeFromTorus(updated, basename2);
+            updated = removeFromTorus(updated, basename3);
           }
-          return insertIntoTorus(updated, effectiveRoom, effectiveShelf, basename2);
+          return insertIntoTorus(updated, effectiveRoom, effectiveShelf, basename3);
         });
       }
       const noteFile = app.vault.getAbstractFileByPath(info.file);
@@ -169956,8 +169956,8 @@ function DiscardDialog() {
       if (note.isShelved) {
         const torusFile = app.vault.getAbstractFileByPath(manifest2);
         if (torusFile instanceof import_obsidian10.TFile) {
-          const basename2 = note.file.split("/").pop()?.replace(/\.md$/, "") || note.title;
-          await app.vault.process(torusFile, (content) => removeFromTorus(content, basename2));
+          const basename3 = note.file.split("/").pop()?.replace(/\.md$/, "") || note.title;
+          await app.vault.process(torusFile, (content) => removeFromTorus(content, basename3));
         }
       }
       selectNote(null);
@@ -169972,8 +169972,8 @@ function DiscardDialog() {
     try {
       const torusFile = app.vault.getAbstractFileByPath(manifest2);
       if (torusFile instanceof import_obsidian10.TFile) {
-        const basename2 = note.file.split("/").pop()?.replace(/\.md$/, "") || note.title;
-        await app.vault.process(torusFile, (content) => removeFromTorus(content, basename2));
+        const basename3 = note.file.split("/").pop()?.replace(/\.md$/, "") || note.title;
+        await app.vault.process(torusFile, (content) => removeFromTorus(content, basename3));
       }
       const noteFile = app.vault.getAbstractFileByPath(note.file);
       if (noteFile instanceof import_obsidian10.TFile) {
@@ -170017,8 +170017,8 @@ function DiscardDialog() {
     if (note.isShelved) {
       const torusFile = app.vault.getAbstractFileByPath(manifest2);
       if (torusFile instanceof import_obsidian10.TFile) {
-        const basename2 = note.file.split("/").pop()?.replace(/\.md$/, "") || note.title;
-        await app.vault.process(torusFile, (content) => removeFromTorus(content, basename2));
+        const basename3 = note.file.split("/").pop()?.replace(/\.md$/, "") || note.title;
+        await app.vault.process(torusFile, (content) => removeFromTorus(content, basename3));
       }
     }
     const sourceBasename = note.file.split("/").pop()?.replace(/\.md$/, "") || "";
@@ -171864,12 +171864,12 @@ async function consolidateNotes(app, primaryFile, secondaryFile, noteType, overr
   }
   await app.vault.trash(secondaryTFile, false);
 }
-function addToSection(content, section, basename2) {
-  const escaped = escapeReStr(basename2);
-  if (content.includes(`[[${basename2}]]`) || new RegExp(`\\[\\[${escaped}\\|`).test(content)) {
+function addToSection(content, section, basename3) {
+  const escaped = escapeReStr(basename3);
+  if (content.includes(`[[${basename3}]]`) || new RegExp(`\\[\\[${escaped}\\|`).test(content)) {
     return content;
   }
-  const entry = `- [[${basename2}]]`;
+  const entry = `- [[${basename3}]]`;
   if (content.includes(`## ${section}`)) {
     return content.replace(
       new RegExp(`(## ${escapeReStr(section)}\\n(?:- \\[\\[.*\\]\\]\\n)*)`),
@@ -171886,8 +171886,8 @@ function addToSection(content, section, basename2) {
 ${entry}
 `;
 }
-function removeFromSection(content, basename2) {
-  const escaped = escapeReStr(basename2);
+function removeFromSection(content, basename3) {
+  const escaped = escapeReStr(basename3);
   const entryRe = new RegExp(`^- \\[\\[${escaped}(\\|[^\\]]+)?\\]\\]\\n?`, "m");
   return content.replace(entryRe, "");
 }
@@ -172122,8 +172122,8 @@ function UnlinkDialog() {
         const all = [...found.orphans, ...found.partials];
         setLinks(
           all.map((path2) => {
-            const basename2 = path2.split("/").pop()?.replace(/\.md$/, "") || path2;
-            return { file: path2, basename: basename2, displayTitle: basename2 };
+            const basename3 = path2.split("/").pop()?.replace(/\.md$/, "") || path2;
+            return { file: path2, basename: basename3, displayTitle: basename3 };
           })
         );
         setScanning(false);
@@ -173802,10 +173802,10 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
   }, [app, broken]);
   const fixStranded = (0, import_react59.useCallback)(async (file, room, shelf) => {
     if (room && shelf) {
-      const basename2 = file.split("/").pop()?.replace(/\.md$/, "") || "";
+      const basename3 = file.split("/").pop()?.replace(/\.md$/, "") || "";
       const torusFile = app.vault.getAbstractFileByPath(manifest2);
       if (torusFile instanceof import_obsidian18.TFile) {
-        await app.vault.process(torusFile, (content) => insertIntoTorus(content, room, shelf, basename2));
+        await app.vault.process(torusFile, (content) => insertIntoTorus(content, room, shelf, basename3));
       }
     } else {
       const tfile = app.vault.getAbstractFileByPath(file);
@@ -173823,8 +173823,8 @@ function HealthSection({ results, app, manifest: manifest2, onClose, onRescan })
       await app.vault.process(torusFile, (content) => {
         let updated = content;
         for (const u2 of withPlacement) {
-          const basename2 = u2.file.split("/").pop()?.replace(/\.md$/, "") || "";
-          updated = insertIntoTorus(updated, u2.room, u2.shelf, basename2);
+          const basename3 = u2.file.split("/").pop()?.replace(/\.md$/, "") || "";
+          updated = insertIntoTorus(updated, u2.room, u2.shelf, basename3);
         }
         return updated;
       });
@@ -176064,6 +176064,17 @@ var TorusView = class extends import_obsidian20.ItemView {
   /** One-shot: auto-probe at most once per view open, so a probe that never
    *  flips `checked` can't spin us in a re-render/re-probe loop. */
   probeDone = false;
+  /** True while the 3D scene is mounted. Lets the status-changed listener avoid
+   *  tearing down + remounting a running library (expensive/disruptive) — it
+   *  only re-renders when we're currently showing the gate. */
+  sceneMounted = false;
+  /** Re-render when required-dep status changes elsewhere (e.g. the user fires
+   *  the git installer in Settings, opening the install grace). No-op if the
+   *  library is already up — we only need to lift the interstitial, never remount
+   *  a live scene. */
+  onStatusChanged = () => {
+    if (!this.sceneMounted) this.render();
+  };
   constructor(leaf, host) {
     super(leaf);
     this.host = host;
@@ -176078,13 +176089,16 @@ var TorusView = class extends import_obsidian20.ItemView {
     return "torus";
   }
   async onOpen() {
+    window.addEventListener("torus-required-status-changed", this.onStatusChanged);
     this.render();
   }
   async onClose() {
+    window.removeEventListener("torus-required-status-changed", this.onStatusChanged);
     this.teardownScene();
     this.contentEl.empty();
   }
   teardownScene() {
+    this.sceneMounted = false;
     if (this.root) {
       this.root.unmount();
       this.root = null;
@@ -176129,6 +176143,7 @@ var TorusView = class extends import_obsidian20.ItemView {
   }
   renderScene() {
     this.contentEl.empty();
+    this.sceneMounted = true;
     const container = this.contentEl.createDiv({ cls: "torus-3d-container" });
     this.root = (0, import_client.createRoot)(container);
     this.root.render(
@@ -176609,16 +176624,29 @@ ${body}`).digest("hex").slice(0, 6);
         }
       }
     }
+    const mediaEmbeds = [];
     const attachmentLines = [];
     if (msg.cache_has_attachments) {
+      const imagesDir = (0, import_path.join)(this.config.vaultPath, this.config.torusRoot, "_images");
       const atts = await this.fetchAttachments(msg.ROWID);
       for (const att of atts) {
         if (!att.filename) continue;
         if (att.filename.endsWith(".pluginPayloadAttachment")) continue;
         const resolved = att.filename.startsWith("~/") ? (0, import_path.join)((0, import_os.homedir)(), att.filename.slice(2)) : att.filename;
-        attachmentLines.push(`- \`${resolved}\``);
+        try {
+          const bytes = (0, import_fs.readFileSync)(resolved);
+          const attFilename = `${dateStr}-${hash}-${(0, import_path.basename)(resolved)}`;
+          if (!(0, import_fs.existsSync)(imagesDir)) (0, import_fs.mkdirSync)(imagesDir, { recursive: true });
+          (0, import_fs.writeFileSync)((0, import_path.join)(imagesDir, attFilename), bytes);
+          mediaEmbeds.push(`![[${attFilename}]]`);
+          this.log(`saved attachment: ${attFilename} (${bytes.length} bytes)`);
+        } catch (e2) {
+          this.log(`attachment copy failed for ${resolved}: ${e2.message}`);
+          attachmentLines.push(`- \`${resolved}\` _(couldn't copy into vault)_`);
+        }
       }
     }
+    const attachmentBlock = [...mediaEmbeds, ...attachmentLines];
     const frontmatter = [
       "---",
       "torus_status: pending",
@@ -176628,14 +176656,14 @@ ${body}`).digest("hex").slice(0, 6);
     ].join("\n");
     const parts = [frontmatter, ""];
     if (body.trim()) parts.push("**Original Request:**", body, "");
-    if (attachmentLines.length) parts.push("**Attachments:**", ...attachmentLines, "");
+    if (attachmentBlock.length) parts.push("**Attachments:**", ...attachmentBlock, "");
     parts.push("---", "", `*Captured: ${timestamp}*`, "");
     const content = parts.join("\n");
     const filename = `${dateStr}-${hash}.md`;
     const inputDir = (0, import_path.join)(this.config.vaultPath, this.config.torusRoot, "input-queue");
     if (!(0, import_fs.existsSync)(inputDir)) (0, import_fs.mkdirSync)(inputDir, { recursive: true });
     (0, import_fs.writeFileSync)((0, import_path.join)(inputDir, filename), content, "utf-8");
-    this.log(`created note: ${this.config.torusRoot}/input-queue/${filename} (source=${bodySource}, attachments=${attachmentLines.length})`);
+    this.log(`created note: ${this.config.torusRoot}/input-queue/${filename} (source=${bodySource}, attachments=${attachmentBlock.length})`);
   }
 };
 
@@ -176752,6 +176780,10 @@ var ImessageDetectModal = class extends import_obsidian21.Modal {
 var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
   plugin;
   activeTab = "general";
+  /** One-shot guard: fire a fresh refreshPrereqs on the FIRST display of a
+   *  panel-open (not every re-render — display() is called constantly on tab
+   *  swaps / button clicks). Reset in hide() so the next open re-probes. */
+  autoProbed = false;
   /** Polling handle for the WhatsApp status block. Cleared on tab swap / hide. */
   bridgePoll = null;
   /** Snapshot of last-rendered QR string so we only re-render the SVG on change. */
@@ -176782,6 +176814,7 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
     }
     this.lastQrString = null;
     this.resetInFlight = false;
+    this.autoProbed = false;
   }
   /** Two-tab nav: General (Paths/Assets/Twin) and Bridges (WhatsApp/Email/Misc Creds).
    *  Splits the long settings tab into two shorter panels — each fits the modal at
@@ -176837,6 +176870,11 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
       this.bridgePoll = null;
     }
     this.lastQrString = null;
+    if (!this.autoProbed) {
+      this.autoProbed = true;
+      this.plugin.refreshPrereqs().then(() => this.display()).catch(() => {
+      });
+    }
     this.renderTabNav(containerEl);
     if (this.activeTab === "general") {
       containerEl.createEl("h2", { text: "Paths" });
@@ -176924,7 +176962,7 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
         row.style.margin = "0.5em 0";
         row.createEl("strong", { text: "Install git (required)" });
         const why = row.createEl("div", {
-          text: "Required for the single-click Desktop launcher. Installs Apple\u2019s Command Line Tools; the Terminal launch still works without it."
+          text: "Required to launch your Twin. Installs Apple\u2019s Command Line Tools (git ships inside them)."
         });
         why.style.marginTop = "0.25em";
         why.style.fontSize = "0.9em";
@@ -176936,7 +176974,7 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
         btnRow.style.marginTop = "0.5em";
         const gitBtn = btnRow.createEl("button", { text: "Install git" });
         gitBtn.classList.add("mod-cta");
-        const gitNote = btnRow.createEl("span", { text: "Opens macOS\u2019s Command Line Tools installer (a system dialog; a few minutes)." });
+        const gitNote = btnRow.createEl("span", { text: "Opens Apple\u2019s Command Line Tools installer (git lives inside it). The download isn\u2019t huge, but it takes 5\u201310 minutes \u2014 Apple\u2019s servers are slow, that\u2019s normal, not a hang. Leave it running, then click Recheck." });
         gitNote.style.fontSize = "0.8em";
         gitNote.style.color = "var(--text-muted)";
         gitBtn.onclick = async () => {
@@ -176950,11 +176988,13 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
               this.display();
             } else if (res.started) {
               gitBtn.textContent = "Waiting for macOS installer\u2026";
-              gitNote.textContent = "macOS is asking to install its Command Line Tools \u2014 look for that dialog behind this window (or a bouncing Dock icon), click Install, wait for it to finish, relaunch Claude, then click Recheck above.";
+              gitNote.textContent = "macOS is asking to install its Command Line Tools \u2014 look for that dialog behind this window (or a bouncing Dock icon), click Install, let it run (5\u201310 min; Apple\u2019s servers are slow, not a hang), then click Recheck above.";
               new import_obsidian22.Notice(
-                "macOS Command Line Tools installer opened \u2014 it may be hidden behind this window or in your Dock. Click Install there, let it finish, then relaunch Claude and Recheck.",
+                "macOS Command Line Tools installer opened \u2014 it may be hidden behind this window or in your Dock. Click Install there, let it finish (5\u201310 min), then hit Recheck.",
                 12e3
               );
+              this.plugin.gitInstallInProgress = true;
+              window.dispatchEvent(new Event("torus-required-status-changed"));
             } else {
               new import_obsidian22.Notice(res.error || "Could not start the installer. Install git manually, then Recheck.", 9e3);
               gitBtn.disabled = false;
@@ -179250,7 +179290,9 @@ async function processMessage(client, uid, config, log) {
   const mediaEmbeds = [];
   const imagesDir = (0, import_path4.join)(config.vaultPath, config.torusRoot, "_images");
   for (const att of parsed.attachments || []) {
-    if (!att.contentType.startsWith("image/")) continue;
+    const isImage = att.contentType.startsWith("image/");
+    const isRealAttachment = att.contentDisposition === "attachment";
+    if (!isImage && !isRealAttachment) continue;
     const ext = att.contentType.split("/")[1] || "bin";
     const attFilename = `${dateStr}-${hash}-${att.filename || `attachment.${ext}`}`;
     if (!(0, import_fs6.existsSync)(imagesDir)) (0, import_fs6.mkdirSync)(imagesDir, { recursive: true });
@@ -179714,12 +179756,12 @@ ${text}`).digest("hex").slice(0, 6);
       this.log(`file download HTTP ${res.status} for ${fileId}`);
       return null;
     }
-    const basename2 = `tg-${messageId}-${unixTs}${ext}`;
+    const basename3 = `tg-${messageId}-${unixTs}${ext}`;
     const imagesDir = (0, import_path5.join)(this.config.vaultPath, this.config.torusRoot, "_images");
     if (!(0, import_fs7.existsSync)(imagesDir)) (0, import_fs7.mkdirSync)(imagesDir, { recursive: true });
-    (0, import_fs7.writeFileSync)((0, import_path5.join)(imagesDir, basename2), Buffer.from(res.arrayBuffer));
-    this.log(`saved ${this.config.torusRoot}/_images/${basename2}`);
-    return basename2;
+    (0, import_fs7.writeFileSync)((0, import_path5.join)(imagesDir, basename3), Buffer.from(res.arrayBuffer));
+    this.log(`saved ${this.config.torusRoot}/_images/${basename3}`);
+    return basename3;
   }
   // ── Telegram API helper ──
   /** GET an API method. Returns the parsed JSON ({ ok, result, description }).
@@ -181291,7 +181333,6 @@ Synthesize a final recommendation:
   ".claude/skills/torus-glyph/SKILL.md": 'Generate an argument map canvas (.canvas) for a vault note.\n\nThe argument is either a note title/filename or a vault-relative path. If no argument, ask which note to glyph.\n\nSteps:\n\n1. Find the note in the vault. Search in Sources/ and ../1brain/Research/ if just a title is given.\n2. Read the note content (strip frontmatter).\n3. Decompose it using the glyph prompt below. Output valid JSON only.\n4. Save the .glyph.json to ./canvas/<basename>.glyph.json\n5. Run the layout engine (TODO: replace with protocol handler): `node ~/Code/2brain/scripts/glyph-to-canvas.mjs <glyph-path> ./canvas/`\n6. Embed `![[<basename>.canvas]]` in the source note after the auto-summary callout (if not already present).\n7. Tell the user: "Glyph canvas created: <basename>.canvas"\n\nDecomposition prompt (use this as your system instruction when generating the JSON):\n\n---\n\nYou are decomposing a source note into a structured argument map. Output valid JSON matching the .glyph.json schema below.\n\nProcess:\n\n1. Chunk the source into 3-6 logical sections. Each chunk is a coherent move in the argument (e.g. "The Problem", "The Evidence", "The Response"). Name them with short human-readable labels. Order them in narrative sequence \u2014 first chunk = the starting point, last chunk = the conclusion.\n2. Identify atoms within each chunk. Each atom is one of:\n  - GROUND \u2014 established fact, data point, empirical evidence, definition\n  - CLAIM \u2014 an assertion, interpretation, prediction, or position\n  - RESPONSE \u2014 an attempted action, proposal, or intervention\n\nGive each atom a short unique ID (e.g. "A1", "A2") and a text description of 1-2 sentences max.\n3. Draw relationships between atoms. Use only these types:\n  - supports \u2014 evidence or reasoning that builds up a claim\n  - constrains \u2014 limits, bounds, or qualifies a claim\n  - opposes \u2014 directly contradicts or argues against\n  - leads-to \u2014 therefore, causes, entails\n  - responds-to \u2014 acknowledges a problem and proposes action\n  - contrast \u2014 presents an alternative framing\n\nRelationships can cross chunk boundaries.\n4. Choose layout direction:\n  - vertical if the argument builds upward (most common)\n  - horizontal if it flows laterally from situation to response\n\nRules:\n- Every atom in a relationship must exist in a chunk. No orphan IDs.\n- 1-3 relationships per atom. Fewer, stronger is better.\n- Keep atom text to 1-2 sentences max.\n\nSchema:\n\n{\n  "source": "Author or source name",\n  "title": "Title of the note",\n  "layout": "vertical" | "horizontal",\n  "chunks": [{ "id": "slug", "label": "Name", "atoms": [{ "id": "A1", "type": "CLAIM|GROUND|RESPONSE", "text": "..." }] }],\n  "relationships": [{ "from": "A1", "to": "A2", "type": "supports|constrains|opposes|leads-to|responds-to|contrast" }]\n}\n\nOutput only the JSON. No commentary.\n',
   ".claude/skills/torus-help/SKILL.md": "List all loaded torus skills. One plugin call, then format as a table:\n\n```bash\nobsidian eval 'code=app.plugins.plugins[\"the-torus\"].torusSkillList()'\n```\n\nOutput the result as:\n\n| Skill | Description |\n|-------|-------------|\n| `/torus-xxx` | ... |\n",
   ".claude/skills/torus-link/SKILL.md": 'Link a source note to existing ideas or create new ones.\n\n**Usage:** `/torus-link <note path or fuzzy query>`\n\nThis is a convenience wrapper \u2014 it runs `/torus-anchors` then `/torus-bridges` on the note in sequence.\n\n## Process\n\n1. Resolve the note:\n   ```bash\n   obsidian eval \'code=app.plugins.plugins["the-torus"].torusRead("$ARGUMENTS")\'\n   ```\n   If ambiguous, show matches and ask the user to pick.\n\n2. Run `/torus-anchors <resolved path>` \u2014 extract core claims, propose one at a time.\n3. After anchors are resolved, run `/torus-bridges <resolved path>` \u2014 find cross-domain connections.\n4. Report: "Linked [[note]]: N anchors, M bridges"\n\nAll idea creation, linking, backlinks, and methodology logging are handled by the anchors and bridges skills. This skill just orchestrates.\n\n**TODO:** Port the full structured proposal workflow from the plugin\'s IdeationPanel (registry-aware, room-grouped, with the propose\u2192approve\u2192methodology loop).\n',
-  ".claude/skills/torus-orient/SKILL.md": "---\nname: torus-orient\ndescription: Session startup orientation. Loads the orient packet from disk (manifest + part files), reports status, scans inbox, lists tools.\n---\n\nOrient yourself at the start of this session. Use this whenever the SessionStart hook silently fails to deliver the orient packet (cold-start symptom: you don't have recent transcripts, reflections, or digests in context).\n\n**IMPORTANT: Use ONLY the vault API methods listed below. Do NOT use raw Bash commands (ls, cat, grep, find, head, tail) to access vault files. Do NOT use hardcoded paths. Every vault operation goes through the plugin API via `obsidian eval`. This is non-negotiable.**\n\n## Steps\n\n### 1. Refresh the orient packet on disk\n\n```bash\nobsidian eval \"code=app.plugins.plugins['the-torus'].torusOrientPayload('high', 'manual')\" > /dev/null 2>&1\nsleep 2\n```\n\nFire-and-forget. The eval response may be lost to an obsidian-cli stdin-state race (known bug), but the plugin completes the assembly and writes the manifest + 6 part files to `$torusRoot/.twin/tmp/`. The 2-second wait gives the async session-export step time to finish.\n\n### 2. Read the manifest\n\nUse the Read tool on:\n```\n$torusRoot/.twin/tmp/orient-manifest.md\n```\n\nThe manifest lists 6 part files by absolute path along with the `limit:` value to pass to each Read. It also carries the acknowledgment string you must emit at the end of step 3.\n\n### 3. Read each part file in parallel\n\nIssue 6 Read tool calls **in a single message** \u2014 they're independent and parallel-safe. Use the `limit:` value the manifest specifies for each file (the Read tool defaults to 2000 lines; some part files exceed that, so the explicit limit is required).\n\nAfter all 6 are loaded, you have: context report + activity tail + reflections + recent transcripts + older-session digests. Same as a successful hook delivery.\n\n### 4. Emit the acknowledgment\n\nPart 6 ends with an exact acknowledgment string you must emit. If you omit it, the user knows you skipped the load.\n\n### 5. Check vault API is live\n\n```bash\nobsidian eval 'code=typeof app.plugins.plugins[\"the-torus\"].torusRead'\n```\nIf this doesn't return `function`, stop and tell the user: \"Vault API not available \u2014 is Obsidian running with the Torus plugin?\"\n\n### 6. Run `/torus-status`\n\nThis gets vault stats, inbox count, methodology patterns, and recent sessions \u2014 current-state checks the orient packet's disk snapshot doesn't include.\n\n### 7. Check enrichment queue and inbox\n\n```bash\nobsidian eval 'code=app.plugins.plugins[\"the-torus\"].torusEnrichScan()'\nobsidian eval 'code=app.plugins.plugins[\"the-torus\"].torusInboxList()'\n```\nIf the enrichment queue has pending notes, offer to enrich them (`/torus-enrich`). If the inbox is non-trivial, mention the count.\n\n### 8. Bridge health check\n\n```bash\nobsidian eval 'code=app.plugins.plugins[\"the-torus\"].torusBridgeStatus()'\n```\nReturns a structured snapshot. The bridge is healthy when `running: true` AND `health.ready: true` AND no `persistently_degraded` flag. If `running: false` or `persistently_degraded: true`, warn the user: \"Bridge is down \u2014 WhatsApp capture is offline. Open Services panel to restart.\" Do NOT use `launchctl list` \u2014 the bridge is plugin-spawned (per the `enablePluginSpawnedBridge` setting), not launchd-managed; launchctl will always report \"not found\" even when the bridge is fully alive.\n\n### 9. Check task queue\n\n```bash\nobsidian eval 'code=app.plugins.plugins[\"the-torus\"].torusRead(\"$torusRoot/.twin/controls/tasks.jsonl\")'\n```\nScan for overdue or pending one-shot tasks. Don't execute them \u2014 just mention anything notable.\n\n### 10. Confirm and report\n\nBrief orientation summary (5-10 lines max):\n- Orient packet loaded (number of transcripts + digests + reflections)\n- API status\n- Inbox + enrichment queue counts\n- Bridge status (only mention if DOWN)\n- Overdue/upcoming tasks (only mention if notable)\n- End with: \"What are we working on?\"\n\n## Style\n\nKeep it tight. The user wants to know you're loaded and ready, not read an essay about the vault.\n",
   ".claude/skills/torus-pull/SKILL.md": "---\nname: torus-pull\ndescription: Pull the user's currently-focused Obsidian file into the conversation. The user pops your terminal to front, types /torus-pull, you read the file and react. Replaces the broken \"push to active twin\" pattern from outside.\n---\n\nThe user is looking at a file in Obsidian and wants you to engage with it. Don't ask which file \u2014 they already pointed at it by focusing it.\n\n## Process\n\n### 1. Fetch\n\n```bash\nobsidian eval 'code=app.plugins.plugins[\"the-torus\"].torusActiveFile()'\n```\n\nReturns one of:\n- `{status: \"ok\", path, content}` \u2014 proceed\n- `{error: \"no_active_file\"}` \u2014 no file is focused. Tell the user \"I don't see an active file \u2014 open one in Obsidian and try again.\" Don't guess.\n- `{error: \"not_markdown\", path}` \u2014 they're focused on a non-md file (PDF, image, canvas). Tell them which file and ask if they want you to open the underlying note instead.\n- `{error: \"read_failed\", path, message}` \u2014 filesystem hiccup. Surface the message verbatim.\n\n### 2. React, don't summarize\n\nYou have the content. The user already knows what's in it \u2014 they're staring at it. So don't open with a summary unless they ask. Engage with the substance:\n\n- **If it's a Source/Research note** \u2014 what's interesting, what connects, what's missing. Run qmd against named entities so retrieval is grounded.\n- **If it's an Idea note** \u2014 does it hold up? What sources support or contradict? Are there sibling ideas it should link to?\n- **If it's an Input note** (unenriched) \u2014 say what it looks like and ask what they want to do with it (enrich? defer? trash?).\n- **If it's an arbitrary `.twin/` file or note draft** \u2014 read it carefully and ask what they need.\n\n### 3. Voice\n\nYou're stepping into a context the user already has. Skip throat-clearing. One sharp observation beats a structured summary.\n\n## Anti-patterns\n\n- **Don't ask \"which file?\"** \u2014 `torusActiveFile()` answered that already.\n- **Don't summarize what they can see.** They're staring at it.\n- **Don't fabricate continuity.** If the note is unfamiliar, say so honestly and ask what they want to do.\n- **Don't auto-edit.** They invoked /torus-pull to talk, not to mutate the file. Wait for instruction.\n",
   ".claude/skills/torus-quiz/SKILL.md": 'Run a recall quiz for the user.\n\n**Arguments:** `$ARGUMENTS` (optional: `-morning` or `-night`)\n\n## Determine mode\n\nIf the user passed `-morning` or `-night`, use that. Otherwise check the current time:\n- Before 2pm \u2192 morning mode\n- 2pm or later \u2192 night mode\n\n## Setup\n\n1. Read the manifest to understand room/shelf structure.\n2. Search sources for recently shelved notes by checking frontmatter `shelved_on` dates (or `processed_on` / file modification dates as fallback).\n3. Read the notes you\'ll quiz on \u2014 you need the actual content to push back, correct, and extend.\n4. Identify:\n   - **Today\'s notes:** shelved today\n   - **Yesterday\'s notes:** shelved yesterday\n   - **This week\'s notes:** shelved in the last 7 days (excluding today/yesterday)\n\n## Night quiz\n\nFocus: what did we learn TODAY, and how does it connect to the recent past?\n\n1. Pick today\'s shelved notes (all of them if \u2264 8, random sample of 8 if more).\n2. Pick 3-5 notes from the preceding few days as connection targets.\n3. **Go one at a time.** For each note:\n   - Ask a specific question about it \u2014 not "what was this about?" but something that tests whether the user absorbed the key claim or surprising detail. Use the content you read.\n   - Wait for the user\'s answer.\n   - Grade it honestly: what they got right, what they missed, what they got wrong. Fill in the interesting parts they skipped. If they push back on something, engage with it.\n   - Then move to the next note.\n4. After individual recall, do 2-3 **cross-connections:** pair a today note with an earlier note and ask how they relate. Give your own take after the user answers.\n\n## Morning quiz\n\nFocus: 50% yesterday, 50% older (this week).\n\n1. Pick yesterday\'s shelved notes (all if \u2264 6, random sample of 6 if more).\n2. Pick 4-6 notes from the rest of the week.\n3. **Go one at a time**, same depth as night mode:\n   - Specific question per note, wait, grade, extend.\n   - Start with yesterday\'s notes, then weave in older ones.\n4. After individual recall, do 2-3 **cross-connections** pairing yesterday with earlier in the week.\n\n## Style\n\n- **One at a time, with depth.** This is a conversation, not a checklist. Spend 2-3 exchanges per note if the user engages.\n- **Ask specific questions**, not "what do you remember about X?" Ask about the surprising claim, the key number, the counterargument, the person who said it.\n- **Push back when they\'re wrong.** Partial credit is fine, but don\'t let incorrect details slide. Correct with the actual content.\n- **Follow tangents that matter.** If the user\'s answer connects to something else they\'ve been thinking about, follow it briefly before moving on.\n- **Adjust difficulty.** If they clearly read a note deeply, ask harder follow-ups. If they only glanced at it, ask the headline question and fill in the rest.\n- Keep it light \u2014 retrieval practice, not an exam. Praise good recall. For gaps, frame it as "here\'s one worth revisiting."\n- End with a summary: "You got N of M. Sharp on [topics]. Worth revisiting: [list]."\n- Log the score via: `obsidian eval \'code=app.plugins.plugins["the-torus"].torusLog("quiz_user", "{\\"score\\":N,\\"total\\":M,\\"sharp\\":[\\"...\\"],\\"revisit\\":[\\"...\\"]}")\'`\n',
   ".claude/skills/torus-reflect/SKILL.md": '---\nname: torus-reflect\ndescription: Overnight editorial reflection. Names what\'s unresolved, where arguments got stuck, deferral patterns, speculative bridges, and real sourcing gaps. Written for morning-Zero, who already has the week\'s transcripts and digests loaded at orient.\n---\n\nYou are Zero writing an editorial note for morning-Zero. Morning-Zero will already have the last ~7 days of transcripts and ~2 weeks of digests auto-loaded via the orient hook \u2014 he doesn\'t need you to tell him what happened this week.\n\nYour job is to tell him **what it meant**: what keeps circling, what\'s stuck, what decisions are pending, where a surprising connection is waiting to be named. Editorial commentary, not analytics. Strong opinions. Skip sections where you don\'t have a real observation.\n\n## Steps\n\n### 1. Load what you need\nThe context report, recent session digests, and activity log are what you\'re working from. Load explicitly if needed:\n\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusRead("$torusRoot/.twin/context/context-report.md")\'\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusLogQuery(undefined, undefined, 100)\'\n```\n\nRead the last 10 session digests for what\'s been worked on. You\'re pattern-matching across sessions, not summarizing them one by one.\n\n### 2. Identify the editorial observations\n\nFive kinds of signals. The first three are *observational* (looking at what already happened); the last two are *generative* (proposing what should happen next).\n\n**Unresolved threads** \u2014 Questions James asked that never got answered. Decisions flagged but deferred. Tangents named as "worth coming back to" that weren\'t. Don\'t list everything unresolved \u2014 list what\'s *still live* and still mattering.\n\n**Deferral patterns** \u2014 Things James keeps circling without acting on. "Four sessions mentioning prompts-as-prosthetics without an idea created" is a pattern. "The enrich dedup bug diagnosed twice, still not fixed" is a pattern. Be specific about the pattern and the count.\n\n> **What counts as "action" / "disposition" / "extraction"** \u2014 read this before writing the deferral-pattern section.\n>\n> James reframed extraction (May 2026): it\'s *any deliberate disposition*, not idea-creation specifically. Read+delete on a briefing is extraction. Splice+shelve on a deep source is extraction. Summarizing without linking is extraction. The activity-log signals to count together:\n>\n> - `idea_approved`, `idea_create`, `idea_link`, `idea_rejected` \u2014 anchor-layer moves\n> - `insert_from_file`, `insert_from_chat` \u2014 splice / deep-summary written into a source\n> - `summarize`, `resummarize` \u2014 summary work\n> - `add_note`, `eject` \u2014 explicit adoption / removal\n> - `consolidate`, `repoint`, `dupe_scan_anchor`, `dupe_keep` \u2014 vault-mutation\n> - *(known gap: `note_deleted` and inbox\u2192shelved transitions aren\'t logged yet \u2014 when Boris ships those events, count them too)*\n>\n> **Don\'t** frame anything as "extraction has not run in N days" if you\'re only counting `idea_*` events. That framing is wrong-sized for James\'s workflow \u2014 got called out in the May 8 disposition discussion. The correct frame, when extraction-rate is the topic: "anchor-layer linking has been quiet for N days, but disposition rate over the same window has been M events/day." Two-axis picture, not one.\n\n**Arguments that got stuck** \u2014 Where back-and-forth reached a friction point and stayed there. James disagreeing with your take and neither of you budging. A framework that didn\'t quite land. Name them so next time you can either push through or let it go cleanly.\n\n**Speculative bridges** \u2014 2-3 cross-domain connections James hasn\'t drawn yet. Ideas in different rooms sharing an underlying principle. Recent sources that link to old ideas in non-obvious ways. Be creative; James values surprising connections over obvious ones. This is the one section where you\'re generative, not just observational. Use qmd to stress-test before proposing.\n\n**Real sourcing gaps** \u2014 Topics James has been discussing in sessions but the vault is thin on. Cross-check via qmd before naming a gap \u2014 what *feels* thin sometimes isn\'t.\n\n```bash\n./.claude/.torus-async.sh \'app.plugins.plugins["the-torus"].torusSearch("topic", "sources")\'\n```\n\n### 3. Write the report\n\nFilename:\n- **Overnight cron run:** `.twin/context/reflections/YYYY-MM-DD-overnight-reflection.md`\n- **Second run same-day:** `.twin/context/reflections/YYYY-MM-DD-reflection-HHMM.md` (e.g. `2026-04-23-reflection-1930.md`)\n\nIf the overnight file already exists, don\'t overwrite \u2014 write a timestamped file.\n\nUse the Write tool:\n\n```markdown\n# Reflection \u2014 YYYY-MM-DD\n\n## What\'s Unresolved\n- <specific thread or decision> \u2014 <what\'s hanging, why it matters>\n\n## You Keep Circling\n- <pattern> \u2014 <how many times, without action>\n\n## Where the Argument Got Stuck\n- <the friction point> \u2014 <what neither of you budged on>\n\n## Speculative Bridges\n- [[idea-a]] \u2194 [[idea-b]] \u2014 <the surprising link and why it matters>\n\n## Sourcing Gaps\n- <topic> \u2014 <what the vault is thin on, confirmed via qmd>\n\n## Meta\n- Generated: YYYY-MM-DD HH:MM:SS TZ\n- Digests analyzed: N\n- Activity entries scanned: N\n```\n\n**Skip any section where you don\'t have a real observation.** No "None this session" padding. If the reflection is sparse, it\'s sparse \u2014 that\'s honest. A workflow-only week may produce a 3-line reflection. That\'s correct.\n\n## Principles\n\n- **No coined rule names in prose.** If you find yourself writing "demote rule (b)" or "the X anchor frame" or any other label-shaped reference to your own internal logic, stop. Reflections are read by morning-Zero AND eventually surface to the user via briefings. The user doesn\'t have your rulebook; "demote rule (b) fired" means nothing to him. Either name the actual behavior ("dropped the NVDA opener after 6 cycles of no movement") or skip the meta-framing entirely. Coined labels for your own self-prompts are fine in your head; they don\'t belong in a written artifact.\n- **Editorial, not analytics.** Morning-Zero has the raw material loaded. Don\'t re-summarize. Tell him something he can\'t see from reading his own transcripts \u2014 the *pattern across* them.\n- **Opinionated.** "This decision is stuck because X" beats "this decision is pending."\n- **Specific.** "Prompts-as-prosthetics mentioned in 4 sessions, no idea created" beats "the user keeps mentioning an idea."\n- **Lean.** 3-5 lines per section max. If you can\'t be specific and short, the observation isn\'t ready.\n- **Respect silence.** Not every week needs every section. The reflect prompt doesn\'t require you to fill structure \u2014 it requires you to find what mattered.\n\n## What this skill is NOT\n\n- **Not a session summary.** Digests cover that.\n- **Not a vault fact sheet.** Context report covers that.\n- **Not a consolidation finder.** `/torus-find-dupes` covers that.\n- **Not a status report.** If morning-Zero wanted status, he\'d read the logs.\n\nIt\'s the one artifact that asks: *what does all of this mean, and what should happen next?*\n',
@@ -181302,9 +181343,10 @@ Synthesize a final recommendation:
   ".claude/skills/torus-schedule/SKILL.md": '---\nname: torus-schedule\ndescription: Show the task queue \u2014 what\'s been run, what\'s next, what\'s overdue. Formats in the user\'s local timezone.\n---\n\nShow the user the autonomous task schedule: what runs headless, when each last ran, when each is next due, and what\'s overdue.\n\n## Steps\n\n### 1. Get schedule data\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusSchedule()\'\n```\n\nReturns `{ now, tasks: [{ id, type, description, action, schedule_hours, last_run, next_due, overdue_hours, status }] }`. All timestamps are ISO/UTC.\n\n### 2. Get local timezone\n```bash\ndate +\'%Z %z\'\n```\ne.g. `EDT -0400` or `AST -0400` \u2014 use whatever the user\'s system reports.\n\n### 3. Format as table\n\nRender all timestamps in local time using the TZ from step 2. Sort: overdue first (highest `overdue_hours` on top), then upcoming (soonest next_due), then inactive/pending at the bottom.\n\nFor recurring tasks, show schedule as `Ns`/`Nm`/`Nh`/`Nd` (e.g. `6h`, `24h`, `14d` for 336h).\n\n```\nSchedule (local time: <TZ>)\n\n| Task              | Description                         | Every | Last run       | Next due       | Status           |\n|-------------------|-------------------------------------|-------|----------------|----------------|------------------|\n| x-digest          | Poll X watchlist, score, digest     | 6h    | Apr 17 02:48am | Apr 17 08:48am | **5h overdue**   |\n| context-update    | Refresh context report              | 12h   | Apr 17 02:48am | Apr 17 02:48pm | in 3h 12m        |\n| reflect           | Overnight reflection                | 24h   | Apr 17 02:48am | Apr 18 02:48am | in 15h 12m       |\n| agent-economy-... | Biweekly rail-war signals check     | 14d   | Apr 17 01:55pm | May 01 01:55pm | interactive-only |\n| object-zero-...   | Check Object_Zero_ for new posts    | once  | \u2014              | Apr 22         | pending          |\n```\n\nFormatting rules:\n- Task ids wider than ~18 chars: truncate with `\u2026`\n- Descriptions wider than ~40 chars: truncate with `\u2026`\n- Dates: `MMM DD hh:mm` in 12h format with am/pm\n- Overdue tasks: **bold** the status cell with the hours overdue\n- Upcoming tasks: "in Xh Ym"\n- `interactive-only` action: show as "interactive-only" in status, not "overdue" (these are surfaced at orient, not auto-run)\n\n### 4. Offer next action\n\nAfter the table:\n- If anything is overdue, say: "Overdue tasks will fire on the next taskrunner kick. To run now, say \'run the taskrunner\'."\n- If nothing overdue: "All on schedule."\n\n## Running the taskrunner on demand\n\nWhen the user says "run it now", "kick the taskrunner", or similar, just invoke `/torus-taskrunner` in your current session. That runs the queue in-context, user sees the output live. No launchd kick needed.\n',
   ".claude/skills/torus-self-test/SKILL.md": 'Test whether your context harness gives you accurate knowledge of the vault.\n\n**Theory:** This is an information-loss audit. You\'re testing whether the distillation pipeline (raw vault \u2192 context-report \u2192 your working knowledge) preserves enough signal for you to operate accurately. You are NOT testing comprehension, synthesis quality, or judgment \u2014 just whether the data made it through.\n\n## Setup (one batch)\n\nLoad these three in parallel if possible:\n1. Context report: `obsidian eval \'code=app.plugins.plugins["the-torus"].torusRead("$torusRoot/.twin/context/context-report.md")\'`\n2. Recent activity: `obsidian eval \'code=app.plugins.plugins["the-torus"].torusLogQuery(undefined, undefined, 50)\'`\n3. Manifest: `obsidian eval \'code=app.plugins.plugins["the-torus"].torusRead("$torusRoot/torus-manifest.md")\'`\n\n## Generate questions AND answer them (single pass)\n\nFrom your context alone (without reading source notes), generate 10 questions and answer each immediately. Cover:\n- **Factual recall** (3-4): "What is the core claim of [note X]?" / "Which shelf is [note Y] on?"\n- **Cross-connections** (2-3): "What do [note A] and [note B] have in common?"\n- **Methodology alignment** (1-2): "Based on recent approvals/rejections, would the user approve an idea about [topic]?"\n- **Temporal awareness** (1-2): "What was shelved most recently?" / "What topic has the user been focused on this week?"\n- **Structural knowledge** (1): "How many notes are in [room]?" / "Which room has the most recent activity?"\n\nOutput all 10 Q&A pairs. Then list the note paths you need to verify against.\n\n## Verify (one batch call)\n\nRead all verification notes in ONE call:\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusReadBatch(JSON.stringify(["path1","path2","path3"]))\'\n```\n\n## Score and report\n\nScore each: \u2705 correct, \u26A0\uFE0F partially correct, \u274C wrong, \u{1F573}\uFE0F no context available.\n\nThe \u{1F573}\uFE0F verdict is the most important \u2014 it means the pipeline has a blind spot.\n\nPresent as a table, then summarize:\n- **Score**: N/M correct (percentage)\n- **Context gaps**: What information was missing or stale?\n- **Recommendations**: Specific changes to context-report generation that would have helped.\n\nLog: `obsidian eval \'code=app.plugins.plugins["the-torus"].torusLog("quiz_self", "{\\"score\\":N,\\"total\\":M,\\"gaps\\":[\\"...\\"]}")\'`\n\n## Style\n\nBe honest. The point is to find holes, not to prove the system works.\n',
   ".claude/skills/torus-splice/SKILL.md": '---\nname: torus-splice\ndescription: File a chat artifact (summary, synthesis, note draft) into a target note by splicing its exact bytes from the session JSONL. Handles phrase selection, anchor defaults, title synthesis, and post-fire verification so you don\'t reinvent them each time.\n---\n\nYou\'re filing something you already produced in chat. Don\'t regenerate through Edit \u2014 splice via `torusInsertFromChat` in <1s.\n\n## Process\n\n### 1. Resolve the reference\n\nWhat\'s getting filed and where? Two questions:\n- **Which turn of mine?** "That summary" \u2192 most recent substantive turn. "The Tangle dive" / "the one about X" \u2192 scan your recent turns for the one that matches. "What you just said" \u2192 immediate prior.\n- **Which note?** Usually stated in the user\'s request. If not, ask.\n\n### 2. Pick the `contains` phrase\n\nWalk the target turn\'s text. Pick a 3-5 word distinctive substring. **Prefer spine over surface:**\n- Structural markers (section headers, formatted expressions): `### Why this is third-generation, not first`\n- Proper-noun chains: `Tangle Tangent SimGym`\n- Named concepts: `content-addressed hashing`, `HSTU counterfactuals`\n\n**Avoid:**\n- Thematic phrases likely to recur in followup chat ("the summary", "Shopify\'s approach")\n- Common words ("interesting", "important")\n- Fragments you might\'ve said in other turns today\n\nIf the target turn has no obvious distinctive phrase, check whether it predates the recent Q&A (older turns are less at risk of collision).\n\n### 3. Pick the anchor + position (defaults by note type)\n\n| Target type | Default anchor | Position |\n|---|---|---|\n| `Sources/...` | `## Fetched Content` | `before` |\n| `Ideas/...` | `## Sources` | `before` |\n| Other | Ask the user |\n\nThese defaults reflect convention: Sources notes end with the scraped article under `## Fetched Content`; your synthesis goes above it. Ideas notes end with the `## Sources` attribution list; new synthesis goes above it.\n\nBreak the default only when the user specifies otherwise.\n\n### 4. Synthesize a title\n\nWrite a 5-8 word section title that captures what the insertion is about. Pass it as `title`.\n\nExamples:\n- Tangle dive \u2192 `"Tangle \u2014 Shopify\'s reproducibility substrate"`\n- Follow-up on anti-swarm thesis \u2192 `"Why parallel swarms fail"`\n- Analysis of HSTU counterfactuals \u2192 `"HSTU as RL-shaped measurement"`\n\n### 5. Echo only if ambiguous\n\nIf the pick is unambiguous (one clear phrase, obvious target, standard anchor), just fire. Don\'t waste a roundtrip asking.\n\n**Echo when:**\n- Multiple candidate turns match your phrase (you could say "the first occurrence" or the user could redirect)\n- Target note is ambiguous\n- Non-default anchor\n- You\'re not confident the content lacks chrome you\'d rather not file\n\nEcho format: `Filing "[phrase]" into [note name] before [anchor]. Fire?`\n\n### 6. Fire\n\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusInsertFromChat({contains: "[phrase]", targetPath: "$torusRoot/Sources/...", anchor: "[anchor]", position: "before", title: "[title if needed]"})\'\n```\n\n### 7. Verify\n\n**Always verify via the target file, never trust stdout alone.** CC\'s Bash tool sometimes swallows output on this call \u2014 empty output does NOT mean failure.\n\n```bash\ngrep -n "[the same phrase]" "/full/path/to/target.md"\n```\n\n- Found at a new line \u2192 success, report inserted bytes + done\n- Not found \u2192 check `ok: false` in stdout if visible; else report empty stdout and stop (don\'t retry)\n\n### 8. Incremental surgery\n\nSame `anchor` + `"before"` on a second call stacks new content between the first splice and the anchor. No state to track \u2014 just fire again with a new `contains`.\n\n## Common failure modes\n\n- `contains_not_found` \u2014 the phrase wasn\'t in any completed turn. Check spelling; pick a different phrase.\n- `anchor_not_found` \u2014 anchor text isn\'t in the target. Verify the note\'s structure.\n- `anchor_ambiguous` \u2014 multiple occurrences; pick a more specific anchor.\n- `target_not_found` \u2014 path resolution failed. Use `$torusRoot/`-prefixed path, not bare `Sources/...`.\n- Empty stdout + content IS in target \u2192 success despite display; report and move on.\n- Empty stdout + content NOT in target \u2192 real failure; report and ask user.\n\n## What this skill does NOT do\n\n- Generate the content. You produce the artifact in-chat as part of normal work, the skill just files it.\n- Edit the content after splicing. If trailing chrome landed in the note, use Edit to trim.\n- Create the target note. If the target doesn\'t exist, use `torusWrite(..., mode: "new")` first.\n',
-  ".claude/skills/torus-status/SKILL.md": '---\nname: torus-status\ndescription: Report vault stats, methodology patterns, inbox status, and recent activity. Called by /torus-orient, also available standalone.\n---\n\nReport the current state of the Torus vault. Be concise \u2014 use numbers, not narrative.\n\n**IMPORTANT: Use ONLY the vault API methods listed below. Do NOT use raw Bash commands (ls, cat, grep, find, head, tail) to access vault files. Do NOT use hardcoded paths. Every vault operation goes through the plugin API via `obsidian eval`. This is non-negotiable.**\n\n## Steps\n\n### 1. Vault stats\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusVaultStats()\'\n```\n\n### 2. Enrichment queue and inbox\n```bash\n# Raw captures in tmp/ awaiting enrichment\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusEnrichScan()\'\n# Enriched notes awaiting shelving \u2014 rendered as the Inbox stack in the 3D library\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusInboxList()\'\n```\n\n### 3. Recent activity\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusLogQuery(undefined, undefined, 20)\'\n```\nSummarize by type (reads, searches, approvals, rejections, quiz scores).\n\n### 4. Methodology patterns\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusLogQuery("idea_approved", undefined, 50)\'\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusLogQuery("idea_rejected", undefined, 50)\'\n```\nSummarize: approval rate, most common rejection reasons, what the user values.\n\n### 5. Recent sessions\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusSessionList(5)\'\n```\n\n## Output Format\n\n```\nVault: X sources, Y ideas, Z rooms, W shelves\nEnrichment queue: N pending captures awaiting the librarian [list if N > 0]\nInbox: N notes awaiting shelving [count only unless user asks to see them]\nActivity: N log entries. [brief summary by type]\nMethodology: F% approval rate. Patterns: [2-3 bullet summary]\nRecent sessions: [list of last 5 topics with dates]\n```\n',
+  ".claude/skills/torus-status/SKILL.md": '---\nname: torus-status\ndescription: Report vault stats, methodology patterns, inbox status, and recent activity. Called by /torus-twin-orient, also available standalone.\n---\n\nReport the current state of the Torus vault. Be concise \u2014 use numbers, not narrative.\n\n**IMPORTANT: Use ONLY the vault API methods listed below. Do NOT use raw Bash commands (ls, cat, grep, find, head, tail) to access vault files. Do NOT use hardcoded paths. Every vault operation goes through the plugin API via `obsidian eval`. This is non-negotiable.**\n\n## Steps\n\n### 1. Vault stats\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusVaultStats()\'\n```\n\n### 2. Enrichment queue and inbox\n```bash\n# Raw captures in tmp/ awaiting enrichment\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusEnrichScan()\'\n# Enriched notes awaiting shelving \u2014 rendered as the Inbox stack in the 3D library\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusInboxList()\'\n```\n\n### 3. Recent activity\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusLogQuery(undefined, undefined, 20)\'\n```\nSummarize by type (reads, searches, approvals, rejections, quiz scores).\n\n### 4. Methodology patterns\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusLogQuery("idea_approved", undefined, 50)\'\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusLogQuery("idea_rejected", undefined, 50)\'\n```\nSummarize: approval rate, most common rejection reasons, what the user values.\n\n### 5. Recent sessions\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusSessionList(5)\'\n```\n\n## Output Format\n\n```\nVault: X sources, Y ideas, Z rooms, W shelves\nEnrichment queue: N pending captures awaiting the librarian [list if N > 0]\nInbox: N notes awaiting shelving [count only unless user asks to see them]\nActivity: N log entries. [brief summary by type]\nMethodology: F% approval rate. Patterns: [2-3 bullet summary]\nRecent sessions: [list of last 5 topics with dates]\n```\n',
   ".claude/skills/torus-summarize/SKILL.md": 'Fetch and summarize a URL. The plugin fetches the content (YouTube transcripts, Twitter/X API, CORS bypass) and writes it to a file. You read and summarize directly \u2014 no subagent, no API key required.\n\n## Process\n\n### 1. Fetch\n\n```bash\n./.claude/.torus-async.sh \'app.plugins.plugins["the-torus"].torusFetchToFile("$ARGUMENTS")\'\n```\n\nReturns `{ filePath, url, title, source, chars }`. The content is already written to `filePath`.\n\n### 2. Check size and ask\n\nIf `chars` > 30000, ask the user:\n\n> "This is a [chars] character transcript ([title]). Read the full thing for a comprehensive summary, or a ~10K excerpt for a quick one?"\n\nFor content under 30K chars, skip this step and read it all.\n\n### 3. Read the content\n\nUse the Read tool on `filePath`. The file auto-cleans after 5 minutes.\n\n### 4. Summarize\n\nSummarize comprehensively. Structure as:\n- **Title** and source metadata (author, date if available)\n- **Source URL**\n- **Key points** \u2014 the main arguments, findings, or claims\n- **Notable details** \u2014 specific examples, data, quotes worth remembering\n\nIf working from an excerpt, note that the summary covers the first portion only.\n\n### 5. Your take\n\nAdd connections to existing vault ideas, what\'s surprising, what to explore further.\n\nDo NOT auto-save. The user will use `/torus-input` if they want to save it.\n',
   ".claude/skills/torus-taskrunner/SKILL.md": '---\nname: torus-taskrunner\ndescription: Task runner. Reads .twin/controls/tasks.jsonl, spawns parallel subagents to execute overdue tasks (so the main thread isn\'t locked), stamps completion, exits. Runs headless via launchd kick or on demand from Zero.\n---\n\nRun the task queue. Your role is **orchestration only** \u2014 you read the queue, spawn a subagent per overdue task, collect results, update timestamps. Never run the task skills yourself in the main thread.\n\n## Steps\n\n### 1. Check vault API is live\n```bash\nobsidian eval \'code=typeof app.plugins.plugins["the-torus"].torusRead\'\n```\nIf this doesn\'t return `function`, exit silently. Obsidian isn\'t running \u2014 nothing to do.\n\n### 2. Get the Twin model and home directory\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusTwinModel()\'\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusHome()\'\n```\nSave these \u2014 subagents need them.\n\n### 3. Read the schedule\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusSchedule()\'\n```\nReturns `{ now, tasks: [{ id, type, action, schedule_hours, last_run, next_due, overdue_hours, status, ... }] }`.\n\n### 4. Identify overdue tasks\n\nA task is due for auto-run if ALL of:\n- `overdue_hours > 0`\n- `status` is `active` (recurring) or `pending` (once)\n- `action` is NOT `interactive-only` \u2014 these only surface at orient, never auto-run\n\nIf nothing is due, log "no tasks due" and exit silently. No subagents, no output.\n\n### 5. Spawn parallel subagents\n\n**Send a single message with one Agent tool call per overdue task.** All subagents run in parallel.\n\nFor each overdue task, launch an Agent with:\n- `model: <twin_model>` (from step 2)\n- `description`: short, e.g. `"Run x-digest task"`\n- `prompt`:\n\n> You are running a single scheduled task for the Torus. Execute the skill and return a one-line status.\n>\n> **IMPORTANT:** Before any bash commands, run `cd <torusHome>` (the absolute path you were given).\n>\n> Run: `<action>` (the task\'s action string, e.g. `/torus-digest-x`)\n>\n> When finished, reply with a single line: either `OK: <short result>` or `ERROR: <short reason>`.\n> Do NOT return a report, summary, or table. One line. The main thread handles reporting.\n\n### 6. Collect results and update timestamps\n\nOnce all subagents return:\n- For each `OK:` result: set `last_run` to current ISO timestamp. For `type: once`, also set `status: done`.\n- For each `ERROR:` result: leave `last_run` unchanged; log the error.\n\nWrite the updated tasks.jsonl back:\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusWrite("$torusRoot/.twin/controls/tasks.jsonl", "UPDATED_CONTENT", "overwrite")\'\n```\n\n### 7. Log the run\n\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusLog("taskrunner", "{\\"ran\\":[\\"id1\\",\\"id2\\"],\\"errors\\":[]}")\'\n```\n\n### 8. Brief summary\n\nOutput a terse one-paragraph summary \u2014 list task ids that ran with their one-line results. No tables, no expansion. Exit.\n\n## Adding tasks\n\n**Recurring:**\n```jsonl\n{"id":"my-task","type":"recurring","schedule_hours":24,"action":"/torus-some-skill","description":"Short label","last_run":null,"status":"active"}\n```\n\n**One-shot:**\n```jsonl\n{"id":"followup-x","type":"once","due":"2026-04-22","action":"/torus-research topic","description":"Short label","status":"pending"}\n```\n\n**Interactive-only** (orient surfaces, never auto-run):\n```jsonl\n{"id":"my-check","type":"recurring","schedule_hours":336,"action":"interactive-only","description":"Biweekly X check","last_run":"2026-04-17T00:00:00Z","status":"active"}\n```\n\nRemoving/pausing: set `status: done` (one-shot) or `status: paused` (recurring). Don\'t delete lines \u2014 history is useful.\n\n## Principles\n\n- **Orchestrate, don\'t execute.** The main thread spawns subagents and collects results. It never runs a task\'s skill inline.\n- **Parallel by default.** Tasks don\'t depend on each other in any enforced way. Launch all subagents in one message.\n- **Silent when idle.** If nothing is overdue, exit immediately.\n- **Terse output.** The point of the taskrunner isn\'t the main thread\'s report \u2014 it\'s the artifacts (digests, reflections) the subagents write. Don\'t expand.\n- **Failures are temporary.** A subagent error leaves `last_run` unchanged, so the next kick retries automatically.\n',
+  ".claude/skills/torus-twin-orient/SKILL.md": "---\nname: torus-twin-orient\ndescription: Session startup orientation. Loads the orient packet from disk (manifest + part files), reports status, scans inbox, lists tools.\n---\n\nOrient yourself at the start of this session. Use this whenever the SessionStart hook silently fails to deliver the orient packet (cold-start symptom: you don't have recent transcripts, reflections, or digests in context).\n\n**IMPORTANT: Use ONLY the vault API methods listed below. Do NOT use raw Bash commands (ls, cat, grep, find, head, tail) to access vault files. Do NOT use hardcoded paths. Every vault operation goes through the plugin API via `obsidian eval`. This is non-negotiable.**\n\n## Steps\n\n### 1. Refresh the orient packet on disk\n\n```bash\nobsidian eval \"code=app.plugins.plugins['the-torus'].torusOrientPayload('high', 'manual')\" > /dev/null 2>&1\nsleep 2\n```\n\nFire-and-forget. The eval response may be lost to an obsidian-cli stdin-state race (known bug), but the plugin completes the assembly and writes the manifest + 6 part files to `$torusRoot/.twin/tmp/`. The 2-second wait gives the async session-export step time to finish.\n\n### 2. Read the manifest\n\nUse the Read tool on:\n```\n$torusRoot/.twin/tmp/orient-manifest.md\n```\n\nThe manifest lists 6 part files by absolute path along with the `limit:` value to pass to each Read. It also carries the acknowledgment string you must emit at the end of step 3.\n\n### 3. Read each part file in parallel\n\nIssue 6 Read tool calls **in a single message** \u2014 they're independent and parallel-safe. Use the `limit:` value the manifest specifies for each file (the Read tool defaults to 2000 lines; some part files exceed that, so the explicit limit is required).\n\nAfter all 6 are loaded, you have: context report + activity tail + reflections + recent transcripts + older-session digests. Same as a successful hook delivery.\n\n### 4. Emit the acknowledgment\n\nPart 6 ends with an exact acknowledgment string you must emit. If you omit it, the user knows you skipped the load.\n\n### 5. Check vault API is live\n\n```bash\nobsidian eval 'code=typeof app.plugins.plugins[\"the-torus\"].torusRead'\n```\nIf this doesn't return `function`, stop and tell the user: \"Vault API not available \u2014 is Obsidian running with the Torus plugin?\"\n\n### 6. Run `/torus-status`\n\nThis gets vault stats, inbox count, methodology patterns, and recent sessions \u2014 current-state checks the orient packet's disk snapshot doesn't include.\n\n### 7. Check enrichment queue and inbox\n\n```bash\nobsidian eval 'code=app.plugins.plugins[\"the-torus\"].torusEnrichScan()'\nobsidian eval 'code=app.plugins.plugins[\"the-torus\"].torusInboxList()'\n```\nIf the enrichment queue has pending notes, offer to enrich them (`/torus-enrich`). If the inbox is non-trivial, mention the count.\n\n### 8. Bridge health check\n\n```bash\nobsidian eval 'code=app.plugins.plugins[\"the-torus\"].torusBridgeStatus()'\n```\nReturns a structured snapshot. The bridge is healthy when `running: true` AND `health.ready: true` AND no `persistently_degraded` flag. If `running: false` or `persistently_degraded: true`, warn the user: \"Bridge is down \u2014 WhatsApp capture is offline. Open Services panel to restart.\" Do NOT use `launchctl list` \u2014 the bridge is plugin-spawned (per the `enablePluginSpawnedBridge` setting), not launchd-managed; launchctl will always report \"not found\" even when the bridge is fully alive.\n\n### 9. Check task queue\n\n```bash\nobsidian eval 'code=app.plugins.plugins[\"the-torus\"].torusRead(\"$torusRoot/.twin/controls/tasks.jsonl\")'\n```\nScan for overdue or pending one-shot tasks. Don't execute them \u2014 just mention anything notable.\n\n### 10. Confirm and report\n\nBrief orientation summary (5-10 lines max):\n- Orient packet loaded (number of transcripts + digests + reflections)\n- API status\n- Inbox + enrichment queue counts\n- Bridge status (only mention if DOWN)\n- Overdue/upcoming tasks (only mention if notable)\n- End with: \"What are we working on?\"\n\n## Style\n\nKeep it tight. The user wants to know you're loaded and ready, not read an essay about the vault.\n",
   ".claude/skills/torus-unlink/SKILL.md": "Remove a source note's link from an idea.\n\n**Usage:** `/torus-unlink <note path>`\n\nRead the note at `$ARGUMENTS`. Then:\n\n1. Find all ideas in `2brain/Ideas/` that reference this note in their Sources section.\n2. List them and ask the user which link(s) to remove.\n3. For each confirmed removal:\n   - Remove the source attribution line from the idea\n   - If the idea has no remaining sources, ask whether to delete the idea entirely\n4. Update the note's frontmatter `idea_links` array accordingly.\n\n**TODO:** This is a placeholder \u2014 port the full unlink logic from the plugin's IdeationPanel.\n",
   ".claude/skills/torus-write/SKILL.md": '---\nname: torus-write\ndescription: Create a new Sources/ note synthesized from the current conversation (or verbatim with -v).\n---\n\nCreate a new note in the vault from this session. Writes directly to Sources/ in inbox state \u2014 already has a summary and proposed shelf, so it skips the auto-pipeline and lands ready for human triage at the sorting desk.\n\n## Arguments\n\nEverything after `/torus-write` controls scope and mode:\n- `/torus-write` \u2014 synthesize the entire conversation into a note\n- `/torus-write the part about Sora` \u2014 synthesize only that thread\n- `/torus-write just the last exchange` \u2014 just the most recent exchange\n- `/torus-write -v` \u2014 copy the entire conversation verbatim (no synthesis)\n- `/torus-write -v the last exchange` \u2014 copy that exchange verbatim\n- `/torus-write -v the discussion about compute` \u2014 copy that thread verbatim\n\nThe `-v` or `-verbatim` flag means: **do not rewrite or synthesize.** Extract the scoped assistant responses exactly as they appeared in the conversation and write them as-is. The LLM\'s only job with `-v` is to identify which messages are in scope, then copy the visible text. For non-verbatim (default), synthesize into a well-structured note.\n\n## URL summary exchanges\n\nWhen the scoped content is a URL summary:\n- Include `*Source: <url>*` at the top of the body\n- Write the summary as an Obsidian callout:\n  ```\n  > [!auto-summary]\n  > Summary content here\n  ```\n- If full fetched content is in the conversation, append it under `## Fetched Content`\n\n## Writing the note\n\n1. Generate a short, punchy title (~8 words max) for the H1 and filename.\n2. Write a 2-3 sentence auto-summary callout.\n3. Classify into a room and shelf from the manifest (use `torusRead("$torusRoot/torus-manifest.md")` if unsure).\n4. Write the note using `torusWrite()`:\n\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusWrite("$torusRoot/Sources/YYYY-MM-DD Title Here.md", "CONTENT", "new")\'\n```\n\nIf the content is too long for a single eval call, write the frontmatter + summary first, then append the body.\n\n## Note structure\n\n```\n---\ntorus_status: inbox\ntorus_source: [your twin name]\ntorus_created: [YYYY-MM-DD HH:MM:SS TZ]\ntorus_proposed_location: [Room]/[Shelf]\ntorus_proposed_confidence: high\ntorus_proposed_reason: [One sentence on why this room/shelf]\n---\n# Title Here\n\n> [!auto-summary]\n> Summary content here\n\nBody content with ## headings by theme, [[wiki links]] to vault notes.\nFor -v: raw conversation text as-is.\nFor URL summaries: *Source: <url>* then callout, then ## Fetched Content.\n```\n\n## After saving\n\nLog the save:\n```bash\nobsidian eval \'code=app.plugins.plugins["the-torus"].torusLog("note_saved", "{\\"path\\":\\"Sources/FILENAME.md\\",\\"source\\":\\"twin\\"}")\'\n```\n\nTell the user: "Saved to Sources/ in inbox state. Say \'shelve it\' or tell me which shelf if you want it placed."\n',
   ".twin/controls/x-digest-config.json": '{\n  "accounts": [],\n  "keywords": [],\n  "blacklist": []\n}\n',
@@ -191994,7 +192036,7 @@ var TorusPlugin = class extends import_obsidian31.Plugin {
    *  Code tab (not Chat or Cowork).
    *
    *  Used by shift-click on the lightbulb (Path B from the 2026-06-28 shakedown).
-   *  Uses the `claude://code/new?folder=<encoded>` URL scheme, which is the
+   *  Uses the `claude://code/new?cwd=<encoded>` URL scheme, which is the
    *  documented mechanism for steering into the Code tab specifically.
    *  `open -a Claude <path>` is NOT reliable for this — it lands on the Cowork
    *  home/project picker regardless of path argument (Anthropic feature request
@@ -192007,7 +192049,7 @@ var TorusPlugin = class extends import_obsidian31.Plugin {
    *    4. **A confirmation dialog appears** asking to trust the folder — folders
    *       supplied via deep link are treated as untrusted by design, even if
    *       previously trusted. User clicks once to proceed.
-   *    5. The composer is prefilled with `/torus-orient` (via q=) — submitting it
+   *    5. The composer is prefilled with `/torus-twin-orient` (via q=) — submitting it
    *       force-loads the orient packet via chunked Read. That's the reliable
    *       bulk-load path; SessionStart's additionalContext does NOT deliver on a
    *       fresh Desktop session. Desktop appears to prefill (not auto-submit), so
@@ -192015,7 +192057,7 @@ var TorusPlugin = class extends import_obsidian31.Plugin {
    *
    *  Compared to launchCCZero():
    *    - No tier selection (desktop's effort levels are picked via the in-app dropdown)
-   *    - Uses the `q=` prompt prefill to seed /torus-orient (see step 5)
+   *    - Uses the `q=` prompt prefill to seed /torus-twin-orient (see step 5)
    *
    *  Safety: refuses with a Notice if /Applications/Claude.app isn't installed. */
   async launchCCZeroNative() {
@@ -192037,14 +192079,15 @@ var TorusPlugin = class extends import_obsidian31.Plugin {
       const torusDir = (0, import_path7.join)(vaultRoot, this.settings.torusRoot);
       if (!await this.probeGit()) {
         new import_obsidian31.Notice(
-          "Git isn\u2019t installed \u2014 opening a Terminal Zero session instead. Install git in Settings \u2192 Setup status to use the Desktop launcher.",
+          "Git is required to launch your Twin. Install it in Settings \u2192 The Torus \u2192 Setup status, then click the lightbulb again.",
           9e3
         );
-        this.torusTrace("plugin:launchCCZeroNative", "git missing \u2014 falling back to terminal launcher");
-        return this.launchCCZero({ tier: "high" });
+        this.torusTrace("plugin:launchCCZeroNative", "git missing \u2014 blocked; redirecting to Setup status");
+        this.openTorusSettings();
+        return;
       }
       await this.ensureTorusDirRepo(torusDir);
-      const url = `claude://code/new?folder=${encodeURIComponent(torusDir)}&q=${encodeURIComponent("/torus-orient")}`;
+      const url = `claude://code/new?cwd=${encodeURIComponent(torusDir)}&q=${encodeURIComponent("/torus-twin-orient")}`;
       this.torusTrace("plugin:launchCCZeroNative", `launching ${url}`);
       (0, import_child_process6.exec)(`open "${url.replace(/"/g, '\\"')}"`, (err) => {
         if (err) {
@@ -192389,7 +192432,7 @@ var TorusPlugin = class extends import_obsidian31.Plugin {
     const MAX_RAW_TOKENS = PER_FILE_TOKENS;
     const ACTIVITY_TAIL_LINES = 50;
     const RECENCY_DECAY = 0.95;
-    const CHARS_PER_TOKEN = 3.6;
+    const CHARS_PER_TOKEN = 2.8;
     const MAX_FILES = 10;
     const ACK_STRING = "Got the context.";
     const tokensOf = (s) => Math.ceil(s.length / CHARS_PER_TOKEN);
@@ -194576,6 +194619,7 @@ ${titled}
       smartSearchReady,
       checked: true
     };
+    if (git) this.gitInstallInProgress = false;
     this.torusTrace("plugin:prereqs", `claude=${claude} claudeApp=${claudeApp} qmd=${qmd}(${qmdSource ?? "none"}) obsidianCli=${obsidianCli} textures=${textures} git=${git} smartSearchReady=${smartSearchReady}`);
   }
   /** Probe whether git is available — needed for the Desktop Code launcher, which
@@ -194607,6 +194651,18 @@ ${titled}
    *  suppress its missing-CLI toast mid-install — a background failure landing
    *  next to the "Installing…" button reads as "your install just failed." */
   claudeInstallInProgress = false;
+  /** True from the moment the user fires the git (Command Line Tools) installer
+   *  until a Recheck confirms git is present. Unlike claudeInstallInProgress
+   *  (which brackets a blocking curl|bash), git's install is OUT-OF-BAND —
+   *  `xcode-select --install` only opens Apple's GUI installer and returns
+   *  immediately, with no completion callback. So this flag is a proxy, not
+   *  real-time progress: set true when the installer is fired, cleared in
+   *  refreshPrereqs the first time it sees git present. It opens the "library
+   *  access grace" — the 3D library unblocks while the ~5–10 min CLT download
+   *  runs, so the user can look around instead of staring at the gate. In-memory
+   *  (resets on reload — fine: post-reload git is either present or the
+   *  interstitial returns until installed + Recheck). */
+  gitInstallInProgress = false;
   async torusInstallClaudeCli() {
     const shell = process.env.SHELL || "/bin/zsh";
     const cmd = "curl -fsSL https://claude.ai/install.sh | bash";
@@ -194652,7 +194708,7 @@ ${titled}
         resolve2({
           ok: false,
           started: true,
-          note: "Apple\u2019s Command Line Tools installer opened. Finish it, relaunch Claude, then click Recheck."
+          note: "Apple\u2019s Command Line Tools installer opened. Finish it, then click Recheck."
         });
       });
     });
@@ -195552,7 +195608,7 @@ if [ -f "$MANIFEST" ]; then
   # manifest pointer here and Zero reads the part files on his first turn.
   python3 -c 'import sys, json; print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": open(sys.argv[1]).read()}}))' "$MANIFEST"
 else
-  echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Obsidian is not running or The Torus plugin is not loaded. Vault tools unavailable until Obsidian is reopened. Manual fallback: run /torus-orient once Obsidian is up."}}'
+  echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Obsidian is not running or The Torus plugin is not loaded. Vault tools unavailable until Obsidian is reopened. Manual fallback: run /torus-twin-orient once Obsidian is up."}}'
 fi
 `;
     const timeWrapper = `#!/bin/bash
@@ -196034,7 +196090,7 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
         messages.push({ role, text, tools, ts });
       }
       let effective = messages.filter((m2) => !(m2.role === "user" && /^base directory for this skill:/i.test(m2.text)));
-      const orientRe = /^(read claude\.md.*(?:\/torus-orient|orient)|\/torus-orient\b)/i;
+      const orientRe = /^(read claude\.md.*(?:\/torus-(?:twin-)?orient|orient)|\/torus-(?:twin-)?orient\b)/i;
       if (effective.length >= 2 && effective[0].role === "user" && orientRe.test(effective[0].text) && effective[1].role === "assistant") {
         effective = effective.slice(2);
       }
@@ -196060,7 +196116,7 @@ print(json.dumps({"additionalContext": manifest + "".join(parts)}))
         trivial++;
         continue;
       }
-      const isStock = (t2) => /^read claude\.md/i.test(t2) || /^\/torus-orient\b/i.test(t2) || /^\/torus-[a-z-]+\s*$/i.test(t2) || /^base directory for this skill:/i.test(t2);
+      const isStock = (t2) => /^read claude\.md/i.test(t2) || /^\/torus-(?:twin-)?orient\b/i.test(t2) || /^\/torus-[a-z-]+\s*$/i.test(t2) || /^base directory for this skill:/i.test(t2);
       let title = "Claude Code Session";
       let fallbackTitle = null;
       for (const m2 of effective) {
@@ -196650,8 +196706,8 @@ ${cleanBody}
           const bodyForUrls = body.split(/\n---\n\n## (?:Fetched Content|Extracted Ideas)\b/)[0];
           const urls = extractUrls(bodyForUrls);
           if (urls.length > 0 && urls.length <= 3) {
-            const basename2 = vaultRelativeNotePath.split("/").pop()?.replace(/\.md$/, "") || "note";
-            const noteSlug = basename2.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
+            const basename3 = vaultRelativeNotePath.split("/").pop()?.replace(/\.md$/, "") || "note";
+            const noteSlug = basename3.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
             const fetchResult = await fetchAllUrls(this.app, bodyForUrls, noteSlug, this.settings.imagesDir, this.settings.twitterBearerToken);
             if (!fetchResult.hadFailures) {
               fetchedContent = fetchResult.content ?? "";
@@ -197501,11 +197557,11 @@ ${fetchedContent}
     return JSON.stringify(skills);
   }
   /** Find a note's room and shelf from the manifest. Returns {room, shelf} or null. */
-  findInManifest(manifest2, basename2) {
+  findInManifest(manifest2, basename3) {
     const lines = manifest2.split("\n");
     let currentRoom = "";
     let currentShelf = "";
-    const escaped = basename2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const escaped = basename3.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const linkRe = new RegExp(`^\\s*-\\s*\\[\\[${escaped}(?:\\|[^\\]]*)?\\]\\]`);
     for (const line of lines) {
       if (line.startsWith("## ") && !line.startsWith("### ")) currentShelf = line.slice(3).trim();
@@ -197532,10 +197588,10 @@ ${fetchedContent}
     const fm = fmMatch?.[1] || "";
     const statusMatch = fm.match(/^torus_status:\s*(.+)$/m);
     const status = statusMatch?.[1].trim();
-    const basename2 = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
+    const basename3 = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
     const manifestPath2 = this.absPath(`${this.settings.torusRoot}/torus-manifest.md`);
     let manifest2 = (0, import_fs9.readFileSync)(manifestPath2, "utf-8");
-    const linkRe = new RegExp(`\\[\\[${basename2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\|[^\\]]*)?\\]\\]`);
+    const linkRe = new RegExp(`\\[\\[${basename3.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\|[^\\]]*)?\\]\\]`);
     const inManifest = linkRe.test(manifest2);
     if (status === "shelved" && inManifest) {
       return JSON.stringify({ status: "already_shelved", path: filePath });
@@ -197554,12 +197610,12 @@ ${fetchedContent}
         }
       }
       if (!targetRoom || !targetShelf) {
-        return JSON.stringify({ error: "no_classification", message: `"${basename2}" is not in manifest and has no torus_proposed_location. Pass room and shelf arguments.`, path: filePath });
+        return JSON.stringify({ error: "no_classification", message: `"${basename3}" is not in manifest and has no torus_proposed_location. Pass room and shelf arguments.`, path: filePath });
       }
-      manifest2 = insertIntoTorus(manifest2, targetRoom, targetShelf, basename2);
+      manifest2 = insertIntoTorus(manifest2, targetRoom, targetShelf, basename3);
       (0, import_fs9.writeFileSync)(manifestPath2, manifest2, "utf-8");
     }
-    const location = this.findInManifest(manifest2, basename2);
+    const location = this.findInManifest(manifest2, basename3);
     const fmChanges = {
       torus_status: "shelved",
       torus_proposed_location: null,
@@ -197582,11 +197638,11 @@ ${fetchedContent}
     if (parsed.error || parsed.status === "ambiguous") return resolved;
     const filePath = parsed.path;
     const absFile = this.absPath(filePath);
-    const basename2 = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
+    const basename3 = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
     const manifestPath2 = this.absPath(`${this.settings.torusRoot}/torus-manifest.md`);
     const manifest2 = (0, import_fs9.readFileSync)(manifestPath2, "utf-8");
-    const removed = removeFromTorus(manifest2, basename2);
-    const updated = insertIntoTorus(removed, room, shelf, basename2);
+    const removed = removeFromTorus(manifest2, basename3);
+    const updated = insertIntoTorus(removed, room, shelf, basename3);
     (0, import_fs9.writeFileSync)(manifestPath2, updated, "utf-8");
     const noteContent = (0, import_fs9.readFileSync)(absFile, "utf-8");
     const updatedNote = editFrontmatter(noteContent, {
@@ -197785,11 +197841,11 @@ ${fetchedContent}
     let manifestEntryAdded = false;
     if (torus_status === "shelved" && targetRoom && targetShelf) {
       const manifestPath2 = this.absPath(`${this.settings.torusRoot}/torus-manifest.md`);
-      const basename2 = absPath.split("/").pop()?.replace(/\.md$/, "") || "";
+      const basename3 = absPath.split("/").pop()?.replace(/\.md$/, "") || "";
       let manifest2 = (0, import_fs9.readFileSync)(manifestPath2, "utf-8");
-      const linkRe = new RegExp(`\\[\\[${basename2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\|[^\\]]*)?\\]\\]`);
+      const linkRe = new RegExp(`\\[\\[${basename3.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\|[^\\]]*)?\\]\\]`);
       if (!linkRe.test(manifest2)) {
-        manifest2 = insertIntoTorus(manifest2, targetRoom, targetShelf, basename2);
+        manifest2 = insertIntoTorus(manifest2, targetRoom, targetShelf, basename3);
         (0, import_fs9.writeFileSync)(manifestPath2, manifest2, "utf-8");
         manifestEntryAdded = true;
       }
@@ -197921,13 +197977,13 @@ ${remainingLines.join("\n")}
     }
     (0, import_fs9.writeFileSync)(absPath, updated, "utf-8");
     let manifestEntryRemoved = false;
-    const basename2 = absPath.split("/").pop()?.replace(/\.md$/, "") || "";
+    const basename3 = absPath.split("/").pop()?.replace(/\.md$/, "") || "";
     const manifestPath2 = this.absPath(`${this.settings.torusRoot}/torus-manifest.md`);
     if ((0, import_fs9.existsSync)(manifestPath2)) {
       const manifest2 = (0, import_fs9.readFileSync)(manifestPath2, "utf-8");
-      const linkRe = new RegExp(`\\[\\[${basename2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\|[^\\]]*)?\\]\\]`);
+      const linkRe = new RegExp(`\\[\\[${basename3.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\|[^\\]]*)?\\]\\]`);
       if (linkRe.test(manifest2)) {
-        const stripped = removeFromTorus(manifest2, basename2);
+        const stripped = removeFromTorus(manifest2, basename3);
         (0, import_fs9.writeFileSync)(manifestPath2, stripped, "utf-8");
         manifestEntryRemoved = true;
       }
@@ -199814,14 +199870,14 @@ ${remainingLines.join("\n")}
           fixLabel: "Open Obsidian Settings",
           openFix: openObsidianGeneral
         });
-        if (!ps.git) missingRequired.push({
+        if (!ps.git && !this.gitInstallInProgress) missingRequired.push({
           name: "Git",
-          why: "the single-click launcher needs it to start your Twin",
+          why: "required to launch your Twin",
           soloLead: "Git must be installed before The Torus can run.",
           fixLabel: "Open Torus Setup",
           openFix: () => this.openTorusSettings()
         });
-        return { requiredReady: ps.claudeApp && ps.claude && ps.obsidianCli && ps.git, missingRequired, checked: ps.checked };
+        return { requiredReady: ps.claudeApp && ps.claude && ps.obsidianCli && (ps.git || this.gitInstallInProgress), missingRequired, checked: ps.checked };
       },
       refreshRequiredStatus: () => this.refreshPrereqs(),
       runOptionalNags: () => this.nagOptionalComponentsIfNeeded()
@@ -199946,9 +200002,9 @@ ${remainingLines.join("\n")}
       const torusDir = vaultRoot ? (0, import_path7.join)(vaultRoot, this.settings.torusRoot) : "";
       const enc = (s) => encodeURIComponent(s);
       const presets = [
-        { label: "Desktop \u2014 Code tab, auto-orient (/torus-orient)", url: `claude://code/new?folder=${enc(torusDir)}&q=${enc("/torus-orient")}` },
-        { label: "Desktop \u2014 Code tab, no orient", url: `claude://code/new?folder=${enc(torusDir)}` },
-        { label: "Desktop \u2014 Code tab, compact-orient (/compact)", url: `claude://code/new?folder=${enc(torusDir)}&q=${enc("/compact")}` }
+        { label: "Desktop \u2014 Code tab, auto-orient (/torus-twin-orient)", url: `claude://code/new?cwd=${enc(torusDir)}&q=${enc("/torus-twin-orient")}` },
+        { label: "Desktop \u2014 Code tab, no orient", url: `claude://code/new?cwd=${enc(torusDir)}` },
+        { label: "Desktop \u2014 Code tab, compact-orient (/compact)", url: `claude://code/new?cwd=${enc(torusDir)}&q=${enc("/compact")}` }
       ];
       new CCZeroLaunchModal(
         this.app,
