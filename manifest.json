@@ -1,9 +1,9 @@
 {
   "id": "the-torus",
   "name": "The Torus",
-  "version": "0.4.6",
+  "version": "0.5.0",
   "minAppVersion": "1.0.0",
-  "description": "Interactive 3D library visualization for your vault",
+  "description": "A second-brain package, with 3D library visualization, AI-assisted note enrichment, search, and a memory harness for external AIs (e.g. Claude Desktop, Codex)",
   "author": "Harry Buck",
   "authorUrl": "https://github.com/harrybuck",
   "isDesktopOnly": true
