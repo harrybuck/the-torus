@@ -80,7 +80,7 @@ Only one engine answers any given search — results are never blended.
 
 ## Memory harness for external AIs
 
-The Torus exposes your curated notes to an external AI assistant — Claude Desktop, Codex, or any MCP-capable client — as a persistent memory it can read, search, and reason over across sessions, instead of starting cold every conversation.
+The Torus exposes your curated notes to an external AI assistant — Claude Desktop, Codex, or any MCP-capable client — as a persistent memory it can read, search, reason over, and write back to across sessions, instead of starting cold every conversation.
 
 The plugin runs an MCP server bound to `127.0.0.1`, gated behind a token written to your local config. It isn't reachable from outside your machine, and it serves only the notes you've added to The Torus. Which assistant you point at it — or whether you run one at all — is entirely your choice.
 
