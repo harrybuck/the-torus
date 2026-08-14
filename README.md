@@ -2,30 +2,50 @@
 
 A second-brain package, with 3D library visualization, AI-assisted note enrichment, search, and a memory harness for external AIs (e.g. Claude Desktop, Codex).
 
-The Torus turns notes you choose into a walkable 3D library — notes become books on shelves, shelves form rooms, rooms form a continuous space organized by topic. It pairs that with a capture pipeline that pulls in messages, email, and web content and enriches them, and it exposes your curated knowledge to an external AI assistant as a durable memory it can read, search, and reason over across sessions.
+The Torus turns notes you choose into a navigable 3D library — rooms, shelves, books, and idea marbles — pairs it with a capture pipeline that pulls in messages, email, and web content and enriches them, and exposes your curated knowledge to an external AI assistant as a durable memory it can read, search, and reason over across sessions.
 
 **Desktop only.** The plugin uses Node APIs (file access outside the vault, subprocesses) that aren't available on mobile.
 
+---
+
 ## Install (beta)
 
-The Torus is currently distributed via [BRAT](https://github.com/TfTHacker/obsidian42-brat). Community-directory submission is pending.
+1. Install and enable [BRAT](https://github.com/TfTHacker/obsidian42-brat)
+   from Obsidian's Community plugins browser.
+2. In BRAT, choose **Add beta plugin**, paste
+   `https://github.com/harrybuck/the-torus`, leave the version on **Latest**,
+   and enable the plugin.
+3. Open **Settings → The Torus → General**. Setup status names the required
+   pieces it actually detects; install one harness and Git, then click
+   **Recheck**. Optional textures and Smart Search are offered separately.
+4. Run **Torus: Run diagnostics** from the command palette for a written report
+   on the active harness, search backend, MCP server, and capture pipeline.
 
-1. Install BRAT from Obsidian's Community plugins browser.
-2. In BRAT: **Add beta plugin** → paste `https://github.com/harrybuck/the-torus` → select the latest version → **Add plugin**.
-3. On first load, the plugin offers one-click installers for its optional search engine and texture pack.
+Full setup guidance is installed into the Torus itself.
 
-Full setup guidance ships inside the plugin. Run **Torus: Run diagnostics** at any time for a report on what's actually working.
+---
 
 ## Requirements
 
-- **Obsidian 1.0+ on desktop** (macOS primarily; the iMessage and WhatsApp capture features are macOS-only).
-- Everything below is **optional and opt-in**. The core — the 3D library, note membership, and built-in keyword search — works with no external dependencies, no downloads, and no accounts.
+- **Obsidian 1.0+ on macOS or Windows.** Mobile is not supported.
+- **Git.** The plugin checks for it during setup.
+- **One AI harness:** Claude, Codex, or both. The interactive and background
+  roles can use either harness independently.
+  - Claude requires Claude Desktop for the interactive Twin and the Claude Code
+    CLI for background jobs. The Setup panel offers Anthropic's native CLI
+    installer on both macOS and Windows.
+  - Codex requires the Codex desktop app and a signed-in Codex installation.
+
+All six supported combinations are first-class: macOS or Windows, each with
+Claude only, Codex only, or both. The optional Smart Search, WhatsApp, and
+iMessage components remain macOS-only; built-in keyword search, Email, and
+Telegram work on both platforms.
 
 ---
 
 ## Disclosures
 
-Read this before installing. The Torus does more than render a library, and all of it is listed here.
+Read this section before installing. The Torus does more than render a library, and all of it is listed here.
 
 ### Network usage
 
@@ -34,7 +54,7 @@ Read this before installing. The Torus does more than render a library, and all 
   - the **WhatsApp bridge** bundle — Chromium plus a Node.js runtime (**~145 MB** Apple Silicon, **~160 MB** Intel),
   - **3D textures** for the library (**~26 MB**).
 
-  Each download is verified against a SHA-256 checksum compiled into the plugin. You are asked first; declining leaves the plugin fully functional with built-in keyword search.
+  Each download is verified against a SHA-256 checksum compiled into the plugin. You are asked first; declining leaves the plugin fully functional with built-in keyword search and no 3D textures beyond the defaults.
 - **Embedding models.** If you enable semantic search, the search engine downloads models from HuggingFace on first index (~300 MB, and up to ~1.8 GB if reranking and query expansion are used).
 - **Content you ask it to capture.** Fetching a URL retrieves that page — via [defuddle](https://github.com/kepano/defuddle), with Jina Reader as a fallback — plus YouTube transcripts and X/Twitter posts (through the X API if you supply your own bearer token, otherwise FxTwitter).
 - **Your email server**, if you enable email capture (IMAP).
@@ -43,14 +63,20 @@ Read this before installing. The Torus does more than render a library, and all 
 
 ### File access outside your vault
 
-- `~/Library/Messages/chat.db` — **read-only**, and **only if you enable iMessage capture**. Requires granting Obsidian Full Disk Access in macOS System Settings. macOS only.
-- `~/.claude/` — reads Claude Code session transcripts to build the assistant's memory, only if you use the Claude Code integration.
+- `~/Library/Messages/chat.db` — **read-only**, and **only if you enable iMessage capture**. This requires you to grant Obsidian Full Disk Access in macOS System Settings. macOS only.
+- `~/.claude/` and/or `~/.codex/` — reads the selected harness configuration and
+  local session material needed for skills and memory continuity.
 - **The plugin's own data folder** — downloaded bundles, the search index database, and WhatsApp session credentials.
-- **Subprocesses.** For features you enable, the plugin runs: the search engine, the WhatsApp bridge, `git`, and the `claude` CLI. It executes only components it ships or that you have installed yourself; it does not fetch and run arbitrary code.
+- **Subprocesses.** For features you enable, the plugin runs: the selected AI
+  CLI (`claude` or `codex`), the search engine, the WhatsApp bridge, and `git`.
+  It executes only components it ships or that you have installed yourself; it
+  does not fetch and run arbitrary code.
 
 ### Accounts and payment
 
-- **The AI assistant features require a paid [Claude Code](https://claude.com/claude-code) subscription** (Anthropic). Authentication is through your existing Claude Code login — the plugin does not ask for or store an API key. Without a subscription, the 3D library, note membership, capture, and search all still work; the conversational assistant does not.
+- **AI assistant features require access through the harness you choose** — a
+  Claude Code subscription and login, a Codex/ChatGPT plan and login, or both.
+  The plugin does not ask for or store an AI-provider API key.
 - **WhatsApp capture** requires pairing your own WhatsApp account by scanning a QR code.
 - **Email capture** requires your own IMAP credentials, stored locally in plugin settings.
 - **X/Twitter thread capture** optionally uses your own X API bearer token.
@@ -71,18 +97,22 @@ No closed-source code is included.
 
 ## Search: two tiers
 
-- **Built-in keyword search** — pure JavaScript, always available, no downloads, no dependencies. Indexes only the notes you've added to The Torus. This is the default and it's sufficient for typical vaults.
-- **Torus Search (optional upgrade)** — adds semantic and hybrid search, and scales to large collections. Recommended above roughly 1,000 notes in The Torus.
+- **Built-in keyword search** — pure JavaScript, always available, no downloads, no dependencies. Indexes only the notes you've added to The Torus. This is the default and it is sufficient for typical vaults.
+- **Torus Search (optional upgrade)** — adds semantic and hybrid search and scales to large collections. Recommended above roughly 1,000 notes in The Torus.
 
-If you already have `qmd` installed, The Torus detects and uses it — nothing is downloaded. If you don't, install the bundle with one click, or install it yourself with `npm install -g @tobilu/qmd` (requires Node.js).
+On macOS, if you already have `qmd` installed, The Torus detects and uses it —
+nothing is downloaded. Otherwise you can install the bundle with one click.
+Windows uses the built-in keyword-search floor in this release.
 
 Only one engine answers any given search — results are never blended.
+
+---
 
 ## Memory harness for external AIs
 
 The Torus exposes your curated notes to an external AI assistant — Claude Desktop, Codex, or any MCP-capable client — as a persistent memory it can read, search, reason over, and write back to across sessions, instead of starting cold every conversation.
 
-The plugin runs an MCP server bound to `127.0.0.1`, gated behind a token written to your local config. It isn't reachable from outside your machine, and it serves only the notes you've added to The Torus. Which assistant you point at it — or whether you run one at all — is entirely your choice.
+The plugin runs an MCP server bound to `127.0.0.1` and gated behind a token written to your local config. It is not reachable from outside your machine, and it serves only the notes you've added to The Torus. Which assistant you point at it, and whether you run one at all, is entirely your choice.
 
 ## Membership: your notes, where they already are
 
@@ -90,18 +120,22 @@ Notes become part of The Torus through frontmatter (`torus_status`), not locatio
 
 Commands: **Add to Torus**, **Add Directory to Torus**, **Eject from Torus**.
 
+---
+
 ## What's in a release
 
 - `main.js`, `manifest.json`, `styles.css` — the plugin itself
-- `qmd-bundle-darwin-arm64.tar.xz`, `qmd-bundle-darwin-x64.tar.xz` — Torus Search engine (Node + qmd), downloaded on consent
-- `bridge-bundle-darwin-arm64.tar.xz`, `bridge-bundle-darwin-x64.tar.xz` — WhatsApp bridge (Node + Chromium), downloaded on consent
-- `textures.tar.gz` — PBR texture pack for the 3D library
+- `qmd-bundle-darwin-arm64.tar.xz`, `qmd-bundle-darwin-x64.tar.xz` — optional Torus Search engine
+- `bridge-bundle-darwin-arm64.tar.xz`, `bridge-bundle-darwin-x64.tar.xz` — optional WhatsApp bridge
+- `textures.tar.gz` — optional PBR texture pack
 
-Every optional download is consent-gated and SHA-256 verified. Nothing leaves your machine without a click.
+Every optional download is consent-gated and SHA-256 verified.
 
 ## Source
 
 Plugin source is private during the beta. This repository is the public distribution surface.
+
+---
 
 ## License
 
