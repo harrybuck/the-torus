@@ -16,7 +16,7 @@ The Torus turns notes you choose into a navigable 3D library — rooms, shelves,
    `https://github.com/harrybuck/the-torus`, leave the version on **Latest**,
    and enable the plugin.
 3. Open **Settings → The Torus → General**. Setup status names the required
-   pieces it actually detects; install one harness and Git, then click
+   pieces it actually detects; install one harness and, for Claude Desktop, Git, then click
    **Recheck**. Optional textures and Smart Search are offered separately.
 4. Run **Torus: Run diagnostics** from the command palette for a written report
    on the active harness, search backend, MCP server, and capture pipeline.
@@ -28,7 +28,7 @@ Full setup guidance is installed into the Torus itself.
 ## Requirements
 
 - **Obsidian 1.0+ on macOS or Windows.** Mobile is not supported.
-- **Git.** The plugin checks for it during setup.
+- **Git for Claude Desktop.** Claude's local Code sessions require it; Codex does not.
 - **One AI harness:** Claude, Codex, or both. The interactive and background
   roles can use either harness independently.
   - Claude requires Claude Desktop for the interactive Twin and the Claude Code
@@ -68,7 +68,8 @@ Read this section before installing. The Torus does more than render a library, 
   local session material needed for skills and memory continuity.
 - **The plugin's own data folder** — downloaded bundles, the search index database, and WhatsApp session credentials.
 - **Subprocesses.** For features you enable, the plugin runs: the selected AI
-  CLI (`claude` or `codex`), the search engine, the WhatsApp bridge, and `git`.
+  CLI (`claude` or `codex`), the search engine, the WhatsApp bridge, and `git`
+  when Claude Desktop needs a local Code session.
   It executes only components it ships or that you have installed yourself; it
   does not fetch and run arbitrary code.
 
