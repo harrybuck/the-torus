@@ -185021,9 +185021,8 @@ function claudeInstallerCommand(platform, shell = "/bin/zsh") {
   }
   return null;
 }
-function claudeCodeDeepLink(folder, prompt = "/torus-wake") {
-  const encodedFolder = encodeURIComponent(folder);
-  return `claude://code/new?folder=${encodedFolder}&cwd=${encodedFolder}&q=${encodeURIComponent(prompt)}`;
+function claudeCodeDeepLink(cwd, prompt = "/torus-wake") {
+  return `claude://code/new?cwd=${encodeURIComponent(cwd)}&q=${encodeURIComponent(prompt)}`;
 }
 
 // src/llm/settings.ts
@@ -224711,8 +224710,8 @@ var TorusPlugin = class extends import_obsidian32.Plugin {
    *  Code tab (not Chat or Cowork).
    *
    *  Used by shift-click on the lightbulb (Path B from the 2026-06-28 shakedown).
-   *  Uses the `claude://code/new?folder=<encoded>` URL scheme, which is the
-   *  documented mechanism for steering into the Code tab specifically.
+   *  Uses the proven `claude://code/new?cwd=<encoded>` Desktop URL route to
+   *  steer into the Code tab and bind its local project specifically.
    *  `open -a Claude <path>` is NOT reliable for this — it lands on the Cowork
    *  home/project picker regardless of path argument (Anthropic feature request
    *  open; argv other than --startup is ignored).
