@@ -184939,6 +184939,13 @@ function coerceHarness(configured, installed) {
   if (installed.includes(configured)) return configured;
   return installed.length > 0 ? installed[0] : configured;
 }
+function harnessInstalledForRole(harness, role, evidence) {
+  if (harness === "codex") return evidence.codex;
+  return role === "interactive" ? evidence.claudeApp : evidence.claudeCli;
+}
+function shouldOfferClaudeCliInstall(evidence, backgroundRequiresClaude) {
+  return !evidence.claudeCli && (evidence.claudeApp || backgroundRequiresClaude);
+}
 function computeRequiredGate(i3) {
   const interactiveInstalled = [];
   if (i3.claudeApp) interactiveInstalled.push("claude");
@@ -184955,10 +184962,11 @@ function computeRequiredGate(i3) {
   } else {
     if (interactive === "claude" && !i3.claudeApp) missing.push("claude-app");
     if (background === "claude" && !i3.claude) missing.push("claude-cli");
+    if (background === "claude" && i3.claude && i3.claudeAuthenticated === false) missing.push("claude-auth");
   }
   const gitRequired = anyHarness && interactive === "claude";
   if (gitRequired && !i3.git && !i3.gitInstalling) missing.push("git");
-  const ready = anyHarness && (interactive !== "claude" || i3.claudeApp) && (background !== "claude" || i3.claude) && (!gitRequired || i3.git || i3.gitInstalling);
+  const ready = anyHarness && (interactive !== "claude" || i3.claudeApp) && (background !== "claude" || i3.claude) && (background !== "claude" || i3.claudeAuthenticated !== false) && (!gitRequired || i3.git || i3.gitInstalling);
   return { ready, missing, interactive, background };
 }
 
@@ -184968,6 +184976,54 @@ function toNativeSeparators(p3, sep2) {
 }
 function showMacOnlyBridges(caps) {
   return caps.bridges ?? true;
+}
+
+// src/lib/claudePlatform.ts
+var import_path3 = require("path");
+var CLAUDE_DESKTOP_WIN_PROBE = "$app = Get-AppxPackage -Name 'Claude' -ErrorAction SilentlyContinue | Select-Object -First 1; $protocol = Test-Path 'Registry::HKEY_CLASSES_ROOT\\claude'; if ($app -or $protocol) { 'installed' }";
+function claudeDesktopDetected(platform, evidence) {
+  if (platform === "darwin") return evidence.macAppExists === true;
+  if (platform === "win32") {
+    return String(evidence.windowsProbe ?? "").split(/\r?\n/).some((line) => line.trim() === "installed");
+  }
+  return false;
+}
+function claudeCliStandardPath(platform, home) {
+  if (platform === "darwin") return import_path3.posix.join(home, ".local", "bin", "claude");
+  if (platform === "win32") return import_path3.win32.join(home, ".local", "bin", "claude.exe");
+  return null;
+}
+function claudeLoginCommand(platform) {
+  if (platform === "win32") return '& "$env:USERPROFILE\\.local\\bin\\claude.exe" auth login';
+  if (platform === "darwin") return "~/.local/bin/claude auth login";
+  return "claude auth login";
+}
+function claudeInstallerCommand(platform, shell = "/bin/zsh") {
+  if (platform === "darwin") {
+    const manual = "curl -fsSL https://claude.ai/install.sh | bash";
+    return {
+      bin: shell,
+      args: ["-lic", manual],
+      manual,
+      locationHint: "~/.local/bin/claude",
+      windowsHide: false
+    };
+  }
+  if (platform === "win32") {
+    const manual = "irm https://claude.ai/install.ps1 | iex";
+    return {
+      bin: "powershell.exe",
+      args: ["-NoLogo", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", manual],
+      manual,
+      locationHint: "%USERPROFILE%\\.local\\bin\\claude.exe",
+      windowsHide: true
+    };
+  }
+  return null;
+}
+function claudeCodeDeepLink(folder, prompt = "/torus-wake") {
+  const encodedFolder = encodeURIComponent(folder);
+  return `claude://code/new?folder=${encodedFolder}&cwd=${encodedFolder}&q=${encodeURIComponent(prompt)}`;
 }
 
 // src/llm/settings.ts
@@ -185071,8 +185127,9 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
     intro.style.color = "var(--text-muted)";
     intro.style.fontSize = "0.85em";
     intro.style.marginTop = "0.2em";
-    const installed = {
-      claude: !!p3.prereqStatus.claude,
+    const installEvidence = {
+      claudeApp: !!p3.prereqStatus.claudeApp,
+      claudeCli: !!p3.prereqStatus.claude,
       codex: !!p3.prereqStatus.codex
     };
     const map2 = p3.harnessModels();
@@ -185095,15 +185152,19 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
         this.display();
       });
     }
-    const category = (label, desc, getH, setH, tier) => {
+    const category = (label, desc, role, getH, setH, tier) => {
       const h2 = getH();
       new import_obsidian22.Setting(containerEl).setName(`${label} \u2014 harness`).setDesc(desc).addDropdown((d) => {
-        for (const hh of HARNESSES) d.addOption(hh, installed[hh] ? HARNESS_LABEL[hh] : `${HARNESS_LABEL[hh]} (not installed)`);
+        for (const hh of HARNESSES) {
+          const installed = harnessInstalledForRole(hh, role, installEvidence);
+          d.addOption(hh, installed ? HARNESS_LABEL[hh] : `${HARNESS_LABEL[hh]} (not installed)`);
+        }
         d.setValue(h2);
         d.onChange(async (v2) => {
           const nh = v2;
-          if (!installed[nh]) {
-            new import_obsidian22.Notice(`${HARNESS_LABEL[nh]} isn't installed here.`, 5e3);
+          if (!harnessInstalledForRole(nh, role, installEvidence)) {
+            const message = nh === "claude" && role === "background" ? "Claude Desktop does not include the CLI used for background jobs. Install Claude CLI in Setup status above, then click Recheck." : `${HARNESS_LABEL[nh]} isn't installed for ${role} use here.`;
+            new import_obsidian22.Notice(message, 8e3);
             this.display();
             return;
           }
@@ -185134,6 +185195,7 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
     category(
       "Interactive twin",
       "The lightbulb launch. The model is chosen in-session with /model \u2014 neither desktop app takes a per-launch model.",
+      "interactive",
       () => p3.settings.interactiveHarness,
       async (h2) => {
         p3.settings.interactiveHarness = h2;
@@ -185144,6 +185206,7 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
     category(
       "Background jobs",
       "Every scheduled taskrunner job \u2014 enrichment, digests, reflections, context updates, routines.",
+      "background",
       () => p3.settings.backgroundHarness,
       async (h2) => {
         p3.settings.backgroundHarness = h2;
@@ -185276,6 +185339,7 @@ Nulled unavailable: ${changed.join(", ")}` : ""}`, 2e4);
       const background = this.plugin.resolveBackgroundHarnessSync();
       const claudeAppRequired = interactive === "claude";
       const claudeCliRequired = background === "claude";
+      const claudeAuthRequired = claudeCliRequired && ps.claude && ps.claudeAuthenticated === false;
       const gitRequired = interactive === "claude";
       const codexRelevant = interactive === "codex" || background === "codex";
       const noHarness = !ps.claudeApp && !ps.claude && !ps.codex;
@@ -185287,9 +185351,11 @@ Nulled unavailable: ${changed.join(", ")}` : ""}`, 2e4);
       const allInstallableOk = requiredOk && recommendedOk;
       const qmdInProgress = ps.qmdBundleState === "downloading" || ps.qmdBundleState === "extracting";
       const warming = ps.smartSearchWarmupState === "warming";
-      const statusName = !ps.checked ? "Setup status" : noHarness ? "Missing required: an AI harness (Claude or Codex)" : claudeAppRequired && !ps.claudeApp ? "Missing required: Claude App" : claudeCliRequired && !ps.claude ? "Missing required: Claude CLI" : gitRequired && !ps.git ? "Missing required: Git" : qmdInProgress ? "Setting up Smart Search\u2026" : warming ? "Smart Search: indexing\u2026" : !recommendedOk ? "Ready (optional components available)" : "Ready";
+      const statusName = !ps.checked ? "Setup status" : noHarness ? "Missing required: an AI harness (Claude or Codex)" : claudeAppRequired && !ps.claudeApp ? "Missing required: Claude App" : claudeCliRequired && !ps.claude ? "Missing required: Claude CLI" : claudeAuthRequired ? "Missing required: Claude CLI sign-in" : gitRequired && !ps.git ? "Missing required: Git" : qmdInProgress ? "Setting up Smart Search\u2026" : warming ? "Smart Search: indexing\u2026" : !recommendedOk ? "Ready (optional components available)" : "Ready";
       const reqTag = (b2) => b2 ? " (required)" : "";
-      const desc = ps.checked ? `Claude App ${ps.claudeApp ? "\u2713" : "\u2717"}${reqTag(claudeAppRequired && !ps.claudeApp)}  \xB7  Claude CLI ${fmtStatus("claude")}${reqTag(claudeCliRequired && !ps.claude)}  \xB7  Codex ${ps.codex ? "\u2713" : "\u2717"}${reqTag(codexRelevant && !ps.codex)}  \xB7  Git ${ps.git ? "\u2713" : gitRequired ? "\u2717 (required)" : "\u2014 not needed"}  \xB7  Textures ${ps.textures ? "\u2713" : "\u2717 not installed"}${showSmartSearch ? `  \xB7  Smart Search ${fmtSmartSearch()}` : ""}` + (allInstallableOk ? "  \u2014  all set." : "  \u2014  resolve missing items, then click Recheck.") : "Checking\u2026";
+      const claudeCliStatus = !ps.claude ? "\u2717" : ps.claudeAuthenticated === true ? "\u2713 \xB7 signed in \u2713" : ps.claudeAuthenticated === false ? "\u2713 \xB7 sign-in \u2717" : "\u2713 \xB7 sign-in not verified";
+      const claudeDesktopNeedsCli = ps.claudeApp && !ps.claude;
+      const desc = ps.checked ? `Claude App ${ps.claudeApp ? "\u2713" : "\u2717"}${reqTag(claudeAppRequired && !ps.claudeApp)}  \xB7  Claude CLI ${claudeCliStatus}${reqTag(claudeCliRequired && !ps.claude || claudeAuthRequired)}  \xB7  Codex ${ps.codex ? "\u2713" : "\u2717"}${reqTag(codexRelevant && !ps.codex)}  \xB7  Git ${ps.git ? "\u2713" : gitRequired ? "\u2717 (required)" : "\u2014 not needed"}  \xB7  Textures ${ps.textures ? "\u2713" : "\u2717 not installed"}${showSmartSearch ? `  \xB7  Smart Search ${fmtSmartSearch()}` : ""}` + (allInstallableOk ? claudeDesktopNeedsCli ? "  \u2014  ready; install Claude CLI below to enable Claude background jobs." : "  \u2014  all set." : "  \u2014  resolve missing items, then click Recheck.") : "Checking\u2026";
       const badgeInfo = {
         neutral: { icon: "\u2026", verdict: "Checking\u2026", line: "Probing your setup.", color: "var(--text-muted)" },
         blocked: { icon: "\u2717", verdict: "Action needed", line: "A required component is missing.", color: "var(--text-error)" },
@@ -185421,8 +185487,54 @@ Nulled unavailable: ${changed.join(", ")}` : ""}`, 2e4);
       }
       const gate = this.plugin.requiredGate();
       const missingKeys = new Set(gate.missingRequired.map((e2) => e2.key));
-      if (ps.checked && missingKeys.has("claude-cli")) {
-        const entry = gate.missingRequired.find((e2) => e2.key === "claude-cli");
+      if (ps.checked && missingKeys.has("claude-auth")) {
+        const row = containerEl.createDiv();
+        row.style.padding = "0.5em 0.75em";
+        row.style.background = "var(--background-secondary)";
+        row.style.borderRadius = "4px";
+        row.style.margin = "0.5em 0";
+        row.createEl("strong", { text: "Sign in to Claude CLI (required)" });
+        const why = row.createEl("div", {
+          text: "Claude Desktop and the Claude CLI have separate sign-ins. Open PowerShell on Windows or Terminal on macOS, run the command below, and finish the browser sign-in."
+        });
+        why.style.marginTop = "0.25em";
+        why.style.fontSize = "0.9em";
+        why.style.color = "var(--text-muted)";
+        const cmdRow = row.createDiv();
+        cmdRow.style.display = "flex";
+        cmdRow.style.alignItems = "center";
+        cmdRow.style.gap = "0.5em";
+        cmdRow.style.marginTop = "0.5em";
+        const command = claudeLoginCommand(process.platform);
+        const code = cmdRow.createEl("code", { text: command });
+        code.style.userSelect = "text";
+        code.style.padding = "0.25em 0.5em";
+        code.style.background = "var(--background-primary)";
+        code.style.borderRadius = "3px";
+        const copyBtn = cmdRow.createEl("button", { text: "Copy" });
+        copyBtn.onclick = async () => {
+          try {
+            await navigator.clipboard.writeText(command);
+          } catch {
+          }
+          copyBtn.textContent = "Copied";
+          setTimeout(() => {
+            copyBtn.textContent = "Copy";
+          }, 1500);
+        };
+        const finish = row.createEl("div", { text: "When sign-in finishes, return here and click Recheck above. The pending enrichment will retry automatically." });
+        finish.style.marginTop = "0.45em";
+        finish.style.fontSize = "0.85em";
+        finish.style.color = "var(--text-muted)";
+      }
+      if (ps.checked && shouldOfferClaudeCliInstall(
+        { claudeApp: ps.claudeApp, claudeCli: ps.claude },
+        missingKeys.has("claude-cli")
+      )) {
+        const entry = gate.missingRequired.find((e2) => e2.key === "claude-cli") ?? {
+          name: "Claude CLI",
+          why: "Claude Desktop does not include the separate CLI. Install it to use Claude for enrichment and other background jobs."
+        };
         const help = { install: installCommandFor("claude-cli"), why: entry.why };
         const row = containerEl.createDiv();
         row.style.padding = "0.5em 0.75em";
@@ -185668,28 +185780,39 @@ Nulled unavailable: ${changed.join(", ")}` : ""}`, 2e4);
         async (v2) => {
           this.plugin.settings.enablePluginImap = v2;
           await this.plugin.saveSettings();
+          await this.plugin.torusImapReconfigure();
+          this.display();
         }
       );
       this.renderEmailStatusRow(containerEl);
-      new import_obsidian22.Setting(containerEl).setName("Email address").setDesc("IMAP login (e.g. mytwin@gmail.com)").addText(
-        (text) => text.setPlaceholder("mytwin@gmail.com").setValue(this.plugin.settings.imapUser).onChange(async (value) => {
+      new import_obsidian22.Setting(containerEl).setName("Email address").setDesc("IMAP login (e.g. mytwin@gmail.com)").addText((text) => {
+        text.setPlaceholder("mytwin@gmail.com").setValue(this.plugin.settings.imapUser).onChange(async (value) => {
           this.plugin.settings.imapUser = value;
           await this.plugin.saveSettings();
-        })
-      );
+        });
+        text.inputEl.addEventListener("blur", () => {
+          void this.plugin.torusImapReconfigure().then(() => this.display());
+        });
+      });
       new import_obsidian22.Setting(containerEl).setName("Email password").setDesc("IMAP password or app password").addText((text) => {
         text.setPlaceholder("\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022").setValue(this.plugin.settings.imapPassword).onChange(async (value) => {
           this.plugin.settings.imapPassword = value;
           await this.plugin.saveSettings();
         });
         text.inputEl.type = "password";
+        text.inputEl.addEventListener("blur", () => {
+          void this.plugin.torusImapReconfigure().then(() => this.display());
+        });
       });
-      new import_obsidian22.Setting(containerEl).setName("IMAP host").setDesc("IMAP server for email bridge (e.g. imap.gmail.com)").addText(
-        (text) => text.setPlaceholder("imap.gmail.com").setValue(this.plugin.settings.imapHost).onChange(async (value) => {
+      new import_obsidian22.Setting(containerEl).setName("IMAP host").setDesc("IMAP server for email bridge (e.g. imap.gmail.com)").addText((text) => {
+        text.setPlaceholder("e.g. imap.gmail.com").setValue(this.plugin.settings.imapHost).onChange(async (value) => {
           this.plugin.settings.imapHost = value;
           await this.plugin.saveSettings();
-        })
-      );
+        });
+        text.inputEl.addEventListener("blur", () => {
+          void this.plugin.torusImapReconfigure().then(() => this.display());
+        });
+      });
       if (showMacOnlyBridges(caps)) {
         this.headerWithToggle(
           containerEl,
@@ -185955,6 +186078,15 @@ Nulled unavailable: ${changed.join(", ")}` : ""}`, 2e4);
       this.setBridgeStatusDesc(setting, "notready", snap.lastError);
     } else {
       this.setBridgeStatusDesc(setting, "notready", `Configured for ${user} \u2014 connecting\u2026`);
+    }
+    if (on && host && user && pass) {
+      setting.addButton(
+        (btn) => btn.setButtonText("Reconnect").onClick(async () => {
+          btn.setDisabled(true).setButtonText("Connecting\u2026");
+          await this.plugin.torusImapReconfigure();
+          this.display();
+        })
+      );
     }
   }
   /** Single-line status row for the iMessage Bridge — read from
@@ -186311,51 +186443,9 @@ function pickBinPath(stdout, exists = import_fs2.existsSync) {
   return null;
 }
 
-// src/lib/claudePlatform.ts
-var import_path3 = require("path");
-var CLAUDE_DESKTOP_WIN_PROBE = "$app = Get-AppxPackage -Name 'Claude' -ErrorAction SilentlyContinue | Select-Object -First 1; $protocol = Test-Path 'Registry::HKEY_CLASSES_ROOT\\claude'; if ($app -or $protocol) { 'installed' }";
-function claudeDesktopDetected(platform, evidence) {
-  if (platform === "darwin") return evidence.macAppExists === true;
-  if (platform === "win32") {
-    return String(evidence.windowsProbe ?? "").split(/\r?\n/).some((line) => line.trim() === "installed");
-  }
-  return false;
-}
-function claudeCliStandardPath(platform, home) {
-  if (platform === "darwin") return import_path3.posix.join(home, ".local", "bin", "claude");
-  if (platform === "win32") return import_path3.win32.join(home, ".local", "bin", "claude.exe");
-  return null;
-}
-function claudeInstallerCommand(platform, shell = "/bin/zsh") {
-  if (platform === "darwin") {
-    const manual = "curl -fsSL https://claude.ai/install.sh | bash";
-    return {
-      bin: shell,
-      args: ["-lic", manual],
-      manual,
-      locationHint: "~/.local/bin/claude",
-      windowsHide: false
-    };
-  }
-  if (platform === "win32") {
-    const manual = "irm https://claude.ai/install.ps1 | iex";
-    return {
-      bin: "powershell.exe",
-      args: ["-NoLogo", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", manual],
-      manual,
-      locationHint: "%USERPROFILE%\\.local\\bin\\claude.exe",
-      windowsHide: true
-    };
-  }
-  return null;
-}
-function claudeCodeDeepLink(folder, prompt = "/torus-wake") {
-  const encodedFolder = encodeURIComponent(folder);
-  return `claude://code/new?folder=${encodedFolder}&cwd=${encodedFolder}&q=${encodeURIComponent(prompt)}`;
-}
-
 // src/lib/binResolver.ts
 var CLAUDE_CLI_MISSING_MSG = "can't find the Claude CLI. Install it from Settings \u2192 The Torus \u2192 Setup status \u2192 Install, or run: curl -fsSL https://claude.ai/install.sh | bash";
+var CLAUDE_CLI_AUTH_MSG = `Claude CLI is installed but not signed in. Run \`${claudeLoginCommand(process.platform)}\`, finish the browser sign-in, then click Recheck in Settings \u2192 The Torus \u2192 Setup status.`;
 var cache2 = /* @__PURE__ */ new Map();
 function findClaudeInStandardLocations(log) {
   const nativeInstallPath = claudeCliStandardPath(process.platform, (0, import_os2.homedir)());
@@ -187119,11 +187209,11 @@ var Taskrunner = class {
       this.markFailed(task.id);
       const msg = e2 instanceof Error ? e2.message : String(e2);
       this.log(`fail ${task.id}: ${msg}`);
-      if (msg === CLAUDE_CLI_MISSING_MSG) {
+      if (msg === CLAUDE_CLI_MISSING_MSG || msg === CLAUDE_CLI_AUTH_MSG) {
         if (!this.plugin.claudeInstallInProgress && !this.claudeMissingToasted) {
           this.claudeMissingToasted = true;
           new import_obsidian23.Notice(
-            "Claude CLI not loaded \u2014 the Torus can't run background tasks. Install it: Settings \u2192 The Torus \u2192 Setup status.",
+            msg === CLAUDE_CLI_AUTH_MSG ? "Claude CLI needs its own sign-in before background tasks can run. Open Settings \u2192 The Torus \u2192 Setup status for the exact sign-in command." : "Claude CLI not loaded \u2014 the Torus can't run background tasks. Install it: Settings \u2192 The Torus \u2192 Setup status.",
             1e4
           );
         }
@@ -187274,6 +187364,14 @@ var Taskrunner = class {
         });
         if (code !== 0) {
           cleanupCodex();
+          if (harness === "claude") {
+            const result2 = parseClaudeEnvelope(stdoutBuf).text;
+            if (/\bnot logged in\b|please run \/login/i.test(`${result2}
+${stderrBuf}`)) {
+              emit(false, null, null, null, null, "not logged in to Claude CLI");
+              return reject(new Error(CLAUDE_CLI_AUTH_MSG));
+            }
+          }
           emit(false, null, null, null, null, signal ? `killed by ${signal}` : `exited ${code}`);
           if (signal) return reject(new Error(`${harness} killed by ${signal}`));
           return reject(new Error(`${harness} exited ${code}`));
@@ -226467,6 +226565,7 @@ _Fable-safe (redacted) \xB7 assembled ${torusFormatLocal(nowIso, "datetime")} ($
     const decision = computeRequiredGate({
       claudeApp: ps.claudeApp,
       claude: ps.claude,
+      claudeAuthenticated: ps.claudeAuthenticated,
       codex: ps.codex,
       git: ps.git,
       gitInstalling: this.gitInstallInProgress,
@@ -226487,7 +226586,12 @@ _Fable-safe (redacted) \xB7 assembled ${torusFormatLocal(nowIso, "datetime")} ($
       "claude-cli": {
         name: "Claude CLI",
         why: "powers the background capture \u2192 enrich pipeline \u2014 your selected background harness",
-        soloLead: "Your background jobs are set to Claude \u2014 install the Claude CLI. If you have both harnesses, choose your preferred one in Settings \u2192 The Torus."
+        soloLead: "Your background jobs are set to Claude. Claude Desktop does not include the separate CLI, so install it here. If you have both harnesses, choose your preferred one in Settings \u2192 The Torus."
+      },
+      "claude-auth": {
+        name: "Claude CLI sign-in",
+        why: "authorizes the Claude CLI that powers background enrichment \u2014 Claude Desktop sign-in is separate",
+        soloLead: "The Claude CLI is installed but not signed in. Run `claude auth login`, complete the browser sign-in, then click Recheck."
       },
       "git": {
         name: "Git",
@@ -228235,6 +228339,33 @@ ${titled}
     }
     return JSON.stringify({ ok: true, enabled: true, reason: null, ...this.imapRunner.getStatus() });
   }
+  /** Hot-reconfigure the in-plugin IMAP listener from current settings. Stops
+   *  any existing connection, then starts immediately when the bridge is enabled
+   *  and host/user/password are complete. Settings calls this on toggle and on
+   *  credential-field blur, so enabling Email never requires a plugin reload. */
+  async torusImapReconfigure() {
+    if (this.imapRunner) {
+      await this.imapRunner.stop();
+      this.imapRunner = null;
+    }
+    const host = this.settings.imapHost.trim();
+    const user = this.settings.imapUser.trim();
+    const password = this.settings.imapPassword.trim();
+    if (this.settings.enablePluginImap && host && user && password) {
+      const vaultPath = this.app.vault.adapter.basePath;
+      this.imapRunner = new ImapRunner((m2) => this.torusTrace("capture:email", m2));
+      await this.imapRunner.start({
+        host,
+        port: this.settings.imapPort,
+        user,
+        password,
+        tls: this.settings.imapTls,
+        vaultPath,
+        torusRoot: this.settings.torusRoot
+      });
+    }
+    return this.torusImapStatus();
+  }
   /** D5 — a capture-services block for the wake packet: one line per ENABLED
    *  bridge (disabled and platform-inert ones omitted), always present when at
    *  least one bridge is enabled (so "all healthy" is distinguishable from "the
@@ -228944,6 +229075,7 @@ ${lines.join("\n")}`;
    *  - textures: in-plugin install action (texture pack from sister repo) */
   prereqStatus = {
     claude: false,
+    claudeAuthenticated: null,
     claudeApp: false,
     codex: false,
     qmd: false,
@@ -228961,8 +229093,6 @@ ${lines.join("\n")}`;
   /** Probe each prerequisite. claude/qmd via binResolver; textures by checking
    *  for a known file in plugin dir. */
   async refreshPrereqs() {
-    const probeBin = async (name) => !!await resolveBin(name, () => {
-    });
     const probeTextures = () => {
       const basePath = this.app.vault.adapter.basePath;
       const texturesDir = (0, import_path13.join)(basePath, this.manifest.dir, "textures");
@@ -228981,11 +229111,15 @@ ${lines.join("\n")}`;
         return false;
       }
     };
-    const [claude, pathQmd, git] = await Promise.all([
-      probeBin("claude"),
-      probeBin("qmd"),
+    const [claudeBin, pathQmd, git] = await Promise.all([
+      resolveBin("claude", () => {
+      }),
+      resolveBin("qmd", () => {
+      }),
       this.probeGit()
     ]);
+    const claude = !!claudeBin;
+    const claudeAuthenticated = await this.probeClaudeAuth(claudeBin);
     const claudeApp = await this.probeClaudeDesktopApp();
     const codex = this.codexHomePresent() && !!await this.codexBinPath(() => {
     });
@@ -229000,6 +229134,7 @@ ${lines.join("\n")}`;
     this.prereqStatus = {
       ...this.prereqStatus,
       claude,
+      claudeAuthenticated,
       claudeApp,
       codex,
       qmd,
@@ -229012,7 +229147,27 @@ ${lines.join("\n")}`;
     };
     await this.healNestedRepoIfSafe(this.torusHome());
     if (git) this.gitInstallInProgress = false;
-    this.torusTrace("plugin:prereqs", `claude=${claude} claudeApp=${claudeApp} codex=${codex} qmd=${qmd}(${qmdSource ?? "none"}) textures=${textures} git=${git} smartSearchReady=${smartSearchReady} cloudVault=${cloudVault} nestedRepoWarn=${this.prereqStatus.nestedRepoWarn}`);
+    this.torusTrace("plugin:prereqs", `claude=${claude} claudeAuth=${claudeAuthenticated ?? "unknown"} claudeApp=${claudeApp} codex=${codex} qmd=${qmd}(${qmdSource ?? "none"}) textures=${textures} git=${git} smartSearchReady=${smartSearchReady} cloudVault=${cloudVault} nestedRepoWarn=${this.prereqStatus.nestedRepoWarn}`);
+  }
+  /** Claude Desktop and Claude Code do not share login state reliably (observed
+   *  on the Windows beta box). Current Claude CLI exposes a zero-token local
+   *  readiness probe: `claude auth status` exits 0 when signed in and 1 when not.
+   *  Unknown-command/other failures stay null so an older CLI is not falsely
+   *  hard-blocked; a real background call still reports its own exact failure. */
+  probeClaudeAuth(bin) {
+    if (!bin) return Promise.resolve(null);
+    return new Promise((resolve2) => {
+      (0, import_child_process6.execFile)(bin, ["auth", "status"], { timeout: 1e4, windowsHide: true }, (err, stdout, stderr) => {
+        if (!err) return resolve2(true);
+        const text = `${stdout}
+${stderr}`;
+        if (/unknown (?:command|argument)|unexpected argument|invalid choice/i.test(text)) return resolve2(null);
+        if (Number(err.code) === 1 || /not (?:logged|signed) in|"loggedIn"\s*:\s*false/i.test(text)) {
+          return resolve2(false);
+        }
+        resolve2(null);
+      });
+    });
   }
   /** Claude Desktop install probe behind one platform seam. Anthropic's Windows
    * installer is MSIX and registers both package `Claude` and the `claude://`
@@ -229064,7 +229219,8 @@ ${lines.join("\n")}`;
    *  at ~/.local/bin/claude, which resolveBin probes directly, so it resolves
    *  regardless of the user's shell PATH. Clears the bin cache + rechecks
    *  prereqs on success so the Setup-status ✓ and the button flip without a
-   *  reload. Auth is shared with the desktop app (same OAuth). */
+   *  reload. Authentication is a separate setup step and is probed independently
+   *  with `claude auth status`; Claude Desktop login is not treated as evidence. */
   /** True while torusInstallClaudeCli is running. The taskrunner reads this to
    *  suppress its missing-CLI toast mid-install — a background failure landing
    *  next to the "Installing…" button reads as "your install just failed." */
@@ -234335,6 +234491,7 @@ ${remainingLines.join("\n")}
       { method: "torusImessageListChats()", description: "List recent 1:1 chats from chat.db so the user can identify which handles are their own (for self-chat capture). Mac-only; requires FDA. Returns {ok:true, candidates:[{handle, chat_id, last_message}]} sorted by recency. NOTE: returns ALL 1:1 chats, not only self-chats (chat.db has no reliable self-chat marker \u2014 self-chat messages from other devices sync as is_from_me=0). The user picks their own handle(s) from the list. Used to populate the imessageSelfHandles setting." },
       { method: "torusImapStatus()", description: "Snapshot of the in-plugin IMAP (email) capture runner. Returns {ok, running, enabled, reason, startedAt, uptime_ms, lastPollAt, lastInboundAt, messagesCapturedSession, lastError}. When not running: enabled is the setting, reason is off|not-configured|not-running, disabled = off-by-choice only. Times are ISO UTC." },
       { method: "torusImessageStatus()", description: "Snapshot of the plugin-spawned iMessage capture runner. Parity with torusBridgeStatus for Services-panel rendering. Returns {ok, running, selfHandles:string[], startedAt, uptime_ms, lastPollAt, lastInboundAt, cursorRowId, messagesCapturedSession, lastError}. When not running: enabled (setting), reason (unsupported-platform|off|not-configured|not-running), disabled = off-by-choice only. reason=unsupported-platform on non-Mac is inert, not a fault. Times are ISO UTC." },
+      { method: "torusImapReconfigure()", description: "Hot-restart the in-plugin IMAP runner from current settings: stop the listener and start a fresh one when enabled with complete host/user/password settings, or stop it when disabled/incomplete. Returns the post-restart torusImapStatus() shape. Called by Settings on toggle/credential blur so Email changes apply without a plugin reload." },
       { method: "torusImessageReconfigure()", description: "Hot-restart the in-plugin iMessage runner from current settings: stop the poller and start a fresh one with the latest imessageSelfHandles list, or stop it if disabled / no handles. Returns the post-restart torusImessageStatus() shape. Called by Settings on toggle/Detect-confirm/handle-edit so config changes apply without a full plugin reload." },
       { method: "torusTelegramStatus()", description: 'Snapshot of the in-plugin Telegram capture runner (destination bridge \u2014 long-polls the Bot API). Returns {ok, running, state, botUsername, authorizedUserCount, startedAt, uptime_ms, lastPollAt, lastInboundAt, offset, messagesCapturedSession, lastError}. When not running: enabled (setting), reason (off|no-token|not-running), disabled = off-by-choice only, state:"idle". `state` is idle|starting|ready|failed (failed = bad token; lastError holds the user-facing message). Times are ISO UTC.' },
       { method: "torusTwinModel()", description: `Returns the user's configured Twin model as a short alias ("opus" | "sonnet" | "haiku") for Claude Code Agent tool model parameter.` },
@@ -236108,19 +236265,7 @@ ${remainingLines.join("\n")}
         this.mcpServer = new TorusMcpServer(this);
         this.mcpServer.start().catch((e2) => console.error("[Torus] MCP server start failed:", e2));
       }
-      if (this.settings.enablePluginImap && this.settings.imapHost && this.settings.imapUser) {
-        const vaultPath = this.app.vault.adapter.basePath;
-        this.imapRunner = new ImapRunner((m2) => this.torusTrace("capture:email", m2));
-        this.imapRunner.start({
-          host: this.settings.imapHost,
-          port: this.settings.imapPort,
-          user: this.settings.imapUser,
-          password: this.settings.imapPassword,
-          tls: this.settings.imapTls,
-          vaultPath,
-          torusRoot: this.settings.torusRoot
-        }).catch((e2) => console.error("[Torus] IMAP start failed:", e2));
-      }
+      this.torusImapReconfigure().catch((e2) => console.error("[Torus] IMAP start failed:", e2));
       if (this.settings.enablePluginImessage && parseHandles(this.settings.imessageSelfHandles).length > 0) {
         const vaultPath = this.app.vault.adapter.basePath;
         this.imessageRunner = new ImessageRunner((m2) => this.torusTrace("capture:imessage", m2));

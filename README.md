@@ -33,7 +33,9 @@ Full setup guidance is installed into the Torus itself.
   roles can use either harness independently.
   - Claude requires Claude Desktop for the interactive Twin and the Claude Code
     CLI for background jobs. The Setup panel offers Anthropic's native CLI
-    installer on both macOS and Windows.
+    installer on both macOS and Windows. Desktop and CLI sign-ins are separate;
+    after installing the CLI, run `claude auth login` once before using Claude
+    for enrichment or other background work.
   - Codex requires the Codex desktop app and a signed-in Codex installation.
 
 All six supported combinations are first-class: macOS or Windows, each with
