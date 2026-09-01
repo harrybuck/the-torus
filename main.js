@@ -102765,7 +102765,7 @@ var require_content_patterns = __commonJS({
               allExternalLinks = false;
               break;
             }
-            const itemText = item.textContent?.trim() || "";
+            const itemText2 = item.textContent?.trim() || "";
             let linkTextLen = 0;
             for (const link of links) {
               linkTextLen += (link.textContent?.trim() || "").length;
@@ -102780,7 +102780,7 @@ var require_content_patterns = __commonJS({
             }
             if (!allExternalLinks)
               break;
-            if (linkTextLen < itemText.length * 0.6) {
+            if (linkTextLen < itemText2.length * 0.6) {
               allExternalLinks = false;
               break;
             }
@@ -120184,10 +120184,6 @@ var import_path = require("path");
 function isSpawnableWin32(p3) {
   return p3 ? [".exe", ".com"].includes((0, import_path.extname)(p3).toLowerCase()) : false;
 }
-function pickNewestBinDir(entries) {
-  if (!entries.length) return null;
-  return entries.reduce((a2, b2) => b2.mtimeMs > a2.mtimeMs ? b2 : a2).name;
-}
 function pickAppxInstallLocation(stdout) {
   const lines = String(stdout ?? "").split(/\r?\n/).map((l2) => l2.trim()).filter((l2) => /^[A-Za-z]:\\/.test(l2));
   if (!lines.length) return null;
@@ -120239,12 +120235,51 @@ function parseCodexAppState(stdout) {
   const [total, windowed] = line.split("|").map((n) => Number(n) || 0);
   return { total, windowed: Math.min(windowed, total) };
 }
+function pickDoctorShimWin32(candidates) {
+  const ext = (p3) => (0, import_path.extname)(String(p3 ?? "")).toLowerCase();
+  return candidates.find((c3) => ext(c3) === ".cmd") ?? candidates.find((c3) => ext(c3) === ".bat") ?? null;
+}
+function parseCodexDoctorExecutable(stdout) {
+  const raw = String(stdout ?? "");
+  const start = raw.indexOf("{");
+  if (start < 0) return { ok: false, reason: "no-json" };
+  let doc;
+  try {
+    doc = JSON.parse(raw.slice(start));
+  } catch {
+    return { ok: false, reason: "unparseable" };
+  }
+  const details = doc?.checks?.installation?.details;
+  const value = details?.["current executable"];
+  if (typeof value !== "string" || !value.trim()) return { ok: false, reason: "no-field" };
+  return { ok: true, path: value.trim() };
+}
+function codexVendorTriple(arch) {
+  if (arch === "x64") return "x86_64-pc-windows-msvc";
+  if (arch === "arm64") return "aarch64-pc-windows-msvc";
+  return null;
+}
+function npmLayoutCandidates(shimDir, arch) {
+  const base = String(shimDir ?? "").trim().replace(/[\\/]+$/, "");
+  const triple = codexVendorTriple(arch);
+  if (!base || !triple) return [];
+  const pkg = `@openai\\codex-win32-${arch}`;
+  const tail = `${pkg}\\vendor\\${triple}\\bin\\codex.exe`;
+  return [
+    `${base}\\node_modules\\@openai\\codex\\node_modules\\${tail}`,
+    `${base}\\node_modules\\${tail}`
+  ];
+}
 function chooseCodexBin(opts) {
-  const { pathCandidates = [], doctorExecutable = null, standardLocation = null } = opts;
+  const {
+    pathCandidates = [],
+    doctorExecutable = null,
+    npmLayout = null
+  } = opts;
   const onPath = pathCandidates.find(isSpawnableWin32);
   if (onPath) return onPath;
   if (doctorExecutable && isSpawnableWin32(doctorExecutable)) return doctorExecutable;
-  if (standardLocation && isSpawnableWin32(standardLocation)) return standardLocation;
+  if (npmLayout && isSpawnableWin32(npmLayout)) return npmLayout;
   return null;
 }
 
@@ -175349,7 +175384,7 @@ function CameraController({
   facadeHeight,
   facingWing = 0
 }) {
-  const { camera, controls, invalidate: invalidate2 } = useThree();
+  const { camera, controls, invalidate: invalidate2, gl } = useThree();
   (0, import_react42.useEffect)(() => {
     if (controls) invalidate2();
   }, [controls, invalidate2]);
@@ -175427,6 +175462,11 @@ function CameraController({
   const isExteriorRef2 = (0, import_react42.useRef)(isExterior);
   isExteriorRef2.current = isExterior;
   const ORBIT_SPEED = 0.5;
+  const EXTERIOR_IDLE_S = 45;
+  const EXTERIOR_SLEEP_RAMP_S = 1;
+  const exteriorIdleT = (0, import_react42.useRef)(0);
+  const exteriorOrbitEase = (0, import_react42.useRef)(1);
+  const exteriorAsleep = (0, import_react42.useRef)(false);
   (0, import_react42.useEffect)(() => {
     if (!controls) return;
     const orbitControls = controls;
@@ -175459,6 +175499,26 @@ function CameraController({
     orbitControls.addEventListener("start", onStart);
     return () => orbitControls.removeEventListener("start", onStart);
   }, [controls, onArrived, onEnteredLibrary, setMaxPolar]);
+  (0, import_react42.useEffect)(() => {
+    const canvas = gl.domElement;
+    const wake = () => {
+      exteriorIdleT.current = 0;
+      if (exteriorAsleep.current) {
+        exteriorAsleep.current = false;
+        invalidate2();
+      }
+    };
+    canvas.addEventListener("pointermove", wake);
+    canvas.addEventListener("pointerdown", wake);
+    canvas.addEventListener("wheel", wake, { passive: true });
+    window.addEventListener("keydown", wake);
+    return () => {
+      canvas.removeEventListener("pointermove", wake);
+      canvas.removeEventListener("pointerdown", wake);
+      canvas.removeEventListener("wheel", wake);
+      window.removeEventListener("keydown", wake);
+    };
+  }, [gl, invalidate2]);
   (0, import_react42.useEffect)(() => {
     if (!target) return;
     if (!firstNavResetDoneRef.current && revealSpinRef.current) {
@@ -175769,7 +175829,7 @@ function CameraController({
   useFrame((state2, delta) => {
     if (!controls) return;
     const orbitControls = controls;
-    if (sceneVisibleRef.current && (flyPath.current || animating.current || peeking.current || pendingNetworkCameraRef.current || fovT.current !== (isIdeasViewRef.current ? 1 : 0) || isExteriorRef2.current)) {
+    if (sceneVisibleRef.current && (flyPath.current || animating.current || peeking.current || pendingNetworkCameraRef.current || fovT.current !== (isIdeasViewRef.current ? 1 : 0) || isExteriorRef2.current && !exteriorAsleep.current)) {
       state2.invalidate();
     }
     const SETTLE_FRAC = 0.15;
@@ -175841,9 +175901,18 @@ function CameraController({
       setMaxPolar(Math.PI);
     }
     if (isExteriorRef2.current && !flyPath.current && !animating.current && orbitControls.enabled) {
-      orbitControls.autoRotateSpeed = ORBIT_SPEED;
+      const dt = Math.min(delta, 0.25);
+      exteriorIdleT.current += dt;
+      const targetEase = exteriorIdleT.current > EXTERIOR_IDLE_S ? 0 : 1;
+      const step = dt / EXTERIOR_SLEEP_RAMP_S;
+      exteriorOrbitEase.current = targetEase > exteriorOrbitEase.current ? Math.min(targetEase, exteriorOrbitEase.current + step) : Math.max(targetEase, exteriorOrbitEase.current - step);
+      orbitControls.autoRotateSpeed = ORBIT_SPEED * exteriorOrbitEase.current;
+      exteriorAsleep.current = exteriorOrbitEase.current <= 0;
     } else if (isExteriorRef2.current) {
       orbitControls.autoRotateSpeed = 0;
+      exteriorIdleT.current = 0;
+      exteriorOrbitEase.current = 1;
+      exteriorAsleep.current = false;
     }
     if (flyPath.current) {
       flyT.current = Math.min(1, flyT.current + delta / flyDurationRef.current);
@@ -183266,6 +183335,16 @@ function usePathData(fileA, fileB, mode, ideas, library, app) {
   }, [key, ideas, library, app]);
 }
 
+// src/lib/renderQuality.ts
+var RENDER_QUALITY_DPR = { sharp: 1, balanced: 0.75, saver: 0.5 };
+var DPR_FLOOR = 0.5;
+var FLIGHT_MULTIPLIER = 0.3;
+function dprTargets(hostDpr, quality) {
+  const multiplier = RENDER_QUALITY_DPR[quality ?? "sharp"] ?? RENDER_QUALITY_DPR.sharp;
+  const steady = hostDpr * multiplier;
+  return { steady, flight: Math.max(DPR_FLOOR, steady * FLIGHT_MULTIPLIER) };
+}
+
 // src/App.tsx
 var import_react63 = __toESM(require_react(), 1);
 var import_jsx_runtime52 = __toESM(require_jsx_runtime(), 1);
@@ -183295,19 +183374,29 @@ var lightingProfileRef = {
 };
 var isExteriorRef = { current: true };
 var sceneVisibleRef = { current: true };
+var renderQualityRef = { current: "sharp" };
 function DprController() {
   const setDpr = useThree((s) => s.setDpr);
-  const fullDpr = window.devicePixelRatio;
-  const lowDpr = Math.max(0.5, fullDpr * 0.3);
-  const lastDpr = (0, import_react63.useRef)(fullDpr);
+  const hostDpr = window.devicePixelRatio;
+  const lowered = (0, import_react63.useRef)(false);
+  const applied = (0, import_react63.useRef)(-1);
+  (0, import_react63.useEffect)(() => {
+    const onQuality = (e2) => {
+      const q = e2.detail;
+      if (q in RENDER_QUALITY_DPR) renderQualityRef.current = q;
+    };
+    window.addEventListener("torus-render-quality", onQuality);
+    return () => window.removeEventListener("torus-render-quality", onQuality);
+  }, []);
   useFrame(() => {
+    const { steady, flight: low } = dprTargets(hostDpr, renderQualityRef.current);
     const settled = cameraSettledFracRef.current;
-    let target = lastDpr.current;
-    if (lastDpr.current === fullDpr && settled < 0.5) target = lowDpr;
-    else if (lastDpr.current === lowDpr && settled >= 0.95) target = fullDpr;
-    if (target !== lastDpr.current) {
+    if (!lowered.current && settled < 0.5) lowered.current = true;
+    else if (lowered.current && settled >= 0.95) lowered.current = false;
+    const target = lowered.current ? low : steady;
+    if (target !== applied.current) {
       setDpr(target);
-      lastDpr.current = target;
+      applied.current = target;
     }
   });
   return null;
@@ -183469,6 +183558,7 @@ function SelectionBridge({
   return null;
 }
 function App6({ llmSettings }) {
+  renderQualityRef.current = llmSettings.renderQuality ?? "sharp";
   return /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(NavigationProvider, { initialMode: llmSettings.preferredLibraryView, children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(LayoutConfigProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(FacadeDebugProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(AppInner, { llmSettings }) }) }) });
 }
 function AppInner({ llmSettings }) {
@@ -184198,6 +184288,7 @@ var DEFAULT_LLM_SETTINGS = {
   userName: "",
   preferredLibraryView: "library-round",
   inboxSortOrder: "newest-top",
+  renderQuality: "sharp",
   bridgePort: 3001,
   imapHost: "",
   imapPort: 993,
@@ -185025,6 +185116,188 @@ function claudeCodeDeepLink(cwd, prompt = "/torus-wake") {
   return `claude://code/new?cwd=${encodeURIComponent(cwd)}&q=${encodeURIComponent(prompt)}`;
 }
 
+// src/lib/binResolver.ts
+var import_child_process2 = require("child_process");
+var import_fs3 = require("fs");
+var import_os2 = require("os");
+var import_path4 = require("path");
+
+// src/lib/binPath.ts
+var import_fs2 = require("fs");
+function isUsableBinPath(p3, exists = import_fs2.existsSync) {
+  if (!(p3.startsWith("/") || /^[A-Za-z]:[\\/]/.test(p3))) return false;
+  try {
+    return exists(p3);
+  } catch {
+    return false;
+  }
+}
+function pickBinPath(stdout, exists = import_fs2.existsSync) {
+  const lines = String(stdout).split("\n").map((s) => s.trim()).filter(Boolean);
+  for (let i3 = lines.length - 1; i3 >= 0; i3--) {
+    if (isUsableBinPath(lines[i3], exists)) return lines[i3];
+  }
+  return null;
+}
+
+// src/lib/binResolver.ts
+var CLAUDE_CLI_MISSING_MSG = "can't find the Claude CLI. Install it from Settings \u2192 The Torus \u2192 Setup status \u2192 Install, or run: curl -fsSL https://claude.ai/install.sh | bash";
+var CLAUDE_CLI_AUTH_MSG = `Claude CLI is installed but not signed in. Run \`${claudeLoginCommand(process.platform)}\`, finish the browser sign-in, then click Recheck in Settings \u2192 The Torus \u2192 Setup status.`;
+var cache2 = /* @__PURE__ */ new Map();
+function findClaudeInStandardLocations(log) {
+  const nativeInstallPath = claudeCliStandardPath(process.platform, (0, import_os2.homedir)());
+  if (!nativeInstallPath) return null;
+  if ((0, import_fs3.existsSync)(nativeInstallPath)) {
+    log(`resolved claude via native install location \u2192 ${nativeInstallPath}`);
+    return nativeInstallPath;
+  }
+  return null;
+}
+async function resolveClaudeWin32(log) {
+  const pathCandidates = await getCommandAllWin32("claude", log);
+  const onPath = pathCandidates.find(isSpawnableWin32) ?? null;
+  const standardLocation = findClaudeInStandardLocations(log);
+  const chosen = onPath || standardLocation;
+  if (chosen) log(`resolved claude (win32) \u2192 ${chosen}`);
+  else log("resolveBin(claude) win32 \u2014 no spawnable .exe found");
+  return chosen;
+}
+function findCodexInStandardLocations(log) {
+  const bundlePath = "/Applications/ChatGPT.app/Contents/Resources/codex";
+  if ((0, import_fs3.existsSync)(bundlePath)) {
+    log(`resolved codex via ChatGPT.app bundle \u2192 ${bundlePath}`);
+    return bundlePath;
+  }
+  return null;
+}
+function getCommandAllWin32(name, log) {
+  return new Promise((resolve2) => {
+    const cmd = `powershell -NoProfile -Command "Get-Command '${name}' -All -ErrorAction SilentlyContinue | ForEach-Object { $_.Source }"`;
+    (0, import_child_process2.exec)(cmd, { timeout: 1e4 }, (err, stdout) => {
+      if (err) {
+        log(`getCommandAllWin32(${name}) failed: ${err.code ?? err.message}`);
+        return resolve2([]);
+      }
+      resolve2(String(stdout).split(/\r?\n/).map((s) => s.trim()).filter(Boolean));
+    });
+  });
+}
+function codexDoctorExecutable(pathCandidates, log) {
+  const shim = pickDoctorShimWin32(pathCandidates);
+  if (!shim) {
+    log("codex doctor route skipped \u2014 PATH offered no .cmd/.bat shim to invoke");
+    return Promise.resolve(null);
+  }
+  return new Promise((resolve2) => {
+    (0, import_child_process2.exec)(`"${shim}" doctor --json`, { timeout: 15e3, windowsHide: true }, (err, stdout) => {
+      const parsed = parseCodexDoctorExecutable(stdout);
+      const execNote = err ? ` \u2014 exec ${err.code ?? err.message}` : "";
+      if (!parsed.ok) {
+        log(`codex doctor route produced nothing (${parsed.reason})${execNote}`);
+        return resolve2(null);
+      }
+      if (!isSpawnableWin32(parsed.path)) {
+        log(`codex doctor reported a non-spawnable executable (${parsed.path}) \u2014 ignoring it`);
+        return resolve2(null);
+      }
+      log(`resolved codex via doctor \u2192 ${parsed.path}`);
+      resolve2(parsed.path);
+    });
+  });
+}
+function findCodexInNpmLayout(pathCandidates, log) {
+  const dirs = [...new Set(pathCandidates.map((c3) => (0, import_path4.dirname)(c3)).filter(Boolean))];
+  for (const dir of dirs) {
+    for (const candidate of npmLayoutCandidates(dir, process.arch)) {
+      try {
+        if ((0, import_fs3.existsSync)(candidate)) {
+          log(`resolved codex via npm platform-package layout \u2192 ${candidate}`);
+          return candidate;
+        }
+      } catch (e2) {
+        log(`npm-layout probe failed at ${candidate}: ${e2.message}`);
+      }
+    }
+  }
+  if (dirs.length) log(`npm-layout probe found no codex.exe under ${dirs.length} shim dir(s)`);
+  return null;
+}
+async function resolveCodexWin32(log) {
+  const pathCandidates = await getCommandAllWin32("codex", log);
+  const onPath = pathCandidates.find(isSpawnableWin32) ?? null;
+  const doctorExecutable = onPath ? null : await codexDoctorExecutable(pathCandidates, log);
+  const npmLayout = onPath || doctorExecutable ? null : findCodexInNpmLayout(pathCandidates, log);
+  const chosen = chooseCodexBin({ pathCandidates, doctorExecutable, npmLayout });
+  if (chosen) log(`resolved codex (win32) \u2192 ${chosen}`);
+  else log("resolveBin(codex) win32 \u2014 no spawnable .exe: PATH had shims only, and codex doctor plus the npm platform-package layout both came up empty");
+  return chosen;
+}
+function resolveBin(name, log = () => {
+}) {
+  const cached2 = cache2.get(name);
+  if (cached2) return cached2;
+  const promise2 = resolveBinUncached(name, log).then((p3) => {
+    if (p3) log(`resolved ${name} \u2192 ${p3}`);
+    else cache2.delete(name);
+    return p3;
+  });
+  cache2.set(name, promise2);
+  return promise2;
+}
+function clearBinCache() {
+  cache2.clear();
+}
+function resolveBinUncached(name, log) {
+  return new Promise((resolve2) => {
+    const isWin = process.platform === "win32";
+    const timeoutMs = 1e4;
+    if (isWin) {
+      if (name === "codex") {
+        resolveCodexWin32(log).then(resolve2);
+        return;
+      }
+      if (name === "claude") {
+        resolveClaudeWin32(log).then(resolve2);
+        return;
+      }
+      const cmd2 = `powershell -NoProfile -Command "(Get-Command '${name}' -ErrorAction SilentlyContinue).Source"`;
+      (0, import_child_process2.exec)(cmd2, { timeout: timeoutMs }, (err, stdout, stderr) => {
+        const raw = String(stdout).trim();
+        const out = pickBinPath(raw);
+        if (err || !out) {
+          log(
+            `resolveBin(${name}) failed \u2014 windows powershell ${err ? `err=${err.code ?? err.message}` : raw ? `no usable path in stdout=${raw.slice(0, 200)}` : "empty stdout"}${stderr ? ` stderr=${String(stderr).trim().slice(0, 300)}` : ""}`
+          );
+          return resolve2(null);
+        }
+        resolve2(out);
+      });
+      return;
+    }
+    const shell = process.env.SHELL || "/bin/zsh";
+    const cmd = `${shell} -lic 'command -v ${name}'`;
+    (0, import_child_process2.exec)(cmd, { timeout: timeoutMs }, async (err, stdout, stderr) => {
+      const raw = String(stdout).trim();
+      const out = pickBinPath(raw);
+      if (out) return resolve2(out);
+      const errInfo = err ? `err=${err.code ?? err.message}` : raw ? `no usable path in stdout=${raw.slice(0, 200)}` : "empty stdout";
+      const stderrSnippet = String(stderr || "").trim().slice(0, 500);
+      log(
+        `resolveBin(${name}) shell-PATH lookup failed \u2014 shell=${shell} ${errInfo}${stderrSnippet ? ` stderr=${stderrSnippet}` : ""}`
+      );
+      if (name === "claude") {
+        const fromStd = findClaudeInStandardLocations(log);
+        if (fromStd) return resolve2(fromStd);
+      }
+      if (name === "codex") {
+        const fromStd = findCodexInStandardLocations(log);
+        if (fromStd) return resolve2(fromStd);
+      }
+      resolve2(null);
+    });
+  });
+}
+
 // src/llm/settings.ts
 var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
   plugin;
@@ -185216,6 +185489,43 @@ var TorusSettingTab = class extends import_obsidian22.PluginSettingTab {
         await p3.saveSettings();
       } }
     );
+    new import_obsidian22.Setting(containerEl).setName("Codex binary (optional)").setDesc(
+      "Absolute path to the real codex executable, if detection cannot find it. " + (process.platform === "win32" ? "Must be a .exe \u2014 an npm install puts codex.ps1/.cmd shims on PATH, and Windows cannot launch those directly. The real one is usually under %APPDATA%\\npm\\node_modules\\@openai\\\u2026\\bin\\codex.exe." : "Leave empty to use normal detection.")
+    ).addText((text) => {
+      text.setPlaceholder("leave empty to auto-detect");
+      text.setValue(p3.settings.codexBin ?? "");
+      const commit = async () => {
+        const raw = text.getValue().trim();
+        if (raw === (p3.settings.codexBin ?? "").trim()) return;
+        if (raw) {
+          if (!fs.existsSync(raw)) {
+            new import_obsidian22.Notice(`No file at ${raw} \u2014 check the path and try again. Leave it empty to auto-detect.`, 8e3);
+            text.setValue(p3.settings.codexBin ?? "");
+            return;
+          }
+          if (process.platform === "win32" && !isSpawnableWin32(raw)) {
+            new import_obsidian22.Notice("That is a shim, not the executable. Point this at the real codex.exe \u2014 Windows cannot launch a .ps1 or .cmd directly.", 1e4);
+            text.setValue(p3.settings.codexBin ?? "");
+            return;
+          }
+        }
+        p3.settings.codexBin = raw;
+        await p3.saveSettings();
+        clearBinCache();
+        await p3.refreshPrereqs();
+        new import_obsidian22.Notice(raw ? "Codex path set. Setup status rechecked." : "Codex path cleared \u2014 back to auto-detection.", 5e3);
+        this.display();
+      };
+      text.inputEl.addEventListener("blur", () => {
+        void commit();
+      });
+      text.inputEl.addEventListener("keydown", (e2) => {
+        if (e2.key === "Enter") {
+          e2.preventDefault();
+          text.inputEl.blur();
+        }
+      });
+    });
     const runProbe = async (btn) => {
       btn.setDisabled(true);
       btn.setButtonText("Testing\u2026");
@@ -185309,6 +185619,16 @@ Nulled unavailable: ${changed.join(", ")}` : ""}`, 2e4);
         (dropdown) => dropdown.addOption("library-round", "Pantheon").addOption("library-flat", "Great Hall").setValue(this.plugin.settings.preferredLibraryView).onChange(async (value) => {
           this.plugin.settings.preferredLibraryView = value;
           await this.plugin.saveSettings();
+        })
+      );
+      new import_obsidian22.Setting(containerEl).setName("Render quality").setDesc(
+        "Resolution the 3D library draws at. Lower is softer and much cheaper on the GPU; the change applies straight away, no reload. On a laptop with two GPUs, also tell Windows to run Obsidian on the high-performance one: Settings \u2192 System \u2192 Display \u2192 Graphics."
+      ).addDropdown(
+        (dropdown) => dropdown.addOption("sharp", "Sharp \u2014 native resolution").addOption("balanced", "Balanced \u2014 75%, roughly half the GPU work").addOption("saver", "Battery saver \u2014 50%, visibly soft").setValue(this.plugin.settings.renderQuality).onChange(async (value) => {
+          this.plugin.settings.renderQuality = value;
+          await this.plugin.saveSettings();
+          window.dispatchEvent(new CustomEvent("torus-render-quality", { detail: value }));
+          window.dispatchEvent(new Event("torus-invalidate"));
         })
       );
       new import_obsidian22.Setting(containerEl).setName("Inbox order").setDesc("Default stack order for the sorting desk on load. The desk\u2019s Order control can still change it for the session.").addDropdown(
@@ -186417,169 +186737,6 @@ var import_child_process3 = require("child_process");
 var import_os3 = require("os");
 var import_path5 = require("path");
 var import_obsidian23 = require("obsidian");
-
-// src/lib/binResolver.ts
-var import_child_process2 = require("child_process");
-var import_fs3 = require("fs");
-var import_os2 = require("os");
-var import_path4 = require("path");
-
-// src/lib/binPath.ts
-var import_fs2 = require("fs");
-function isUsableBinPath(p3, exists = import_fs2.existsSync) {
-  if (!(p3.startsWith("/") || /^[A-Za-z]:[\\/]/.test(p3))) return false;
-  try {
-    return exists(p3);
-  } catch {
-    return false;
-  }
-}
-function pickBinPath(stdout, exists = import_fs2.existsSync) {
-  const lines = String(stdout).split("\n").map((s) => s.trim()).filter(Boolean);
-  for (let i3 = lines.length - 1; i3 >= 0; i3--) {
-    if (isUsableBinPath(lines[i3], exists)) return lines[i3];
-  }
-  return null;
-}
-
-// src/lib/binResolver.ts
-var CLAUDE_CLI_MISSING_MSG = "can't find the Claude CLI. Install it from Settings \u2192 The Torus \u2192 Setup status \u2192 Install, or run: curl -fsSL https://claude.ai/install.sh | bash";
-var CLAUDE_CLI_AUTH_MSG = `Claude CLI is installed but not signed in. Run \`${claudeLoginCommand(process.platform)}\`, finish the browser sign-in, then click Recheck in Settings \u2192 The Torus \u2192 Setup status.`;
-var cache2 = /* @__PURE__ */ new Map();
-function findClaudeInStandardLocations(log) {
-  const nativeInstallPath = claudeCliStandardPath(process.platform, (0, import_os2.homedir)());
-  if (!nativeInstallPath) return null;
-  if ((0, import_fs3.existsSync)(nativeInstallPath)) {
-    log(`resolved claude via native install location \u2192 ${nativeInstallPath}`);
-    return nativeInstallPath;
-  }
-  return null;
-}
-async function resolveClaudeWin32(log) {
-  const pathCandidates = await getCommandAllWin32("claude", log);
-  const onPath = pathCandidates.find(isSpawnableWin32) ?? null;
-  const standardLocation = findClaudeInStandardLocations(log);
-  const chosen = onPath || standardLocation;
-  if (chosen) log(`resolved claude (win32) \u2192 ${chosen}`);
-  else log("resolveBin(claude) win32 \u2014 no spawnable .exe found");
-  return chosen;
-}
-function findCodexInStandardLocations(log) {
-  if (process.platform === "win32") {
-    const localAppData = process.env.LOCALAPPDATA;
-    if (!localAppData) return null;
-    const binDir = (0, import_path4.join)(localAppData, "OpenAI", "Codex", "bin");
-    if (!(0, import_fs3.existsSync)(binDir)) return null;
-    try {
-      const children = (0, import_fs3.readdirSync)(binDir, { withFileTypes: true }).filter((e2) => e2.isDirectory()).map((e2) => ({ name: e2.name, mtimeMs: (0, import_fs3.statSync)((0, import_path4.join)(binDir, e2.name)).mtimeMs }));
-      const newest = pickNewestBinDir(children);
-      if (!newest) return null;
-      const exe = (0, import_path4.join)(binDir, newest, "codex.exe");
-      if ((0, import_fs3.existsSync)(exe)) {
-        log(`resolved codex via desktop-app location \u2192 ${exe}`);
-        return exe;
-      }
-    } catch (e2) {
-      log(`findCodexInStandardLocations(win32) probe failed: ${e2.message}`);
-    }
-    return null;
-  }
-  const bundlePath = "/Applications/ChatGPT.app/Contents/Resources/codex";
-  if ((0, import_fs3.existsSync)(bundlePath)) {
-    log(`resolved codex via ChatGPT.app bundle \u2192 ${bundlePath}`);
-    return bundlePath;
-  }
-  return null;
-}
-function getCommandAllWin32(name, log) {
-  return new Promise((resolve2) => {
-    const cmd = `powershell -NoProfile -Command "Get-Command '${name}' -All -ErrorAction SilentlyContinue | ForEach-Object { $_.Source }"`;
-    (0, import_child_process2.exec)(cmd, { timeout: 1e4 }, (err, stdout) => {
-      if (err) {
-        log(`getCommandAllWin32(${name}) failed: ${err.code ?? err.message}`);
-        return resolve2([]);
-      }
-      resolve2(String(stdout).split(/\r?\n/).map((s) => s.trim()).filter(Boolean));
-    });
-  });
-}
-function codexDoctorExecutable(_log) {
-  return Promise.resolve(null);
-}
-async function resolveCodexWin32(log) {
-  const pathCandidates = await getCommandAllWin32("codex", log);
-  const standardLocation = findCodexInStandardLocations(log);
-  const doctorExecutable = await codexDoctorExecutable(log);
-  const chosen = chooseCodexBin({ pathCandidates, doctorExecutable, standardLocation });
-  if (chosen) log(`resolved codex (win32) \u2192 ${chosen}`);
-  else log("resolveBin(codex) win32 \u2014 no spawnable .exe (PATH shims only, no desktop-app install; doctor route box-pending)");
-  return chosen;
-}
-function resolveBin(name, log = () => {
-}) {
-  const cached2 = cache2.get(name);
-  if (cached2) return cached2;
-  const promise2 = resolveBinUncached(name, log).then((p3) => {
-    if (p3) log(`resolved ${name} \u2192 ${p3}`);
-    else cache2.delete(name);
-    return p3;
-  });
-  cache2.set(name, promise2);
-  return promise2;
-}
-function clearBinCache() {
-  cache2.clear();
-}
-function resolveBinUncached(name, log) {
-  return new Promise((resolve2) => {
-    const isWin = process.platform === "win32";
-    const timeoutMs = 1e4;
-    if (isWin) {
-      if (name === "codex") {
-        resolveCodexWin32(log).then(resolve2);
-        return;
-      }
-      if (name === "claude") {
-        resolveClaudeWin32(log).then(resolve2);
-        return;
-      }
-      const cmd2 = `powershell -NoProfile -Command "(Get-Command '${name}' -ErrorAction SilentlyContinue).Source"`;
-      (0, import_child_process2.exec)(cmd2, { timeout: timeoutMs }, (err, stdout, stderr) => {
-        const raw = String(stdout).trim();
-        const out = pickBinPath(raw);
-        if (err || !out) {
-          log(
-            `resolveBin(${name}) failed \u2014 windows powershell ${err ? `err=${err.code ?? err.message}` : raw ? `no usable path in stdout=${raw.slice(0, 200)}` : "empty stdout"}${stderr ? ` stderr=${String(stderr).trim().slice(0, 300)}` : ""}`
-          );
-          return resolve2(null);
-        }
-        resolve2(out);
-      });
-      return;
-    }
-    const shell = process.env.SHELL || "/bin/zsh";
-    const cmd = `${shell} -lic 'command -v ${name}'`;
-    (0, import_child_process2.exec)(cmd, { timeout: timeoutMs }, async (err, stdout, stderr) => {
-      const raw = String(stdout).trim();
-      const out = pickBinPath(raw);
-      if (out) return resolve2(out);
-      const errInfo = err ? `err=${err.code ?? err.message}` : raw ? `no usable path in stdout=${raw.slice(0, 200)}` : "empty stdout";
-      const stderrSnippet = String(stderr || "").trim().slice(0, 500);
-      log(
-        `resolveBin(${name}) shell-PATH lookup failed \u2014 shell=${shell} ${errInfo}${stderrSnippet ? ` stderr=${stderrSnippet}` : ""}`
-      );
-      if (name === "claude") {
-        const fromStd = findClaudeInStandardLocations(log);
-        if (fromStd) return resolve2(fromStd);
-      }
-      if (name === "codex") {
-        const fromStd = findCodexInStandardLocations(log);
-        if (fromStd) return resolve2(fromStd);
-      }
-      resolve2(null);
-    });
-  });
-}
 
 // src/lib/usage.ts
 function parseClaudeEnvelope(stdout) {
@@ -215097,6 +215254,68 @@ function resolveVaultPathInput(input, basePath, torusRoot, platform = process.pl
   };
 }
 
+// src/lib/codexRollout.ts
+function itemText(content) {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content.filter((block) => typeof block.text === "string" && String(block.type || "").toLowerCase() === "text").map((block) => block.text).filter(Boolean).join("\n");
+}
+function parseCodexRolloutText(raw) {
+  let sessionId = "";
+  let cwd = "";
+  let firstTimestamp = null;
+  const directMessages = [];
+  const completedMessages = [];
+  for (const line of raw.split("\n")) {
+    if (!line.trim()) continue;
+    let obj;
+    try {
+      obj = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    const timestamp2 = typeof obj.timestamp === "string" ? obj.timestamp : "";
+    if (timestamp2 && !firstTimestamp) firstTimestamp = timestamp2;
+    const payload = obj.payload || {};
+    if (obj.type === "session_meta") {
+      const id = typeof payload.session_id === "string" ? payload.session_id : typeof payload.id === "string" ? payload.id : "";
+      if (id) sessionId = id;
+      if (typeof payload.cwd === "string" && payload.cwd) cwd = payload.cwd;
+      continue;
+    }
+    if (obj.type !== "event_msg") continue;
+    if (payload.type === "user_message" || payload.type === "agent_message") {
+      const text2 = typeof payload.message === "string" ? payload.message : "";
+      if (text2) {
+        directMessages.push({
+          role: payload.type === "user_message" ? "user" : "assistant",
+          text: text2,
+          tools: [],
+          ts: timestamp2
+        });
+      }
+      continue;
+    }
+    if (payload.type !== "item_completed") continue;
+    const item = payload.item || {};
+    if (item.type !== "UserMessage" && item.type !== "AgentMessage") continue;
+    const text = itemText(item.content);
+    if (!text) continue;
+    completedMessages.push({
+      role: item.type === "UserMessage" ? "user" : "assistant",
+      text,
+      tools: [],
+      ts: timestamp2
+    });
+  }
+  return {
+    sessionId,
+    cwd,
+    messages: directMessages.length > 0 ? directMessages : completedMessages,
+    firstTimestamp
+  };
+}
+
 // src/lib/membership.ts
 function classifyForMenu(status, opts) {
   if (opts.pluginInternal) return "none";
@@ -224372,6 +224591,8 @@ async function extractPdf(opts) {
 var import_node_crypto2 = require("node:crypto");
 var CANONICAL_SCHEMA = "torus.memory.canonical-transcript.v1";
 var OFFSETS = /* @__PURE__ */ new Map([
+  ["AST", "-04:00"],
+  ["ADT", "-03:00"],
   ["EST", "-05:00"],
   ["EDT", "-04:00"],
   ["CST", "-06:00"],
@@ -224380,7 +224601,7 @@ var OFFSETS = /* @__PURE__ */ new Map([
 var jsonHash = (value) => (0, import_node_crypto2.createHash)("sha256").update(JSON.stringify(value)).digest("hex");
 function timestamp(value) {
   const raw = String(value || "").trim();
-  const local = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) (EST|EDT|CST|CDT)$/.exec(raw);
+  const local = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) (AST|ADT|EST|EDT|CST|CDT)$/.exec(raw);
   const input = local ? `${local[1]}T${local[2]}${OFFSETS.get(local[3])}` : raw;
   const date5 = new Date(input);
   if (!raw || Number.isNaN(date5.getTime())) throw new Error(`invalid_timestamp:${raw || "empty"}`);
@@ -224473,7 +224694,7 @@ function fromTorusTranscript(text) {
   const source = String(text);
   const meta3 = frontmatter(source);
   if (!meta3.session || !meta3.started) throw new Error("incomplete_torus_header");
-  const unsupported = /^## (?!User\b|Assistant\b)([A-Za-z][A-Za-z -]*) — \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} (?:EST|EDT|CST|CDT)$/m.exec(source);
+  const unsupported = /^## (?!User\b|Assistant\b)([A-Za-z][A-Za-z -]*) — \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} (?:AST|ADT|EST|EDT|CST|CDT)$/m.exec(source);
   if (unsupported) throw new Error(`unsupported_role:${unsupported[1]}`);
   const turns = collectBlocks(source, (line) => {
     const match = /^## (User|Assistant) — (.+)$/.exec(line);
@@ -231448,40 +231669,18 @@ ${conversation.join("\n")}
       return names.filter((f) => f.startsWith("rollout-") && f.endsWith(".jsonl")).map((f) => (0, import_path13.join)(root, f));
     };
     const parseCodexRollout = (jsonlPath) => {
-      let sessionId = "", cwd = "", firstTimestamp = null;
-      const messages = [];
       let raw;
       try {
         raw = (0, import_fs12.readFileSync)(jsonlPath, "utf-8");
       } catch {
-        return { sessionId, cwd, messages, firstTimestamp };
+        return { sessionId: "", cwd: "", messages: [], firstTimestamp: null };
       }
-      for (const line of raw.split("\n")) {
-        if (!line.trim()) continue;
-        let obj;
-        try {
-          obj = JSON.parse(line);
-        } catch {
-          continue;
-        }
-        if (obj.timestamp && !firstTimestamp) firstTimestamp = obj.timestamp;
-        const p3 = obj.payload || {};
-        if (obj.type === "session_meta") {
-          sessionId = p3.session_id || p3.id || sessionId;
-          cwd = p3.cwd || cwd;
-          continue;
-        }
-        if (obj.type !== "event_msg") continue;
-        const ts = typeof obj.timestamp === "string" ? obj.timestamp : "";
-        if (p3.type === "user_message") {
-          const text = stripNoise(stripFilesPreamble(typeof p3.message === "string" ? p3.message : ""));
-          if (text) messages.push({ role: "user", text, tools: [], ts });
-        } else if (p3.type === "agent_message") {
-          const text = stripNoise(typeof p3.message === "string" ? p3.message : "");
-          if (text) messages.push({ role: "assistant", text, tools: [], ts });
-        }
-      }
-      return { sessionId, cwd, messages, firstTimestamp };
+      const parsed = parseCodexRolloutText(raw);
+      const messages = parsed.messages.map((message) => ({
+        ...message,
+        text: message.role === "user" ? stripNoise(stripFilesPreamble(message.text)) : stripNoise(message.text)
+      })).filter((message) => message.text.length > 0);
+      return { ...parsed, messages };
     };
     const bySession = /* @__PURE__ */ new Map();
     if ((0, import_fs12.existsSync)(CLAUDE_DIR)) {
