@@ -213896,7 +213896,7 @@ var TorusMcpServer = class {
     mcp.registerTool("torus_move", {
       description: desc("torusMove"),
       inputSchema: {
-        nameOrPath: external_exports.string().describe("Note to move: fuzzy title or exact path"),
+        nameOrPath: external_exports.string().describe("Already-shelved note to move: fuzzy title or exact path (use torus_shelve for an inbox note)"),
         room: external_exports.string().describe("Destination room (existing manifest H1)"),
         shelf: external_exports.string().describe("Destination shelf (H2)")
       }
@@ -215329,6 +215329,37 @@ function isPluginInternalPath(path3, torusRoot) {
   if (path3.startsWith(`${torusRoot}/.twin/`)) return true;
   const base = path3.split("/").pop() ?? "";
   return base.startsWith(".");
+}
+
+// src/lib/libraryState.ts
+var DEFAULT_SCHEDULE_LOCATION = "Skills/Twin Methods";
+function frontmatterField(content, field) {
+  if (!content) return null;
+  const block = content.match(/^---\n([\s\S]*?)\n---/)?.[1];
+  if (!block) return null;
+  const escaped = field.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return block.match(new RegExp(`^${escaped}:\\s*(.+)$`, "m"))?.[1]?.trim() || null;
+}
+function moveStateError(content, path3) {
+  const status = frontmatterField(content, "torus_status");
+  if (status === "shelved") return null;
+  return {
+    error: "wrong_state",
+    message: `torusMove only moves shelved notes; "${path3}" has torus_status ${JSON.stringify(status)}. Use torusShelve for an inbox note.`,
+    path: path3,
+    status,
+    required_status: "shelved"
+  };
+}
+function renderScheduleFrontmatter(existingContent, rendered) {
+  const created = frontmatterField(existingContent, "torus_created") || rendered;
+  const location = frontmatterField(existingContent, "torus_location") || DEFAULT_SCHEDULE_LOCATION;
+  return `---
+torus_status: shelved
+torus_source: torus
+torus_location: ${location}
+torus_created: ${created}
+---`;
 }
 
 // src/lib/platform.ts
@@ -227140,21 +227171,14 @@ _Fable-safe (redacted) \xB7 assembled ${torusFormatLocal(nowIso, "datetime")} ($
     const rendered = torusFormatLocal(/* @__PURE__ */ new Date(), "datetime");
     const noteRel = `${this.settings.torusRoot}/Sources/Torus Schedule.md`;
     const notePath = this.absPath(noteRel);
-    let created = rendered;
+    let existingSchedule = null;
     if ((0, import_fs12.existsSync)(notePath)) {
       try {
-        const existing = (0, import_fs12.readFileSync)(notePath, "utf-8");
-        const m2 = existing.match(/^torus_created:\s*(.+)$/m);
-        if (m2) created = m2[1].trim();
+        existingSchedule = (0, import_fs12.readFileSync)(notePath, "utf-8");
       } catch {
       }
     }
-    const content = `---
-torus_status: shelved
-torus_source: torus
-torus_location: Skills/Twin Methods
-torus_created: ${created}
----
+    const content = `${renderScheduleFrontmatter(existingSchedule, rendered)}
 # Torus Schedule
 
 > [!info] How to edit
@@ -234214,6 +234238,9 @@ ${fetchedContent}
     const filePath = parsed.path;
     const absFile = this.absPath(filePath);
     const basename5 = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
+    const noteContent = (0, import_fs12.readFileSync)(absFile, "utf-8");
+    const stateError = moveStateError(noteContent, filePath);
+    if (stateError) return JSON.stringify(stateError);
     const manifestPath2 = this.absPath(`${this.settings.torusRoot}/torus-manifest.md`);
     const manifest2 = (0, import_fs12.readFileSync)(manifestPath2, "utf-8");
     const roomErr = this.assertKnownRoom(manifest2, room, filePath);
@@ -234221,7 +234248,6 @@ ${fetchedContent}
     const removed = removeFromTorus(manifest2, basename5);
     const updated = insertIntoTorus(removed, room, shelf, basename5);
     (0, import_fs12.writeFileSync)(manifestPath2, updated, "utf-8");
-    const noteContent = (0, import_fs12.readFileSync)(absFile, "utf-8");
     const updatedNote = editFrontmatter(noteContent, {
       torus_location: formatLocation(room, shelf)
     });
@@ -234710,7 +234736,7 @@ ${remainingLines.join("\n")}
       { method: "torusWrite(path, content, mode?)", description: 'Write/append/overwrite a note. mode: "new"|"append"|"overwrite". Paths starting with $torusRoot/ are resolved.' },
       { method: "torusSearch(query, collection?, mode?)", description: 'Search via QMD. Collection short names: factual (sources+research+ideas \u2014 the knowledge surface, default; "vault" is a back-compat alias), sources (sources+research), ideas, sessions, research, digests. fiction/fiction-<world> are reserved (Phase 2 explicit-membership engine) and return empty until populated. No "all". Mode (default "hybrid"): "lex" = BM25, fast (<1s), keyword-aware; "vec" = vector similarity, fast (~1-2s), semantic-aware; "hybrid" = BM25+vec+rerank, slow (~10-15s), best recall. Use lex when you know the keywords, vec when wording diverges (find-dupes, neighbor lookups), hybrid when both matter. Result URIs (qmd://torus-<collection>/...) preserve provenance.' },
       { method: "torusShelve(nameOrPath, room?, shelf?)", description: "Shelve a note: inserts into manifest if needed (uses proposed_room/shelf or args), sets status=shelved, cleans up proposed_* fields." },
-      { method: "torusMove(nameOrPath, room, shelf)", description: "Move a note to a different room/shelf in torus-manifest.md. Updates frontmatter." },
+      { method: "torusMove(nameOrPath, room, shelf)", description: "Move an already-shelved note to a different room/shelf in torus-manifest.md. Rejects inbox notes without mutation; use torusShelve for the inbox \u2192 shelved transition." },
       { method: "torusComputeFlag(payloadJson)", description: 'Threshold-tripped flag from the compute-tightness poll daemon \u2192 writes a pending note to input-queue/ for enrichment+triage. payloadJson stringifies {indicator, rule, current, reference, unit, region?, poll_id, flagged_at}. Idempotent within 24h on indicator+rule (returns {ok:true, skipped:"duplicate"} on collision). Filename pattern: compute-flag-{indicator}-{poll_id}.md. Path-safety: indicator and poll_id must match [A-Za-z0-9_.-]+. Logs activity event compute_flag with actor:"pipeline". Returns {ok, path?} or {ok:false, error}.' },
       { method: "torusEnrichScan()", description: "List notes in the enrichment queue (status: pending in input-queue/) \u2014 raw captures awaiting the librarian. NOT the user's inbox." },
       { method: "torusInboxList()", description: `List notes in the user's inbox \u2014 enriched notes in Sources/ that haven't been shelved yet. Rendered as the "Inbox" stack in the 3D library view.` },
